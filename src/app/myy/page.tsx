@@ -1,4 +1,3 @@
-
 // src/app/myy/page.tsx
 'use client';
 
@@ -18,7 +17,23 @@ import { Combobox, type ComboboxOption } from "~/components/ui/combobox";
 import { Progress } from "~/components/ui/progress";
 import { Label } from "~/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
-import { Info, Cpu, MemoryStick, HardDrive, Power, CheckCircle2, HelpCircle } from "lucide-react";
+import { 
+  Info, 
+  Cpu, 
+  MemoryStick, 
+  HardDrive, 
+  Power, 
+  CheckCircle2, 
+  HelpCircle,
+  Monitor,
+  Zap,
+  Shield,
+  ArrowRight,
+  ArrowLeft,
+  Calculator,
+  Recycle,
+  Award
+} from "lucide-react";
 import { cn } from "~/lib/utils";
 
 import cpusData from "~/data/parts/cpu.json";
@@ -29,10 +44,6 @@ type CpuPart = Part & { core_count: number; boost_clock: number; microarchitectu
 type GpuPart = Part & { chipset: string; memory: number; };
 
 // #region Pricing Configuration
-// This section centralizes all pricing logic variables for easy tuning.
-// WHY: Centralizing these values makes it simple for developers to adjust the
-//      pricing model without digging through complex code. It's a single source of truth.
-
 const PRICING_CONFIG = {
   REPUR_PURCHASE_FACTOR: 0.6,
   AGE_HEURISTICS: [
@@ -53,7 +64,7 @@ const PRICING_CONFIG = {
     "Hyvä": 0.8,
     "Tyydyttävä": 0.6,
     "Huono": 0.3,
-    "En tiedä": 0.8, // Default to "Hyvä" multiplier if "En tiedä"
+    "En tiedä": 0.8,
   },
   RAM: {
     BASE_VALUE_PER_GB: 2.5,
@@ -83,7 +94,6 @@ const PRICING_CONFIG = {
     DEFAULT_WATTAGE: 650,
   },
 };
-// #endregion
 
 // #region Pricing Calculation Logic
 const getComponentAge = (name: string): number => {
@@ -104,13 +114,10 @@ const calculatePartValue = (part: Part, type: 'CPU' | 'GPU'): number => {
   const depreciationRate = PRICING_CONFIG.COMPONENT_DEPRECIATION[type];
   
   const depreciatedValue = basePrice * Math.pow(1 - depreciationRate, age);
-  
   return depreciatedValue;
 };
 
 const calculateRamValue = (data: FormData): number => {
-  console.group("Calculating RAM Value");
-  console.log("RAM Data Input:", data.ramSize, data.ramType, data.ramSpeed);
   const size = data.ramSize ? parseInt(data.ramSize, 10) : PRICING_CONFIG.RAM.DEFAULT_GB;
   const type = data.ramType && data.ramType !== 'en_tieda_ram_type' ? data.ramType : 'en_tieda_ram_type';
   const speed = data.ramSpeed ? parseInt(data.ramSpeed, 10) : 3200;
@@ -122,54 +129,33 @@ const calculateRamValue = (data: FormData): number => {
   const typeKey = type as keyof typeof PRICING_CONFIG.RAM.TYPE_MULTIPLIER;
   const typeMultiplier = PRICING_CONFIG.RAM.TYPE_MULTIPLIER[typeKey] || 1.0;
 
-  const result = size * PRICING_CONFIG.RAM.BASE_VALUE_PER_GB * typeMultiplier * speedMultiplier;
-  console.log(`RAM Calculation: Size: ${size}GB, Type: ${type} (x${typeMultiplier}), Speed: ${speed} (x${speedMultiplier}) = ${result}€`);
-  console.groupEnd();
-  return result;
+  return size * PRICING_CONFIG.RAM.BASE_VALUE_PER_GB * typeMultiplier * speedMultiplier;
 };
 
 const calculateStorageValue = (data: FormData): number => {
-  console.group("Calculating Storage Value");
-  console.log("Storage Data Input:", data.storageType, data.storageSize);
   const size = data.storageSize ? parseInt(data.storageSize, 10) : PRICING_CONFIG.STORAGE.DEFAULT_GB;
   const type = data.storageType && data.storageType !== 'en_tieda_storage_type' ? data.storageType : 'en_tieda_storage_type';
   const typeKey = type as keyof typeof PRICING_CONFIG.STORAGE.BASE_VALUE_PER_GB;
   const multiplier = PRICING_CONFIG.STORAGE.BASE_VALUE_PER_GB[typeKey] || PRICING_CONFIG.STORAGE.BASE_VALUE_PER_GB.en_tieda_storage_type;
-  const result = size * multiplier;
-  console.log(`Storage Calculation: Size: ${size}GB, Type: ${type} (x${multiplier}) = ${result}€`);
-  console.groupEnd();
-  return result;
+  return size * multiplier;
 };
 
 const calculatePsuValue = (data: FormData): number => {
-  console.group("Calculating PSU Value");
-  console.log("PSU Data Input:", data.psuWattage, data.psuEfficiency);
   const wattage = data.psuWattage ? parseInt(data.psuWattage, 10) : PRICING_CONFIG.PSU.DEFAULT_WATTAGE;
   const efficiency = data.psuEfficiency && data.psuEfficiency !== 'en_tieda_psu_efficiency' ? data.psuEfficiency : 'en_tieda_psu_efficiency';
   const efficiencyKey = efficiency as keyof typeof PRICING_CONFIG.PSU.EFFICIENCY_MULTIPLIER;
   const multiplier = PRICING_CONFIG.PSU.EFFICIENCY_MULTIPLIER[efficiencyKey] || PRICING_CONFIG.PSU.EFFICIENCY_MULTIPLIER.en_tieda_psu_efficiency;
-  const result = wattage * PRICING_CONFIG.PSU.BASE_VALUE_PER_WATT * multiplier;
-  console.log(`PSU Calculation: Wattage: ${wattage}W, Efficiency: ${efficiency} (x${multiplier}) = ${result}€`);
-  console.groupEnd();
-  return result;
+  return wattage * PRICING_CONFIG.PSU.BASE_VALUE_PER_WATT * multiplier;
 };
 
 const calculatePrice = (data: FormData): number | null => {
-  console.group("Calculating Total Price");
-  console.log("Input FormData for Price Calculation:", data);
-
   const selectedCpu = (cpusData as CpuPart[]).find(c => c.name === data.cpu);
   const selectedGpu = (gpusData as GpuPart[]).find(g => g.chipset === data.gpu);
 
-  console.log("Selected CPU:", selectedCpu?.name ?? "N/A", "Selected GPU:", selectedGpu?.chipset ?? "N/A");
-
-  // Ensure core components are selected and other required fields are not empty before calculating
   if (!selectedCpu || !selectedGpu || 
       !data.ramSize || !data.ramType || !data.ramSpeed || 
       !data.storageType || !data.storageSize || 
       !data.psuWattage || !data.psuEfficiency) {
-    console.log("Missing required components/data for full price calculation. Returning null.");
-    console.groupEnd();
     return null;
   }
 
@@ -179,31 +165,17 @@ const calculatePrice = (data: FormData): number | null => {
   const storageValue = calculateStorageValue(data);
   const psuValue = calculatePsuValue(data);
 
-  console.log(`Component Values: CPU: ${cpuValue}€, GPU: ${gpuValue}€, RAM: ${ramValue}€, Storage: ${storageValue}€, PSU: ${psuValue}€`);
-
   const totalMarketValue = cpuValue + gpuValue + ramValue + storageValue + psuValue;
-  console.log("Total Market Value (pre-condition):", totalMarketValue, "€");
-
   const conditionKey = data.condition as keyof typeof PRICING_CONFIG.CONDITION_MULTIPLIERS;
-  // Fallback to 'En tiedä' multiplier if conditionKey is somehow invalid or missing in config
   const conditionMultiplier = PRICING_CONFIG.CONDITION_MULTIPLIERS[conditionKey] || PRICING_CONFIG.CONDITION_MULTIPLIERS["En tiedä"];
-  console.log(`Condition: ${data.condition} (Multiplier: ${conditionMultiplier})`);
-
   const adjustedValue = totalMarketValue * conditionMultiplier;
-  console.log("Adjusted Value (after condition):", adjustedValue, "€");
-
   const finalOffer = adjustedValue * PRICING_CONFIG.REPUR_PURCHASE_FACTOR;
-  console.log(`Final Offer (after Repur factor ${PRICING_CONFIG.REPUR_PURCHASE_FACTOR}):`, finalOffer, "€");
-
-  // Return null if the final calculation is NaN (e.g. due to unexpected non-numeric input somewhere)
-  const result = isNaN(finalOffer) ? null : Math.round(finalOffer);
-  console.log("Final Estimated Price (rounded):", result, "€");
-  console.groupEnd();
-  return result;
+  
+  return isNaN(finalOffer) ? null : Math.round(finalOffer);
 };
 // #endregion
 
-// Ensure options are unique and have valid prices, and group them.
+// Process parts without showing prices
 const processAndGroupParts = <T extends Part>(
   parts: T[],
   groupingKey: 'name' | 'chipset',
@@ -211,23 +183,14 @@ const processAndGroupParts = <T extends Part>(
   mainLabelFn: (part: T) => string,
   sortFn?: (a: ComboboxOption, b: ComboboxOption) => number
 ): ComboboxOption[] => {
-  console.group(`Processing and Grouping Parts by ${groupingKey}`);
-  console.log("Raw parts input:", parts);
-
   const seenValues = new Set<string>();
   const groupedOptions: { [key: string]: ComboboxOption[] } = {};
 
   parts.forEach(part => {
-    if (part.price === null || part.price === 0) {
-      console.log(`Skipping part (null/zero price): ${part[groupingKey as keyof T] as string}`);
-      return; // Skip items with no price
-    }
+    if (part.price === null || part.price === 0) return;
 
-    const value = part[groupingKey as keyof T] as string; // Explicitly cast to string
-    if (seenValues.has(value)) {
-      console.log(`Skipping duplicate part: ${value}`);
-      return; // Skip duplicates
-    }
+    const value = part[groupingKey as keyof T] as string;
+    if (seenValues.has(value)) return;
     seenValues.add(value);
 
     const group = groupLabelFn(part);
@@ -238,25 +201,19 @@ const processAndGroupParts = <T extends Part>(
     const newOption = {
       id: value,
       value: value,
-      label: mainLabelFn(part),
+      label: mainLabelFn(part), // No price shown
       group: group,
     };
-    console.log("Adding option:", newOption);
     groupedOptions[group].push(newOption);
   });
 
-  console.log("Grouped options before flattening:", groupedOptions);
-
   let result: ComboboxOption[] = [];
   Object.keys(groupedOptions).sort().forEach(group => {
-    console.log("Processing group:", group);
-    result.push({ type: 'group', label: group, id: group, value: '' } as ComboboxOption); // Added id and empty value to group item
+    result.push({ type: 'group', label: group, id: group, value: '' } as ComboboxOption);
     const sortedGroupOptions = groupedOptions[group].sort(sortFn);
     result = result.concat(sortedGroupOptions);
   });
 
-  console.log("Final processed parts result:", result);
-  console.groupEnd();
   return result;
 };
 
@@ -266,17 +223,16 @@ const TradeInSubmissionSchema = z.object({
   description: z.string().max(2048, "Kuvaus on liian pitkä.").optional(),
   cpu: z.string().min(1, "Prosessori on pakollinen."),
   gpu: z.string().min(1, "Näytönohjain on pakollinen."),
-  ram: z.string().min(1, "RAM on pakollinen."), // This expects the combined string
-  storage: z.string().min(1, "Tallennustila on pakollinen."), // This expects the combined string
-  powerSupply: z.string().optional(), // This expects the combined string
+  ram: z.string().min(1, "RAM on pakollinen."),
+  storage: z.string().min(1, "Tallennustila on pakollinen."),
+  powerSupply: z.string().optional(),
   caseModel: z.string().optional(),
-  condition: z.enum(["Uusi", "Kuin uusi", "Hyvä", "Tyydyttävä", "Huono", "En tiedä"]), // Must match server enum exactly
+  condition: z.enum(["Uusi", "Kuin uusi", "Hyvä", "Tyydyttävä", "Huono", "En tiedä"]),
   estimatedValue: z.number().optional(),
   contactEmail: z.string().email("Virheellinen sähköpostiosoite."),
   contactPhone: z.string().optional(),
 });
 
-// Type for local form state - granular fields, combining calculator and sell page fields
 type FormData = {
   title: string;
   description?: string;
@@ -309,22 +265,47 @@ const initialFormData: FormData = {
   psuWattage: '', 
   psuEfficiency: '',
   caseModel: '',
-  condition: 'En tiedä', // Set to "En tiedä" to show placeholder
+  condition: 'En tiedä',
   estimatedValue: undefined, 
   contactEmail: '', 
   contactPhone: '',
 };
 
+const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number, totalSteps: number }) => (
+  <div className="flex items-center justify-center space-x-2 mb-8">
+    {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+      <div key={step} className="flex items-center">
+        <div className={cn(
+          "w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300",
+          currentStep >= step 
+            ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg" 
+            : "bg-gray-200 text-gray-600"
+        )}>
+          {step}
+        </div>
+        {step < totalSteps && (
+          <div className={cn(
+            "w-16 h-1 mx-2 rounded-full transition-all duration-300",
+            currentStep > step ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gray-200"
+          )} />
+        )}
+      </div>
+    ))}
+  </div>
+);
+
 const FormStep = ({ title, description, children, isActive }: { title: string, description: string, children: React.ReactNode, isActive: boolean }) => (
   <motion.div
     initial={{ opacity: 0, x: 50 }}
     animate={{ opacity: isActive ? 1 : 0, x: isActive ? 0 : -50 }}
-    transition={{ duration: 0.3, ease: "easeInOut" }}
+    transition={{ duration: 0.4, ease: "easeOut" }}
     className={cn("space-y-6", !isActive && "absolute w-full top-0 left-0 pointer-events-none")}
   >
-    <h2 className="text-2xl font-bold text-[var(--color-neutral)]">{title}</h2>
-    <p className="text-[var(--color-neutral)]/80 mt-1 mb-6">{description}</p>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="text-center mb-8">
+      <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
+      <p className="text-gray-600 max-w-2xl mx-auto">{description}</p>
+    </div>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {children}
     </div>
   </motion.div>
@@ -336,37 +317,26 @@ export default function MyyPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const TOTAL_STEPS = 4;
 
-  console.log("MyyPage Initialized. Current formData:", formData);
-  console.log("Initial estimatedPrice:", estimatedPrice);
-  console.log("Initial currentStep:", currentStep);
-
+  // Remove price from display labels
   const processedCpuOptions: ComboboxOption[] = useMemo(() => {
-    console.group("Processing CPU Options");
-    const result = processAndGroupParts(
+    return processAndGroupParts(
       cpusData as CpuPart[],
       'name',
       (cpu) => (cpu as CpuPart).name.includes('Ryzen') ? 'AMD Processors' : 'Intel Processors',
-      (cpu) => `${cpu.name} - ${cpu.price}€`,
-      (a, b) => a.label.localeCompare(b.label) // Alphabetical sort
+      (cpu) => cpu.name, // Just show the name, no price
+      (a, b) => a.label.localeCompare(b.label)
     );
-    console.log("Processed CPU Options:", result);
-    console.groupEnd();
-    return result;
-  }, [cpusData]);
+  }, []);
 
   const processedGpuOptions: ComboboxOption[] = useMemo(() => {
-    console.group("Processing GPU Options");
-    const result = processAndGroupParts(
+    return processAndGroupParts(
       gpusData as GpuPart[],
       'chipset',
       (gpu) => (gpu as GpuPart).chipset.includes('Radeon') ? 'AMD Graphics Cards' : 'NVIDIA Graphics Cards',
-      (gpu) => `${gpu.chipset} - ${gpu.price}€`,
-      (a, b) => a.label.localeCompare(b.label) // Alphabetical sort
+      (gpu) => gpu.chipset, // Just show the chipset, no price
+      (a, b) => a.label.localeCompare(b.label)
     );
-    console.log("Processed GPU Options:", result);
-    console.groupEnd();
-    return result;
-  }, [gpusData]);
+  }, []);
 
   const RAM_OPTIONS = useMemo(() => [
     { id: '8GB', value: '8', label: '8 GB' }, 
@@ -435,14 +405,11 @@ export default function MyyPage() {
   ], []);
 
   const handleInputChange = (field: keyof FormData, value: string) => {
-    console.log(`FormData changed: Field \`${field}\` set to \`${value}\``);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const debouncedCalculatePrice = useCallback(() => {
-    console.log("Debounced calculation triggered. Current formData:", formData);
     const price = calculatePrice(formData); 
-    console.log("Calculated price (debounced):", price);
     setEstimatedPrice(price);
   }, [formData]);
 
@@ -454,21 +421,17 @@ export default function MyyPage() {
   }, [formData, debouncedCalculatePrice]);
 
   const createTradeInSubmissionMutation = api.listings.createTradeInSubmission.useMutation({
-    onSuccess: (data) => {
-      console.log("Trade-in submission successful! Response:", data);
+    onSuccess: () => {
       toast({ title: "Pyyntö lähetetty", description: "Olemme sinuun yhteydessä sähköpostitse.", variant: "success" });
-      setCurrentStep(TOTAL_STEPS + 1); // Move to confirmation step
+      setCurrentStep(TOTAL_STEPS + 1);
     },
     onError: (error) => {
-      console.error("Trade-in submission failed! Error:", error);
       toast({ title: "Virhe", description: error.message, variant: "destructive" });
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.group("Handling Form Submission");
-    console.log("Form data at submission:", formData);
     try {
       const submissionData = {
         title: formData.title,
@@ -484,220 +447,482 @@ export default function MyyPage() {
         contactEmail: formData.contactEmail,
         contactPhone: formData.contactPhone,
       };
-      console.log("Submission data prepared:", submissionData);
       
       const validatedData = TradeInSubmissionSchema.parse(submissionData);
-      console.log("Validated submission data:", validatedData);
       createTradeInSubmissionMutation.mutate(validatedData);
     } catch (error) {
-      console.error("Form validation error:", error);
       if (error instanceof z.ZodError) {
         error.issues.forEach(issue => {
-          console.error("Validation Issue:", issue.message);
           toast({ title: "Virheellinen syöte", description: issue.message, variant: "destructive" });
         });
       }
-    } finally {
-        console.groupEnd();
     }
   };
 
-  const steps = [
-    { id: 1, title: "Ydinkomponentit", description: "Valitse koneesi tärkeimmät osat, prosessori ja näytönohjain." },
-    { id: 2, title: "Muisti ja Tallennustila", description: "Kerro meille koneesi muistin ja tallennustilan tiedot." },
-    { id: 3, title: "Virtalähde ja Kunto", description: "Viimeistele tiedot virtalähteellä ja yleiskunnolla."},
-    { id: 4, title: "Yhteystiedot", description: "Tarvitsemme yhteystietosi, jotta voimme lähettää sinulle tarjouksen."}
-  ];
-
-  const nextStep = () => {
-    console.log("Moving to next step. Current step:", currentStep);
-    setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS + 1));
-    console.log("New step:", Math.min(currentStep + 1, TOTAL_STEPS + 1));
-  }
-  const prevStep = () => {
-    console.log("Moving to previous step. Current step:", currentStep);
-    setCurrentStep(s => Math.max(s - 1, 1));
-    console.log("New step:", Math.max(currentStep - 1, 1));
-  }
+  const nextStep = () => setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS + 1));
+  const prevStep = () => setCurrentStep(s => Math.max(s - 1, 1));
 
   return (
-    <div className="container mx-auto px-container py-section">
-      <header className="text-center mb-12">
-        <h1 className="text-4xl-fluid font-extrabold tracking-tight text-[var(--color-neutral)]">
-          Myy Tietokoneesi Meille
-        </h1>
-        <p className="mt-4 max-w-3xl mx-auto text-lg-fluid text-[var(--color-neutral)]/80">
-          Anna vanhalle pelikoneellesi uusi elämä. Täytä tiedot, saat heti hinta-arvion ja teemme sinulle reilun tarjouksen.
-        </p>
-      </header>
+    <div className="min-h-screen bg-[var(--color-surface-1)] text-[var(--color-neutral)]">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-tertiary)] to-[var(--color-primary-dark)] text-[var(--color-neutral)]">
+        <div className="container mx-auto px-container py-section">
+          <div className="text-center max-w-4xl mx-auto">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl-fluid sm:text-5xl-fluid font-extrabold mb-6 !text-white"
+            >
+              Myy Tietokoneesi Repur.fi:lle
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-lg-fluid opacity-90 mb-8"
+            >
+              Anna vanhalle pelikoneellesi uusi elämä. Saat reilun tarjouksen ja tuet samalla kierrätystaloutta.
+            </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="flex flex-wrap justify-center gap-6 text-sm-fluid"
+            >
+              <div className="flex items-center space-x-2">
+                <Shield className="w-5 h-5 text-[var(--color-success)]" />
+                <span>12 kuukauden takuu</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Recycle className="w-5 h-5 text-[var(--color-info)]" />
+                <span>Ympäristöystävällistä</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Award className="w-5 h-5 text-[var(--color-warning)]" />
+                <span>Luotettava kumppani</span>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-        <main className="lg:col-span-2 relative min-h-[600px]">
-          <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
-            {currentStep <= TOTAL_STEPS && (
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-2xl-fluid font-bold text-[var(--color-neutral)]">Vaihe {currentStep}/{TOTAL_STEPS}: {steps[currentStep - 1]?.title}</CardTitle>
-                  <div className="flex space-x-1">
-                    {steps.map(step => (
-                      <div key={step.id} className={`w-10 h-2 rounded-full ${currentStep >= step.id ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-surface-3)]'}`}></div>
-                    ))}
-                  </div>
-                </div>
+      <div className="container mx-auto px-container py-section">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+          {/* Main Form */}
+          <div className="xl:col-span-3">
+            <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
+              {currentStep <= TOTAL_STEPS && (
+                <CardHeader className="bg-[var(--color-surface-3)] border-b border-[var(--color-border)]">
+                  <StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
+                </CardHeader>
+              )}
+              
+              <CardContent className="p-lg">
+                <AnimatePresence mode="wait">
+                  {currentStep === TOTAL_STEPS + 1 ? (
+                    <motion.div
+                      key="confirmation"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-center py-2xl"
+                    >
+                      <div className="w-24 h-24 bg-[var(--color-success)]/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle2 className="w-12 h-12 text-[var(--color-success)]" />
+                      </div>
+                      <h2 className="text-3xl-fluid font-bold text-[var(--color-neutral)] mb-4">Kiitos pyynnöstäsi!</h2>
+                      <p className="text-[var(--color-neutral)]/80 mb-8 max-w-md mx-auto">
+                        Olemme vastaanottaneet tietosi ja otamme sinuun yhteyttä sähköpostitse 24 tunnin sisällä.
+                      </p>
+                      <Button 
+                        onClick={() => {
+                          setCurrentStep(1);
+                          setFormData(initialFormData);
+                          setEstimatedPrice(null);
+                        }}
+                        className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+                      >
+                        Lähetä uusi pyyntö
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                      <div className="relative min-h-[500px]">
+                        {/* Step 1: Core Components */}
+                        {currentStep === 1 && (
+                          <FormStep 
+                            title="Ydinkomponentit" 
+                            description="Valitse koneesi tärkeimmät osat - prosessori ja näytönohjain." 
+                            isActive={currentStep === 1}
+                          >
+                            <div className="space-y-4">
+                              <Label className="flex items-center text-[var(--color-neutral)] font-semibold">
+                                <Cpu className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                                Prosessori (CPU)
+                              </Label>
+                              <Combobox 
+                                options={processedCpuOptions} 
+                                value={formData.cpu} 
+                                onValueChange={(v) => handleInputChange('cpu', v)} 
+                                placeholder="Valitse prosessori..." 
+                                searchPlaceholder="Etsi prosessoria..." 
+                                groupBy="group" 
+                              />
+                            </div>
+                            <div className="space-y-4">
+                              <Label className="flex items-center text-[var(--color-neutral)] font-semibold">
+                                <Monitor className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                                Näytönohjain (GPU)
+                              </Label>
+                              <Combobox 
+                                options={processedGpuOptions} 
+                                value={formData.gpu} 
+                                onValueChange={(v) => handleInputChange('gpu', v)} 
+                                placeholder="Valitse näytönohjain..." 
+                                searchPlaceholder="Etsi näytönohjainta..." 
+                                groupBy="group" 
+                              />
+                            </div>
+                          </FormStep>
+                        )}
+
+                        {/* Step 2: Memory and Storage */}
+                        {currentStep === 2 && (
+                          <FormStep 
+                            title="Muisti ja Tallennustila" 
+                            description="Kerro meille koneesi muistin ja tallennustilan tiedot." 
+                            isActive={currentStep === 2}
+                          >
+                            <div className="bg-[var(--color-surface-3)]/50 p-lg rounded-xl border border-[var(--color-border)]">
+                              <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
+                                <MemoryStick className="mr-2 text-[var(--color-primary)]" /> 
+                                Muisti (RAM)
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-[var(--color-neutral)]">Koko</Label>
+                                  <Combobox 
+                                    options={RAM_OPTIONS} 
+                                    value={formData.ramSize} 
+                                    onValueChange={(v) => handleInputChange('ramSize', v)} 
+                                    placeholder="Valitse..." 
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-[var(--color-neutral)]">Tyyppi</Label>
+                                  <Combobox 
+                                    options={RAM_TYPE_OPTIONS} 
+                                    value={formData.ramType} 
+                                    onValueChange={(v) => handleInputChange('ramType', v)} 
+                                    placeholder="Valitse..." 
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-[var(--color-neutral)]">Nopeus</Label>
+                                  <Combobox 
+                                    options={RAM_SPEED_OPTIONS} 
+                                    value={formData.ramSpeed} 
+                                    onValueChange={(v) => handleInputChange('ramSpeed', v)} 
+                                    placeholder="Valitse..." 
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="bg-[var(--color-surface-3)]/50 p-lg rounded-xl border border-[var(--color-border)]">
+                              <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
+                                <HardDrive className="mr-2 text-[var(--color-primary)]" /> 
+                                Tallennustila
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-[var(--color-neutral)]">Tyyppi</Label>
+                                  <Combobox 
+                                    options={STORAGE_TYPE_OPTIONS} 
+                                    value={formData.storageType} 
+                                    onValueChange={(v) => handleInputChange('storageType', v)} 
+                                    placeholder="Valitse..." 
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-[var(--color-neutral)]">Koko</Label>
+                                  <Combobox 
+                                    options={STORAGE_SIZE_OPTIONS} 
+                                    value={formData.storageSize} 
+                                    onValueChange={(v) => handleInputChange('storageSize', v)} 
+                                    placeholder="Valitse..." 
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </FormStep>
+                        )}
+
+                        {/* Step 3: PSU and Details */}
+                        {currentStep === 3 && (
+                          <FormStep 
+                            title="Virtalähde ja Lisätiedot" 
+                            description="Viimeistele tiedot virtalähteellä ja muilla yksityiskohdilla." 
+                            isActive={currentStep === 3}
+                          >
+                            <div className="bg-[var(--color-surface-3)]/50 p-lg rounded-xl border border-[var(--color-border)] col-span-full">
+                              <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
+                                <Power className="mr-2 text-[var(--color-primary)]" /> 
+                                Virtalähde (PSU)
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                  <Label className="text-[var(--color-neutral)]">Teho</Label>
+                                  <Combobox 
+                                    options={PSU_WATTAGE_OPTIONS} 
+                                    value={formData.psuWattage} 
+                                    onValueChange={(v) => handleInputChange('psuWattage', v)} 
+                                    placeholder="Valitse..." 
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-[var(--color-neutral)]">Hyötysuhde</Label>
+                                  <Combobox 
+                                    options={PSU_EFFICIENCY_OPTIONS} 
+                                    value={formData.psuEfficiency} 
+                                    onValueChange={(v) => handleInputChange('psuEfficiency', v)} 
+                                    placeholder="Valitse..." 
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-4">
+                              <Label className="text-[var(--color-neutral)] font-semibold">Otsikko</Label>
+                              <Input 
+                                placeholder="Otsikko (esim. Tehokas Pelitietokone)" 
+                                value={formData.title} 
+                                onChange={(e) => handleInputChange('title', e.target.value)} 
+                                className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
+                              />
+                            </div>
+                            
+                            <div className="space-y-4">
+                              <Label className="text-[var(--color-neutral)] font-semibold">Kotelo (Valinnainen)</Label>
+                              <Input 
+                                placeholder="Kotelo (esim. Fractal Design Meshify C)" 
+                                value={formData.caseModel ?? ''} 
+                                onChange={(e) => handleInputChange('caseModel', e.target.value)} 
+                                className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
+                              />
+                            </div>
+                            
+                            <div className="space-y-4 col-span-full">
+                              <Label className="text-[var(--color-neutral)] font-semibold">Kuvaus (Valinnainen)</Label>
+                              <Textarea 
+                                placeholder="Tarkempi kuvaus koneesta, sen käytöstä ja kunnosta..." 
+                                value={formData.description ?? ''} 
+                                onChange={(e) => handleInputChange('description', e.target.value)} 
+                                rows={4} 
+                                className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
+                              />
+                            </div>
+                            
+                            <div className="space-y-4 col-span-full">
+                              <Label className="text-[var(--color-neutral)] font-semibold">Koneen yleiskunto</Label>
+                              <Combobox 
+                                options={CONDITION_OPTIONS} 
+                                value={formData.condition} 
+                                onValueChange={(v) => handleInputChange('condition', v)} 
+                                placeholder="Valitse koneen yleiskunto..." 
+                              />
+                            </div>
+                          </FormStep>
+                        )}
+
+                        {/* Step 4: Contact Info */}
+                        {currentStep === 4 && (
+                          <FormStep 
+                            title="Yhteystiedot" 
+                            description="Tarvitsemme yhteystietosi tarjouksen lähettämistä varten." 
+                            isActive={currentStep === 4}
+                          >
+                            <div className="space-y-4">
+                              <Label className="text-[var(--color-neutral)] font-semibold">Sähköpostiosoite *</Label>
+                              <Input 
+                                placeholder="Sähköpostiosoite" 
+                                value={formData.contactEmail} 
+                                onChange={(e) => handleInputChange('contactEmail', e.target.value)} 
+                                type="email" 
+                                className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
+                                required
+                              />
+                            </div>
+                            
+                            <div className="space-y-4">
+                              <Label className="text-[var(--color-neutral)] font-semibold">Puhelinnumero (valinnainen)</Label>
+                              <Input 
+                                placeholder="Puhelinnumero" 
+                                value={formData.contactPhone ?? ''} 
+                                onChange={(e) => handleInputChange('contactPhone', e.target.value)} 
+                                type="tel" 
+                                className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
+                              />
+                            </div>
+                          </FormStep>
+                        )}
+                      </div>
+
+                      {/* Navigation Buttons */}
+                      <div className="flex justify-between items-center pt-lg border-t border-[var(--color-border)]/50">
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          onClick={prevStep} 
+                          disabled={currentStep === 1}
+                          className="flex items-center space-x-2 px-lg py-md"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          <span>Edellinen</span>
+                        </Button>
+                        
+                        {currentStep < TOTAL_STEPS ? (
+                          <Button 
+                            type="button"
+                            onClick={nextStep}
+                            className="flex items-center space-x-2 px-lg py-md bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+                          >
+                            <span>Seuraava</span>
+                            <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <Button 
+                            type="submit" 
+                            disabled={createTradeInSubmissionMutation.isPending || !formData.cpu || !formData.gpu || !formData.title || !formData.contactEmail}
+                            className="flex items-center space-x-2 px-xl py-md bg-gradient-to-r from-[var(--color-success)] to-[var(--color-primary)] hover:from-[var(--color-success)]/90 hover:to-[var(--color-primary)]/90"
+                          >
+                            {createTradeInSubmissionMutation.isPending ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-[var(--color-neutral)] border-t-transparent rounded-full animate-spin" />
+                                <span>Lähetetään...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>Lähetä Pyyntö</span>
+                                <ArrowRight className="w-4 h-4" />
+                              </>
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </form>
+                  )}
+                </AnimatePresence>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="xl:col-span-1 space-y-lg">
+            {/* Price Estimate */}
+            <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
+              <CardHeader className="bg-[var(--color-surface-3)]/50 border-b border-[var(--color-border)]">
+                <CardTitle className="flex items-center text-xl-fluid font-bold text-[var(--color-neutral)]">
+                  <Calculator className="mr-2 h-5 w-5 text-[var(--color-primary)]" />
+                  Hinta-arvio
+                </CardTitle>
               </CardHeader>
-            )}
-            <CardContent className="p-6 md:p-8">
-              <AnimatePresence mode="wait">
-                {currentStep === TOTAL_STEPS + 1 ? (
-                  <motion.div
-                    key="confirmation"
-                    initial={{ opacity: 0, x: 50 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -50 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="text-center py-12"
+              <CardContent className="p-lg">
+                {estimatedPrice !== null ? (
+                  <motion.div 
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-center"
                   >
-                    <CheckCircle2 className="w-16 h-16 text-[var(--color-success)] mx-auto mb-4" />
-                    <h2 className="text-3xl-fluid font-bold text-[var(--color-neutral)]">Kiitos pyynnöstäsi!</h2>
-                    <p className="text-[var(--color-neutral)]/80 mt-2">Olemme vastaanottaneet tietosi ja otamme sinuun pian yhteyttä sähköpostitse. Tarkistathan myös roskapostikansiosi.</p>
-                    <Button onClick={() => {
-                        console.log("Resetting form and returning to step 1.");
-                        setCurrentStep(1);
-                        setFormData(initialFormData);
-                        setEstimatedPrice(null);
-                      }} className="mt-8">Lähetä uusi pyyntö</Button>
+                    <div className="text-4xl-fluid font-bold text-[var(--color-success)] mb-2">
+                      {estimatedPrice} €
+                    </div>
+                    <p className="text-sm-fluid text-[var(--color-neutral)]/80">
+                      Alustava tarjouksemme
+                    </p>
+                    <p className="text-xs-fluid text-[var(--color-neutral)]/60 mt-2">
+                      Lopullinen hinta vahvistetaan tarkistuksen jälkeen
+                    </p>
                   </motion.div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-8">
-                    <div className="relative">
-                    {currentStep === 1 && (
-                      <FormStep title="Ydinkomponentit" description="Valitse koneesi tärkeimmät osat, prosessori ja näytönohjain." isActive={currentStep === 1}>
-                        <div className="space-y-2 col-span-full">
-                          <Label htmlFor="cpu" className="flex items-center text-[var(--color-neutral)]"><Cpu className="mr-2 h-4 w-4 text-[var(--color-primary)]" />Prosessori</Label>
-                          <Combobox options={processedCpuOptions} value={formData.cpu} onValueChange={(v) => handleInputChange('cpu', v)} placeholder="Valitse prosessori..." searchPlaceholder="Etsi prosessoria..." groupBy="group" />
-                        </div>
-                        <div className="space-y-2 col-span-full">
-                          <Label htmlFor="gpu" className="flex items-center text-[var(--color-neutral)]"><Info className="mr-2 h-4 w-4 text-[var(--color-primary)]" />Näytönohjain</Label>
-                          <Combobox options={processedGpuOptions} value={formData.gpu} onValueChange={(v) => handleInputChange('gpu', v)} placeholder="Valitse näytönohjain..." searchPlaceholder="Etsi näytönohjainta..." groupBy="group" />
-                        </div>
-                      </FormStep>
-                    )}
-
-                    {currentStep === 2 && (
-                      <FormStep title="Muisti ja Tallennustila" description="Kerro meille koneesi muistin ja tallennustilan tiedot." isActive={currentStep === 2}>
-                        <div className="p-4 border border-[var(--color-border)] rounded-lg space-y-4 col-span-full bg-[var(--color-surface-3)]">
-                            <h3 className="font-semibold text-lg-fluid text-[var(--color-neutral)] flex items-center"><MemoryStick className="mr-2 text-[var(--color-primary)]" /> Muisti (RAM)</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-2"><Label className="text-[var(--color-neutral)]">Koko</Label><Combobox options={RAM_OPTIONS} value={formData.ramSize} onValueChange={(v) => handleInputChange('ramSize', v)} placeholder="Valitse..." /></div>
-                                <div className="space-y-2"><Label className="text-[var(--color-neutral)]">Tyyppi</Label><Combobox options={RAM_TYPE_OPTIONS} value={formData.ramType} onValueChange={(v) => handleInputChange('ramType', v)} placeholder="Valitse..." /></div>
-                                <div className="space-y-2"><Label className="text-[var(--color-neutral)]">Nopeus</Label><Combobox options={RAM_SPEED_OPTIONS} value={formData.ramSpeed} onValueChange={(v) => handleInputChange('ramSpeed', v)} placeholder="Valitse..." /></div>
-                            </div>
-                        </div>
-                        <div className="p-4 border border-[var(--color-border)] rounded-lg space-y-4 col-span-full bg-[var(--color-surface-3)]">
-                            <h3 className="font-semibold text-lg-fluid text-[var(--color-neutral)] flex items-center"><HardDrive className="mr-2 text-[var(--color-primary)]" /> Tallennustila</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2"><Label className="text-[var(--color-neutral)]">Tyyppi</Label><Combobox options={STORAGE_TYPE_OPTIONS} value={formData.storageType} onValueChange={(v) => handleInputChange('storageType', v)} placeholder="Valitse..." /></div>
-                                <div className="space-y-2"><Label className="text-[var(--color-neutral)]">Koko</Label><Combobox options={STORAGE_SIZE_OPTIONS} value={formData.storageSize} onValueChange={(v) => handleInputChange('storageSize', v)} placeholder="Valitse..." /></div>
-                            </div>
-                        </div>
-                      </FormStep>
-                    )}
-
-                    {currentStep === 3 && (
-                      <FormStep title="Virtalähde ja Kunto" description="Viimeistele tiedot virtalähteellä ja yleiskunnolla." isActive={currentStep === 3}>
-                        <div className="p-4 border border-[var(--color-border)] rounded-lg space-y-4 col-span-full bg-[var(--color-surface-3)]">
-                          <h3 className="font-semibold text-lg-fluid text-[var(--color-neutral)] flex items-center"><Power className="mr-2 text-[var(--color-primary)]" /> Virtalähde</h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2"><Label className="text-[var(--color-neutral)]">Teho</Label><Combobox options={PSU_WATTAGE_OPTIONS} value={formData.psuWattage} onValueChange={(v) => handleInputChange('psuWattage', v)} placeholder="Valitse..." /></div>
-                              <div className="space-y-2"><Label className="text-[var(--color-neutral)]">Hyötysuhde</Label><Combobox options={PSU_EFFICIENCY_OPTIONS} value={formData.psuEfficiency} onValueChange={(v) => handleInputChange('psuEfficiency', v)} placeholder="Valitse..." /></div>
-                          </div>
-                        </div>
-                        <div className="space-y-2 col-span-full">
-                          <Label htmlFor="title" className="text-[var(--color-neutral)]">Otsikko</Label>
-                          <Input placeholder="Otsikko (esim. Tehokas Pelitietokone)" value={formData.title} onChange={(e) => handleInputChange('title', e.target.value)} className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]" />
-                        </div>
-                        <div className="space-y-2 col-span-full">
-                          <Label htmlFor="description" className="text-[var(--color-neutral)]">Kuvaus</Label>
-                          <Textarea placeholder="Tarkempi kuvaus (valinnainen)..." value={formData.description ?? ''} onChange={(e) => handleInputChange('description', e.target.value)} rows={4} className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]" />
-                        </div>
-                        <div className="space-y-2 col-span-full">
-                          <Label htmlFor="caseModel" className="text-[var(--color-neutral)]">Kotelo (Valinnainen)</Label>
-                          <Input placeholder="Kotelo (esim. Fractal Design Meshify C)" value={formData.caseModel ?? ''} onChange={(e) => handleInputChange('caseModel', e.target.value)} className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]" />
-                        </div>
-                        <div className="space-y-2 col-span-full">
-                          <Label className="text-[var(--color-neutral)]">Koneen yleiskunto</Label>
-                          <Combobox options={CONDITION_OPTIONS} value={formData.condition} onValueChange={(v) => handleInputChange('condition', v)} placeholder="Valitse koneen yleiskunto..." />
-                        </div>
-                      </FormStep>
-                    )}
-
-                    {currentStep === 4 && (
-                      <FormStep title="Yhteystiedot" description="Tarvitsemme yhteystietosi, jotta voimme lähettää sinulle tarjouksen." isActive={currentStep === 4}>
-                        <div className="space-y-2 col-span-full">
-                          <Label htmlFor="contactEmail" className="text-[var(--color-neutral)]">Sähköpostiosoite</Label>
-                          <Input placeholder="Sähköpostiosoite" value={formData.contactEmail} onChange={(e) => handleInputChange('contactEmail', e.target.value)} type="email" className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]" />
-                        </div>
-                        <div className="space-y-2 col-span-full">
-                          <Label htmlFor="contactPhone" className="text-[var(--color-neutral)]">Puhelinnumero (valinnainen)</Label>
-                          <Input placeholder="Puhelinnumero (valinnainen)" value={formData.contactPhone ?? ''} onChange={(e) => handleInputChange('contactPhone', e.target.value)} type="tel" className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]" />
-                        </div>
-                      </FormStep>
-                    )}
-                    </div> {/* End of relative div for FormSteps */}
-
-                    <div className="flex justify-between items-center pt-6 border-t border-[var(--color-border)]/50">
-                      <Button variant="outline" onClick={prevStep} disabled={currentStep === 1} className="px-4 py-2 sm:px-6 sm:py-3 touch-manipulation min-h-[44px]">Edellinen</Button>
-                      {currentStep < TOTAL_STEPS && <Button onClick={nextStep} className="px-4 py-2 sm:px-6 sm:py-3 touch-manipulation min-h-[44px]">Seuraava</Button>}
-                      {currentStep === TOTAL_STEPS && (
-                        <Button type="submit" disabled={createTradeInSubmissionMutation.isPending || !formData.cpu || !formData.gpu || !formData.title || !formData.contactEmail} className="px-4 py-2 sm:px-6 sm:py-3 touch-manipulation min-h-[44px]">
-                          {createTradeInSubmissionMutation.isPending ? 'Lähetetään...' : 'Lähetä Pyyntö'}
-                        </Button>
-                      )}
+                  <div className="text-center py-2xl">
+                    <div className="w-16 h-16 bg-[var(--color-surface-3)] rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Calculator className="w-8 h-8 text-[var(--color-neutral)]/50" />
                     </div>
-                  </form>
-                )}
-              </AnimatePresence>
-            </CardContent>
-          </Card>
-        </main>
-
-        <aside className="lg:col-span-1 space-y-8">
-          <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl-fluid font-bold text-[var(--color-neutral)]">Alustava Hinta-arvio</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {estimatedPrice !== null ? (
-                <div className="text-center">
-                  <p className="text-5xl font-extrabold text-[var(--color-success)]">{estimatedPrice} €</p>
-                  <p className="text-sm text-[var(--color-neutral)]/80 mt-2">Lopullinen hinta vahvistetaan tarkistuksen jälkeen.</p>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <HelpCircle className="w-12 h-12 text-[var(--color-neutral)]/50 mx-auto mb-4" />
-                  <p className="text-[var(--color-neutral)]/80">Täytä komponenttien tiedot nähdäksesi hinta-arvion.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl-fluid font-bold text-[var(--color-neutral)]">Miten prosessi toimii?</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[ { title: 'Täytä tiedot', description: 'Saat heti alustavan hinta-arvion.' }, { title: 'Lähetä pyyntö', description: 'Otamme sinuun yhteyttä sähköpostitse.' }, { title: 'Tarkastus & Tarjous', description: 'Vahvistamme hinnan koneen tarkistuksen jälkeen.' }, { title: 'Maksu', description: 'Hyväksyttyäsi tarjouksen, saat rahat tilillesi.' } ].map((step, i) => (
-                <div key={i} className="flex items-start space-x-3">
-                  <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-[var(--color-primary)] text-white rounded-full font-bold text-sm">{i + 1}</span>
-                  <div>
-                    <h3 className="font-semibold text-[var(--color-neutral)]">{step.title}</h3>
-                    <p className="text-[var(--color-neutral)]/80 text-sm">{step.description}</p>
+                    <p className="text-[var(--color-neutral)]/80 text-sm-fluid">
+                      Täytä komponenttien tiedot nähdäksesi hinta-arvion
+                    </p>
                   </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Process Steps */}
+            <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
+              <CardHeader>
+                <CardTitle className="text-xl-fluid font-bold text-[var(--color-neutral)]">
+                  Miten prosessi toimii?
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-lg space-y-4">
+                {[
+                  { 
+                    icon: Calculator, 
+                    title: 'Täytä tiedot', 
+                    description: 'Saat heti alustavan hinta-arvion komponenttiesi perusteella.' 
+                  },
+                  { 
+                    icon: Zap, 
+                    title: 'Lähetä pyyntö', 
+                    description: 'Otamme yhteyttä 24 tunnin sisällä sähköpostitse.' 
+                  },
+                  { 
+                    icon: Shield, 
+                    title: 'Tarkastus & Tarjous', 
+                    description: 'Tarkastamme koneen ja vahvistamme lopullisen hinnan.' 
+                  },
+                  { 
+                    icon: CheckCircle2, 
+                    title: 'Maksu', 
+                    description: 'Hyväksyttyäsi tarjouksen, saat rahat nopeasti tilillesi.' 
+                  }
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start space-x-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-[var(--color-primary)] text-[var(--color-surface-inverse)] rounded-full flex items-center justify-center font-bold text-sm">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-[var(--color-neutral)] flex items-center">
+                        <step.icon className="w-4 h-4 mr-1 text-[var(--color-primary)]" />
+                        {step.title}
+                      </h3>
+                      <p className="text-[var(--color-neutral)]/80 text-sm-fluid mt-1">{step.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Benefits */}
+            <Card className="bg-gradient-to-br from-[var(--color-surface-3)]/50 to-[var(--color-surface-4)]/50 border-[var(--color-border)]/50 shadow-lg">
+              <CardContent className="p-lg">
+                <h3 className="font-bold text-[var(--color-neutral)] mb-4">Miksi valita Repur.fi?</h3>
+                <div className="space-y-3">
+                  {[
+                    { icon: Shield, text: "12 kuukauden takuu kaikille koneille" },
+                    { icon: Recycle, text: "Ympäristöystävällinen vaihtoehto" },
+                    { icon: Award, text: "Reilut hinnat ja nopea käsittely" },
+                    { icon: Zap, text: "Ammattitaitoinen refurb-prosessi" }
+                  ].map((benefit, i) => (
+                    <div key={i} className="flex items-center space-x-2">
+                      <benefit.icon className="w-4 h-4 text-[var(--color-primary)] flex-shrink-0" />
+                      <span className="text-sm-fluid text-[var(--color-neutral)]/80">{benefit.text}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        </aside>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

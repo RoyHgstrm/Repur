@@ -30,31 +30,31 @@ const warrantyFeatures = [
 export default function TakuuPage() {
   return (
     <div className="container mx-auto px-container py-section">
-      <header className="text-center mb-12">
-        <h1 className="text-4xl-fluid font-extrabold tracking-tight text-[var(--color-neutral)]">
+      <header className="text-center mb-xl">
+        <h1 className="text-4xl-fluid font-extrabold tracking-tight text-[var(--color-text-primary)]">
           Repur.fi Takuu
         </h1>
-        <p className="mt-4 max-w-3xl mx-auto text-lg-fluid text-[var(--color-neutral)]/80">
+        <p className="mt-md max-w-3xl mx-auto text-lg-fluid text-[var(--color-text-secondary)]">
           Seisomme tuotteidemme takana. Tarjoamme selkeän ja reilun takuun, jotta voit keskittyä olennaiseen: pelaamiseen.
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-lg mb-2xl">
         {warrantyFeatures.map((feature, index) => (
-          <Card key={index} className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 p-6 text-center">
-            <div className="flex justify-center mb-4">{feature.icon}</div>
-            <h3 className="text-xl-fluid font-bold text-[var(--color-neutral)] mb-2">{feature.title}</h3>
-            <p className="text-[var(--color-neutral)]/80">{feature.description}</p>
+          <Card key={index} className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 p-lg text-center shadow-md hover:shadow-lg transition-shadow">
+            <div className="flex justify-center mb-md">{feature.icon}</div>
+            <h3 className="text-xl-fluid font-bold text-[var(--color-text-primary)] mb-sm">{feature.title}</h3>
+            <p className="text-[var(--color-text-secondary)] text-base-fluid">{feature.description}</p>
           </Card>
         ))}
       </div>
 
-      <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 p-8">
+      <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 p-xl shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl-fluid font-bold text-[var(--color-neutral)]">Takuuehdot lyhyesti</CardTitle>
+          <CardTitle className="text-2xl-fluid font-bold text-[var(--color-text-primary)]">Takuuehdot lyhyesti</CardTitle>
         </CardHeader>
         <CardContent>
-          <ul className="space-y-4 text-[var(--color-neutral)]/80 list-disc list-inside">
+          <ul className="space-y-md text-[var(--color-text-secondary)] list-disc list-inside">
             <li>Takuu on voimassa 12 kuukautta ostopäivästä.</li>
             <li>Takuu kattaa kaikki laitteistoviat, jotka eivät ole käyttäjän itse aiheuttamia.</li>
             <li>Ohjelmistovirheet, haittaohjelmat tai virukset eivät kuulu takuun piiriin.</li>
@@ -62,7 +62,7 @@ export default function TakuuPage() {
             <li>Takuukorjaukset suoritetaan meidän toimestamme. Laitteen omatoiminen avaaminen tai korjaaminen voi mitätöidä takuun.</li>
             <li>Säilytä ostokuitti, se toimii takuutodistuksena.</li>
           </ul>
-          <p className="mt-6 text-[var(--color-neutral)]/80">
+          <p className="mt-lg text-[var(--color-text-secondary)]">
             Jos sinulla on kysyttävää takuusta tai haluat tehdä takuuvaatimuksen, ole hyvä ja <a href="/yhteystiedot" className="text-[var(--color-primary)] hover:underline">ota meihin yhteyttä</a>.
           </p>
         </CardContent>

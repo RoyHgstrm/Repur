@@ -1,172 +1,333 @@
-/* globals.css - Design System Variables */
+/* globals.css - Enhanced Colorful Design System */
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif,
+  --font-sans:
+    var(--font-poppins), ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-}
-
-@theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 }
 
 :root {
   --radius: 0.625rem;
-  color-scheme: dark; /* Explicitly set color scheme to dark */
+  color-scheme: dark;
 
-  /* Semantic Color System - OKLCH for perceptual uniformity (Dark Mode Defaults) */
-  --color-primary: oklch(70% 0.25 250); /* More vibrant blue */
-  --color-secondary: oklch(75% 0.25 150); /* More vibrant green */
-  --color-accent: oklch(80% 0.3 60); /* More vibrant orange */
-  --color-neutral: oklch(90% 0.01 250); /* Near white for text */
+  /* Enhanced Vibrant Color Palette - OKLCH for better perceptual uniformity */
+  --color-primary: oklch(65% 0.28 260); /* Deeper electric blue */
+  --color-primary-light: oklch(75% 0.25 260); /* Lighter blue for accents */
+  --color-primary-dark: oklch(55% 0.3 260); /* Even deeper blue for contrast */
   
-  /* Surface Hierarchy (Dark Mode) */
-  --color-surface-1: oklch(10% 0.01 250);   /* Primary surface (darkest) */
-  --color-surface-2: oklch(12% 0.015 250);  /* Secondary surface */
-  --color-surface-3: oklch(15% 0.02 250);   /* Tertiary surface (lightest dark) */
-  --color-surface-inverse: oklch(98% 0.01 250); /* For elements that need to be light on dark background */
+  --color-secondary: oklch(70% 0.27 160); /* Deeper emerald green */
+  --color-secondary-light: oklch(80% 0.24 160); /* Light green accents */
+  --color-secondary-dark: oklch(60% 0.3 160); /* Even deeper green */
+  
+  --color-accent: oklch(72% 0.32 45); /* Deeper coral/orange */
+  --color-accent-light: oklch(82% 0.28 45); /* Light coral */
+  --color-accent-dark: oklch(62% 0.35 45); /* Even deeper coral */
+  
+  --color-tertiary: oklch(70% 0.25 310); /* Deeper magenta */
+  --color-quaternary: oklch(68% 0.22 200); /* Deeper cyan blue */
+  
+  /* Enhanced Surface Colors with Subtle Color Tints */
+  --color-surface-1: oklch(10% 0.02 260); /* Primary surface (darkest) */
+  --color-surface-2: oklch(14% 0.025 250); /* Secondary with purple tint */
+  --color-surface-3: oklch(18% 0.03 240); /* Tertiary with more color */
+  --color-surface-4: oklch(22% 0.035 230); /* Additional surface level */
+  --color-surface-inverse: oklch(96% 0.015 260); /* Light surface with tint */
+  
+  /* Dynamic Text Colors */
+  --color-text-primary: oklch(92% 0.02 260); /* Slightly tinted white */
+  --color-text-secondary: oklch(78% 0.04 240); /* Muted with color */
+  --color-text-tertiary: oklch(65% 0.06 220); /* More muted with color */
+  
+  /* Enhanced Semantic States with More Vibrance */
+  --color-success: oklch(65% 0.25 145); /* Deeper vibrant green */
+  --color-success-light: oklch(75% 0.2 145);
+  --color-warning: oklch(72% 0.25 65); /* Deeper vibrant amber */
+  --color-warning-light: oklch(82% 0.2 65);
+  --color-error: oklch(58% 0.28 20); /* Deeper vibrant red */
+  --color-error-light: oklch(78% 0.2 20);
+  --color-info: oklch(62% 0.22 250); /* Deeper vibrant blue info */
+  --color-info-light: oklch(72% 0.18 250);
 
-  /* Semantic States */
-  --color-success: oklch(70% 0.2 140);
-  --color-warning: oklch(80% 0.2 60);
-  --color-error: oklch(65% 0.25 25);
-  --color-info: oklch(70% 0.2 250);
-  
-  /* Typography Scale */
+  /* Border and Interactive States */
+  --color-border: oklch(25% 0.04 240); /* Darker subtle colored border */
+  --color-border-light: oklch(35% 0.05 240);
+  --color-border-focus: var(--color-primary);
+  --color-ring: var(--color-primary-light);
+
+  /* Gradient Definitions for Visual Interest */
+  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-tertiary) 100%);
+  --gradient-secondary: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-quaternary) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary-light) 100%);
+  --gradient-surface: linear-gradient(135deg, var(--color-surface-2) 0%, var(--color-surface-3) 100%);
+
+  /* Typography with Better Hierarchy */
   --font-display: "Inter Variable", system-ui, sans-serif;
   --font-body: "Inter Variable", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", monospace;
-  
-  /* Fluid Typography - Responsive Type Scale */
-  --font-size-base: clamp(1rem, 0.8vw + 1rem, 1.125rem); /* 16px-18px */
-  --font-size-lg: clamp(1.125rem, 1vw + 1.125rem, 1.5rem); /* 18px-24px */
-  --font-size-xl: clamp(1.25rem, 1.2vw + 1.25rem, 1.875rem); /* 20px-30px */
-  --font-size-2xl: clamp(1.5rem, 1.5vw + 1.5rem, 2.25rem); /* 24px-36px */
-  --font-size-3xl: clamp(1.875rem, 2vw + 1.875rem, 3rem); /* 30px-48px */
-  --font-size-4xl: clamp(2.25rem, 2.5vw + 2.25rem, 4rem); /* 36px-64px */
 
-  /* Spacing System - T-shirt sizes */
-  --space-xs: 0.25rem;   /* 4px */
-  --space-sm: 0.5rem;    /* 8px */
-  --space-md: 1rem;      /* 16px */
-  --space-lg: 1.5rem;    /* 24px */
-  --space-xl: 2rem;      /* 32px */
-  --space-2xl: 3rem;     /* 48px */
-  --space-3xl: 4rem;     /* 64px */
+  /* Enhanced Fluid Typography - Better Mobile Scaling */
+  --font-size-xs: clamp(0.75rem, 0.5vw + 0.7rem, 0.875rem); /* 12px-14px */
+  --font-size-sm: clamp(0.875rem, 0.6vw + 0.8rem, 1rem); /* 14px-16px */
+  --font-size-base: clamp(1rem, 0.8vw + 0.9rem, 1.125rem); /* 16px-18px */
+  --font-size-lg: clamp(1.125rem, 1vw + 1rem, 1.375rem); /* 18px-22px */
+  --font-size-xl: clamp(1.25rem, 1.3vw + 1.1rem, 1.75rem); /* 20px-28px */
+  --font-size-2xl: clamp(1.5rem, 1.8vw + 1.2rem, 2.25rem); /* 24px-36px */
+  --font-size-3xl: clamp(1.875rem, 2.5vw + 1.5rem, 3rem); /* 30px-48px */
+  --font-size-4xl: clamp(2.25rem, 3vw + 1.8rem, 4rem); /* 36px-64px */
+  --font-size-5xl: clamp(2.5rem, 4vw + 2rem, 5rem); /* 40px-80px */
 
-  /* Fluid Spacing - based on viewport width */
-  --section-padding-y: clamp(3rem, 7vw, 6rem); /* 48px-96px */
-  --container-padding-x: clamp(1rem, 5vw, 2rem); /* 16px-32px */
+  /* Enhanced Responsive Spacing System */
+  --space-xs: clamp(0.25rem, 1vw + 0.1rem, 0.5rem); /* 4px-8px */
+  --space-sm: clamp(0.5rem, 2vw + 0.25rem, 1rem); /* 8px-16px */
+  --space-md: clamp(1rem, 3vw + 0.5rem, 2rem); /* 16px-32px */
+  --space-lg: clamp(1.5rem, 4.5vw + 0.75rem, 3rem); /* 24px-48px */
+  --space-xl: clamp(2rem, 6vw + 1rem, 4rem); /* 32px-64px */
+  --space-2xl: clamp(3rem, 9vw + 1.5rem, 6rem); /* 48px-96px */
+  --space-3xl: clamp(4rem, 12vw + 2rem, 8rem); /* 64px-128px */
+
+  /* Gap Spacing Variables */
+  --gap-xs: var(--space-xs);
+  --gap-sm: var(--space-sm);
+  --gap-md: var(--space-md);
+  --gap-lg: var(--space-lg);
+  --gap-xl: var(--space-xl);
+  --gap-2xl: var(--space-2xl);
+  --gap-3xl: var(--space-3xl);
+
+  /* Margin Spacing Utilities (to be used with m-, mt-, mb-, etc. in Tailwind) */
+  --margin-xs: var(--space-xs);
+  --margin-sm: var(--space-sm);
+  --margin-md: var(--space-md);
+  --margin-lg: var(--space-lg);
+  --margin-xl: var(--space-xl);
+  --margin-2xl: var(--space-2xl);
+  --margin-3xl: var(--space-3xl);
+
+  /* Container and Section Responsive Spacing */
+  --section-padding-y: clamp(2rem, 8vw, 6rem); /* 32px-96px */
+  --section-padding-x: clamp(1rem, 5vw, 3rem); /* 16px-48px */
+  --container-padding-x: clamp(1rem, 4vw, 2rem); /* 16px-32px */
+  --container-max-width: min(90vw, 1200px);
+
+  /* Interactive Element Sizing */
+  --button-height-sm: clamp(2rem, 3vw, 2.25rem);
+  --button-height-md: clamp(2.5rem, 4vw, 3rem);
+  --button-height-lg: clamp(3rem, 5vw, 3.5rem);
+
+  /* Enhanced Border Radius System */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Shadow System with Color */
+  --shadow-sm: 0 1px 2px 0 oklch(0% 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px oklch(0% 0 0 / 0.1), 0 2px 4px -1px oklch(0% 0 0 / 0.06);
+  --shadow-lg: 0 10px 15px -3px oklch(0% 0 0 / 0.1), 0 4px 6px -2px oklch(0% 0 0 / 0.05);
+  --shadow-xl: 0 20px 25px -5px oklch(0% 0 0 / 0.1), 0 10px 10px -5px oklch(0% 0 0 / 0.04);
+  --shadow-colored: 0 8px 32px 0 oklch(var(--color-primary) / 0.15);
 }
 
 @layer base {
   * {
     @apply border-[var(--color-border)] outline-[var(--color-ring)]/50;
   }
+  
   body {
-    @apply bg-[var(--color-surface-1)] text-[var(--color-neutral)];
-    font-weight: 500;
+    background: var(--color-surface-1);
+    color: var(--color-text-primary);
+    font-weight: 400;
+    line-height: 1.6;
+    /* Subtle animated background gradient */
+    background-image: 
+      radial-gradient(circle at 20% 80%, oklch(15% 0.05 260) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, oklch(15% 0.05 160) 0%, transparent 50%),
+      radial-gradient(circle at 40% 40%, oklch(13% 0.03 45) 0%, transparent 50%);
   }
 
+  /* Enhanced heading styles with color accents */
+  h1, h2, h3, h4, h5, h6 {
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  /* Links with better color and interaction */
+  a {
+    color: var(--color-primary-light);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  
+  a:hover {
+    color: var(--color-accent-light);
+    text-shadow: 0 0 8px oklch(var(--color-primary) / 0.3);
+  }
+
+  /* Enhanced selection colors */
+  ::selection {
+    background: oklch(var(--color-primary) / 0.3);
+    color: var(--color-text-primary);
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface-2);
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--gradient-primary);
+    border-radius: var(--radius-full);
+  }
 }
 
-/* Custom styles for components to ensure dark mode is applied correctly */
-/* For example, if you have a custom Card component that needs specific dark mode styles */
-.bg-surface-primary {
-  @apply bg-[var(--color-surface-primary)];
-}
+/* Enhanced Utility Classes */
+.text-xs-fluid { font-size: var(--font-size-xs); }
+.text-sm-fluid { font-size: var(--font-size-sm); }
+.text-base-fluid { font-size: var(--font-size-base); }
+.text-lg-fluid { font-size: var(--font-size-lg); }
+.text-xl-fluid { font-size: var(--font-size-xl); }
+.text-2xl-fluid { font-size: var(--font-size-2xl); }
+.text-3xl-fluid { font-size: var(--font-size-3xl); }
+.text-4xl-fluid { font-size: var(--font-size-4xl); }
+.text-5xl-fluid { font-size: var(--font-size-5xl); }
 
-.dark .bg-surface-primary {
-  @apply dark:bg-[var(--color-surface-primary)];
-}
+/* Enhanced Spacing Utilities */
+.p-xs { padding: var(--space-xs); }
+.p-sm { padding: var(--space-sm); }
+.p-md { padding: var(--space-md); }
+.p-lg { padding: var(--space-lg); }
+.p-xl { padding: var(--space-xl); }
+.p-2xl { padding: var(--space-2xl); }
+.p-3xl { padding: var(--space-3xl); }
 
-.bg-surface-secondary {
-  @apply bg-[var(--color-surface-secondary)];
-}
-
-.dark .bg-surface-secondary {
-  @apply dark:bg-[var(--color-surface-secondary)];
-}
-
-.bg-surface-inverse {
-  @apply bg-[var(--color-surface-inverse)];
-}
-
-.dark .bg-surface-inverse {
-  @apply dark:bg-[var(--color-surface-inverse)];
-}
-
-.text-foreground {
-  @apply text-[var(--color-neutral)] dark:text-[var(--color-surface-inverse)];
-}
-
-.border-border {
-  @apply border-[var(--color-border)] dark:border-[var(--color-border)];
-}
-
-/* Apply new fluid typography variables */
-.text-base-fluid {
-  font-size: var(--font-size-base);
-}
-.text-lg-fluid {
-  font-size: var(--font-size-lg);
-}
-.text-xl-fluid {
-  font-size: var(--font-size-xl);
-}
-.text-2xl-fluid {
-  font-size: var(--font-size-2xl);
-}
-.text-3xl-fluid {
-  font-size: var(--font-size-3xl);
-}
-.text-4xl-fluid {
-  font-size: var(--font-size-4xl);
-}
-
-/* Apply new fluid spacing variables */
 .py-section {
   padding-top: var(--section-padding-y);
   padding-bottom: var(--section-padding-y);
 }
+
 .px-container {
   padding-left: var(--container-padding-x);
   padding-right: var(--container-padding-x);
+}
+
+.px-section {
+  padding-left: var(--section-padding-x);
+  padding-right: var(--section-padding-x);
+}
+
+/* Container System */
+.container-responsive {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--container-padding-x);
+  padding-right: var(--container-padding-x);
+}
+
+/* Enhanced Surface Classes */
+.surface-1 { background: var(--color-surface-1); }
+.surface-2 { background: var(--color-surface-2); }
+.surface-3 { background: var(--color-surface-3); }
+.surface-4 { background: var(--color-surface-4); }
+
+.surface-gradient {
+  background: var(--gradient-surface);
+}
+
+/* Text Color Utilities */
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-tertiary { color: var(--color-text-tertiary); }
+
+/* Color Accent Utilities */
+.text-accent-primary { color: var(--color-primary-light); }
+.text-accent-secondary { color: var(--color-secondary-light); }
+.text-accent-coral { color: var(--color-accent-light); }
+
+.bg-accent-primary { background: var(--color-primary); }
+.bg-accent-secondary { background: var(--color-secondary); }
+.bg-accent-coral { background: var(--color-accent); }
+
+/* Gradient Utilities */
+.bg-gradient-primary { background: var(--gradient-primary); }
+.bg-gradient-secondary { background: var(--gradient-secondary); }
+.bg-gradient-accent { background: var(--gradient-accent); }
+
+.text-gradient-primary {
+  background: var(--gradient-primary);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Enhanced Interactive Elements */
+.btn-responsive {
+  height: var(--button-height-md);
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: var(--shadow-colored);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl), var(--shadow-colored);
+}
+
+/* Card Component */
+.card-responsive {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-md);
+  transition: all 0.3s ease;
+}
+
+.card-responsive:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+  border-color: var(--color-border-light);
+}
+
+/* Responsive breakpoint classes */
+@media (max-width: 640px) {
+  .mobile-hidden { display: none; }
+  .mobile-text-center { text-align: center; }
+  .mobile-px-sm { padding-left: var(--space-sm); padding-right: var(--space-sm); }
+}
+
+@media (min-width: 768px) {
+  .tablet-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-lg); }
+}
+
+@media (min-width: 1024px) {
+  .desktop-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-xl); }
+  .desktop-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-xl); }
 }

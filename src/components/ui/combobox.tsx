@@ -177,7 +177,7 @@ export function Combobox(props: ComboboxProps) {
         return (
           <div 
             style={style} 
-            className="px-2 py-1 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+            className="px-2 py-1 text-xs font-semibold text-[var(--color-neutral)]/70 bg-[var(--color-surface-3)] border-b border-[var(--color-border)]"
           >
             {item.label}
           </div>
@@ -202,9 +202,9 @@ export function Combobox(props: ComboboxProps) {
           aria-selected={isHighlighted}
           className={cn(
             "relative flex select-none items-center px-2 py-2 text-sm outline-none cursor-pointer",
-            isSelected && "bg-blue-600 text-white dark:bg-blue-700",
-            isHighlighted && !isSelected && "bg-gray-100 dark:bg-gray-700 dark:text-gray-100",
-            item.disabled && "text-gray-400 cursor-not-allowed pointer-events-none"
+            isSelected && "bg-[var(--color-primary)] text-[var(--color-surface-inverse)]",
+            isHighlighted && !isSelected && "bg-[var(--color-surface-3)] text-[var(--color-neutral)]",
+            item.disabled && "text-[var(--color-neutral)]/50 cursor-not-allowed pointer-events-none"
           )}
           onClick={handleSelect}
           onKeyDown={(e) => {
@@ -243,7 +243,7 @@ export function Combobox(props: ComboboxProps) {
           aria-expanded={open}
           className={cn(
             "w-full justify-between",
-            "dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700",
+            "bg-[var(--color-surface-2)] text-[var(--color-neutral)] border-[var(--color-border)] hover:bg-[var(--color-surface-3)]",
             className
           )}
           disabled={disabled}
@@ -253,7 +253,7 @@ export function Combobox(props: ComboboxProps) {
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-full p-0 dark:bg-gray-900 dark:border-gray-800"
+        className="w-full p-0 bg-[var(--color-surface-2)] border-[var(--color-border)]"
         align="start"
       >
         <Command 
@@ -262,19 +262,19 @@ export function Combobox(props: ComboboxProps) {
           }
           shouldFilter={false}
         >
-          <div className="flex items-center border-b border-border dark:border-gray-800 px-3">
+          <div className="flex items-center border-b border-[var(--color-border)] px-3">
             <CommandInput
               ref={inputRef}
               placeholder={searchPlaceholder}
               value={searchTerm}
               onValueChange={setSearchTerm}
-              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground dark:placeholder:text-gray-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-[var(--color-neutral)]/50 disabled:cursor-not-allowed disabled:opacity-50"
               onKeyDown={handleKeyDown}
             />
           </div>
           <CommandList>
             {filteredOptions.length === 0 ? (
-              <CommandEmpty className="py-6 text-center text-sm text-muted-foreground dark:text-gray-400">
+              <CommandEmpty className="py-6 text-center text-sm text-[var(--color-neutral)]/70">
                 {noOptionsMessage}
               </CommandEmpty>
             ) : (

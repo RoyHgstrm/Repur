@@ -2,18 +2,18 @@ import { SignUp } from "@clerk/nextjs";
  
 export default function Page() {
   return (
-    <div className="flex justify-center items-center bg-gray-900">
+    <div className="flex justify-center items-center bg-[var(--color-surface-1)] py-20">
       <SignUp 
         appearance={{
           elements: {
-            card: "bg-gray-800 text-white border border-gray-700 shadow-xl rounded-xl",
-            headerTitle: "text-white text-2xl",
-            headerSubtitle: "text-gray-400",
-            formFieldLabel: "text-gray-300",
-            formFieldInput: "bg-gray-700 border-gray-600 text-white focus:ring-2 focus:ring-blue-500/40",
-            socialButtonsBlockButton: "bg-gray-700 hover:bg-gray-600 text-white",
-            footerActionLink: "text-blue-400 hover:text-blue-300",
-            footerActionText: "text-gray-400"
+            card: "bg-[var(--color-surface-2)] text-[var(--color-neutral)] border-[var(--color-border)] shadow-xl rounded-lg",
+            headerTitle: "text-[var(--color-neutral)] text-2xl-fluid font-bold",
+            headerSubtitle: "text-[var(--color-neutral)]/80",
+            formFieldLabel: "text-[var(--color-neutral)]",
+            formFieldInput: "bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] focus:ring-2 focus:ring-[var(--color-primary)]/40",
+            socialButtonsBlockButton: "bg-[var(--color-surface-3)] hover:bg-[var(--color-surface-2)] text-[var(--color-neutral)]",
+            footerActionLink: "text-[var(--color-primary)] hover:text-[var(--color-primary)]/80",
+            footerActionText: "text-[var(--color-neutral)]/80"
           },
           layout: {
             socialButtonsVariant: "iconButton",
