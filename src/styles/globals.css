@@ -1,0 +1,172 @@
+/* globals.css - Design System Variables */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  --radius: 0.625rem;
+  color-scheme: dark; /* Explicitly set color scheme to dark */
+
+  /* Semantic Color System - OKLCH for perceptual uniformity (Dark Mode Defaults) */
+  --color-primary: oklch(70% 0.25 250); /* More vibrant blue */
+  --color-secondary: oklch(75% 0.25 150); /* More vibrant green */
+  --color-accent: oklch(80% 0.3 60); /* More vibrant orange */
+  --color-neutral: oklch(90% 0.01 250); /* Near white for text */
+  
+  /* Surface Hierarchy (Dark Mode) */
+  --color-surface-1: oklch(10% 0.01 250);   /* Primary surface (darkest) */
+  --color-surface-2: oklch(12% 0.015 250);  /* Secondary surface */
+  --color-surface-3: oklch(15% 0.02 250);   /* Tertiary surface (lightest dark) */
+  --color-surface-inverse: oklch(98% 0.01 250); /* For elements that need to be light on dark background */
+
+  /* Semantic States */
+  --color-success: oklch(70% 0.2 140);
+  --color-warning: oklch(80% 0.2 60);
+  --color-error: oklch(65% 0.25 25);
+  --color-info: oklch(70% 0.2 250);
+  
+  /* Typography Scale */
+  --font-display: "Inter Variable", system-ui, sans-serif;
+  --font-body: "Inter Variable", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", monospace;
+  
+  /* Fluid Typography - Responsive Type Scale */
+  --font-size-base: clamp(1rem, 0.8vw + 1rem, 1.125rem); /* 16px-18px */
+  --font-size-lg: clamp(1.125rem, 1vw + 1.125rem, 1.5rem); /* 18px-24px */
+  --font-size-xl: clamp(1.25rem, 1.2vw + 1.25rem, 1.875rem); /* 20px-30px */
+  --font-size-2xl: clamp(1.5rem, 1.5vw + 1.5rem, 2.25rem); /* 24px-36px */
+  --font-size-3xl: clamp(1.875rem, 2vw + 1.875rem, 3rem); /* 30px-48px */
+  --font-size-4xl: clamp(2.25rem, 2.5vw + 2.25rem, 4rem); /* 36px-64px */
+
+  /* Spacing System - T-shirt sizes */
+  --space-xs: 0.25rem;   /* 4px */
+  --space-sm: 0.5rem;    /* 8px */
+  --space-md: 1rem;      /* 16px */
+  --space-lg: 1.5rem;    /* 24px */
+  --space-xl: 2rem;      /* 32px */
+  --space-2xl: 3rem;     /* 48px */
+  --space-3xl: 4rem;     /* 64px */
+
+  /* Fluid Spacing - based on viewport width */
+  --section-padding-y: clamp(3rem, 7vw, 6rem); /* 48px-96px */
+  --container-padding-x: clamp(1rem, 5vw, 2rem); /* 16px-32px */
+}
+
+@layer base {
+  * {
+    @apply border-[var(--color-border)] outline-[var(--color-ring)]/50;
+  }
+  body {
+    @apply bg-[var(--color-surface-1)] text-[var(--color-neutral)];
+    font-weight: 500;
+  }
+
+}
+
+/* Custom styles for components to ensure dark mode is applied correctly */
+/* For example, if you have a custom Card component that needs specific dark mode styles */
+.bg-surface-primary {
+  @apply bg-[var(--color-surface-primary)];
+}
+
+.dark .bg-surface-primary {
+  @apply dark:bg-[var(--color-surface-primary)];
+}
+
+.bg-surface-secondary {
+  @apply bg-[var(--color-surface-secondary)];
+}
+
+.dark .bg-surface-secondary {
+  @apply dark:bg-[var(--color-surface-secondary)];
+}
+
+.bg-surface-inverse {
+  @apply bg-[var(--color-surface-inverse)];
+}
+
+.dark .bg-surface-inverse {
+  @apply dark:bg-[var(--color-surface-inverse)];
+}
+
+.text-foreground {
+  @apply text-[var(--color-neutral)] dark:text-[var(--color-surface-inverse)];
+}
+
+.border-border {
+  @apply border-[var(--color-border)] dark:border-[var(--color-border)];
+}
+
+/* Apply new fluid typography variables */
+.text-base-fluid {
+  font-size: var(--font-size-base);
+}
+.text-lg-fluid {
+  font-size: var(--font-size-lg);
+}
+.text-xl-fluid {
+  font-size: var(--font-size-xl);
+}
+.text-2xl-fluid {
+  font-size: var(--font-size-2xl);
+}
+.text-3xl-fluid {
+  font-size: var(--font-size-3xl);
+}
+.text-4xl-fluid {
+  font-size: var(--font-size-4xl);
+}
+
+/* Apply new fluid spacing variables */
+.py-section {
+  padding-top: var(--section-padding-y);
+  padding-bottom: var(--section-padding-y);
+}
+.px-container {
+  padding-left: var(--container-padding-x);
+  padding-right: var(--container-padding-x);
+}
