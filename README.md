@@ -30,10 +30,10 @@ Visit our online store at [repur.fi](https://www.repur.fi) and find your dream g
 If you are interested in developing the project or contributing, you can clone this repository and explore the code.
 
 ```bash
-git clone https://github.com/repur-fi/repur-site.git
-cd repur-site
+git clone https://github.com/RoyHgstrm/Repur.git
+cd Repur
 bun install
-bun run dev:full
+bun run dev
 ```
 
 ## 🤝 Contributing
