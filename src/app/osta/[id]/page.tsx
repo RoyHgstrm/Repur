@@ -38,6 +38,7 @@ import React, { useState } from 'react';
 import { type RouterOutputs } from '~/trpc/react';
 import { cn } from '~/lib/utils';
 import CollapsibleComponent from '~/components/ui/CollapsibleComponent';
+import { FPS_DATA } from '~/lib/fpsConstants';
 
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };
@@ -83,46 +84,51 @@ export default function ListingDetailPage() {
   // HOW: This function estimates FPS for different games and settings based on the system's performance rating.
   // WHY: Provides users with a clear, relatable measure of a PC's gaming capability, enhancing transparency and user confidence, without requiring complex real-world benchmarks on every listing.
   const getEstimatedFps = (rating: number) => {
-    const fpsMap = {
-      // Base FPS for a mid-range (rating 3) system at 1080p Medium
-      baseFps: 60,
+    const allFpsData: { game: string; resolution: string; quality: string; multiplier: number; }[] = [];
 
-      // Adjustments per rating point for 1080p
-      ratingAdjust: 20,
-
-      // Game-specific multipliers
-      games: {
-        "Fortnite": { "1080p": { "Medium": 1.0, "High": 0.85, "Epic": 0.7 }, "1440p": { "Medium": 0.7, "High": 0.55, "Epic": 0.4 }, "4K": { "Medium": 0.4, "High": 0.3, "Epic": 0.2 } },
-        "Cyberpunk 2077": { "1080p": { "Medium": 0.8, "High": 0.6, "Ultra": 0.4 }, "1440p": { "Medium": 0.5, "High": 0.4, "Ultra": 0.3 }, "4K": { "Medium": 0.2, "High": 0.15, "Ultra": 0.1 } },
-        "CS2 (Counter-Strike 2)": { "1080p": { "Medium": 1.2, "High": 1.0, "Max": 0.9 }, "1440p": { "Medium": 0.9, "High": 0.75, "Max": 0.6 }, "4K": { "Medium": 0.5, "High": 0.4, "Max": 0.3 } },
-        "Grand Theft Auto V": { "1080p": { "Medium": 1.1, "High": 0.9, "Very High": 0.7 }, "1440p": { "Medium": 0.8, "High": 0.65, "Very High": 0.5 }, "4K": { "Medium": 0.45, "High": 0.35, "Very High": 0.25 } },
-        "Elden Ring": { "1080p": { "Medium": 0.9, "High": 0.7, "Max": 0.5 }, "1440p": { "Medium": 0.6, "High": 0.5, "Max": 0.35 }, "4K": { "Medium": 0.3, "High": 0.2, "Max": 0.15 } },
-      },
-    };
-
-    const estimatedFps: { game: string; resolutions: { resolution: string; settings: { quality: string; fps: number; }[]; }[]; }[] = [];
-
-    for (const gameName in fpsMap.games) {
-      const gameData = fpsMap.games[gameName as keyof typeof fpsMap.games];
-      const resolutions: { resolution: string; settings: { quality: string; fps: number; }[]; }[] = [];
-
+    for (const gameName in FPS_DATA.GAMES) {
+      const gameData = FPS_DATA.GAMES[gameName as keyof typeof FPS_DATA.GAMES];
       for (const resolution in gameData) {
         const settingsData = gameData[resolution as keyof typeof gameData];
-        const settings: { quality: string; fps: number; }[] = [];
-
         for (const quality in settingsData) {
-          const multiplier = settingsData[quality as keyof typeof settingsData];
-          // Adjust base FPS based on the difference from rating 3
-          const calculatedFps = Math.round(
-            (fpsMap.baseFps + (rating - 3) * fpsMap.ratingAdjust) * multiplier
-          );
-          settings.push({ quality, fps: Math.max(1, calculatedFps) }); // Ensure at least 1 FPS
+          allFpsData.push({
+            game: gameName,
+            resolution,
+            quality,
+            multiplier: settingsData[quality as keyof typeof settingsData],
+          });
         }
-        resolutions.push({ resolution, settings });
       }
-      estimatedFps.push({ game: gameName, resolutions });
     }
-    return estimatedFps;
+
+    const estimatedFpsMap = new Map<string, Map<string, { quality: string; fps: number; }[]>>();
+
+    allFpsData.forEach(({ game, resolution, quality, multiplier }) => {
+      const calculatedFps = Math.round(
+        (FPS_DATA.BASE_FPS + (rating - 3) * FPS_DATA.RATING_ADJUST) * multiplier
+      );
+      const fps = Math.max(1, calculatedFps);
+
+      if (!estimatedFpsMap.has(game)) {
+        estimatedFpsMap.set(game, new Map<string, { quality: string; fps: number; }[]>());
+      }
+      const gameMap = estimatedFpsMap.get(game)!;
+
+      if (!gameMap.has(resolution)) {
+        gameMap.set(resolution, []);
+      }
+      gameMap.get(resolution)!.push({ quality, fps });
+    });
+
+    const result: { game: string; resolutions: { resolution: string; settings: { quality: string; fps: number; }[]; }[]; }[] = [];
+    estimatedFpsMap.forEach((resolutionsMap, game) => {
+      const resolutions: { resolution: string; settings: { quality: string; fps: number; }[]; }[] = [];
+      resolutionsMap.forEach((settings, resolution) => {
+        resolutions.push({ resolution, settings });
+      });
+      result.push({ game, resolutions });
+    });
+    return result;
   };
 
   if (isLoading) {

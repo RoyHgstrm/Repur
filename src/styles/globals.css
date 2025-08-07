@@ -198,6 +198,17 @@
     animation: collapsible-up 0.2s ease-out;
   }
 
+  @keyframes collapsible-up {
+    from {
+      max-height: var(--radix-collapsible-content-height); /* Or a reasonable large value */
+      opacity: 1;
+    }
+    to {
+      max-height: 0;
+      opacity: 0;
+    }
+  }
+
   /* Shadow System with Color */
 }
 

@@ -33,10 +33,7 @@ import { cn } from "~/lib/utils";
 
 import cpusData from "~/data/parts/cpu.json";
 import gpusData from "~/data/parts/video-card.json";
-
-type Part = { name: string; price: number | null; [key: string]: any; };
-type CpuPart = Part & { core_count: number; boost_clock: number; microarchitecture: string; };
-type GpuPart = Part & { chipset: string; memory: number; };
+import type { CpuPart, GpuPart, Part } from "~/types/parts";
 
 // #region Pricing Configuration
 const PRICING_CONFIG = {

@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
+import { useRef } from 'react';
 
 // Define the Zod schema for company listings, matching the server-side schema
 const CompanyListingSchema = z.object({
@@ -92,6 +93,7 @@ function CompanyListingForm() {
   });
 
   const [selectedImage, setSelectedImage] = useState<File[]>([]); // New state for selected image files (array)
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // No longer need fileToBase64 as we'll send FormData directly
   // const fileToBase64 = (file: File): Promise<string> => {
@@ -272,10 +274,10 @@ function CompanyListingForm() {
           <div className="space-y-2">
             <Label htmlFor="image-upload" className="text-[var(--color-neutral)] font-semibold">Tuotekuvat (max 10)</Label>
             <Input
-              id="image-upload"
+              id="images"
               type="file"
-              accept="image/*"
-              multiple // Allow multiple file selection
+              multiple
+              ref={fileInputRef}
               onChange={(e) => {
                 if (e.target.files) {
                   const files = Array.from(e.target.files);
@@ -290,6 +292,9 @@ function CompanyListingForm() {
                   setSelectedImage((prev) => [...prev, ...files]);
                 } else {
                   setSelectedImage([]);
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                  }
                 }
               }}
               className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] file:text-[var(--color-primary)] file:font-semibold"
@@ -300,7 +305,12 @@ function CompanyListingForm() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedImage([])}
+                  onClick={() => {
+                    setSelectedImage([]);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  }}
                   className="mt-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                 >
                   Poista kaikki kuvat
@@ -382,7 +392,16 @@ function TradeInListingsTable() {
                 <p className="text-[var(--color-neutral)]/80 text-sm">RAM: {listing.ram}</p>
                 <p className="text-[var(--color-neutral)]/80 text-sm">Tallennustila: {listing.storage}</p>
                 <p className="text-[var(--color-neutral)]/80 text-sm">Kunto: {listing.condition}</p>
-                {listing.estimatedValue && <p className="text-[var(--color-neutral)]/80 text-sm">Arvioitu arvo: {parseFloat(listing.estimatedValue).toFixed(2)} €</p>}
+                {listing.estimatedValue && (
+                  <p className="text-[var(--color-neutral)]/80 text-sm">
+                    Arvioitu arvo: {
+                      (() => {
+                        const parsedValue = parseFloat(listing.estimatedValue);
+                        return isNaN(parsedValue) ? "Ei tiedossa" : `${parsedValue.toFixed(2)} €`;
+                      })()
+                    }
+                  </p>
+                )}
                 <p className="text-[var(--color-neutral)]/80 text-sm">Status: {listing.status === 'PENDING' ? 'Odottaa' : 'Käsitelty'}</p>
                 <Button
                   className="mt-4 w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
