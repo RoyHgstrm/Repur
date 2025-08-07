@@ -1,7 +1,6 @@
 import { db } from "~/server/db";
 import { listings, users, listingStatusEnum } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
-import { nanoid } from 'nanoid';
 
 async function main() {
   console.log("Seeding database with test data...");

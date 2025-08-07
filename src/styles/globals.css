@@ -193,6 +193,12 @@
     background: var(--gradient-primary);
     border-radius: var(--radius-full);
   }
+
+  .animate-collapsible-up {
+    animation: collapsible-up 0.2s ease-out;
+  }
+
+  /* Shadow System with Color */
 }
 
 /* Enhanced Utility Classes */

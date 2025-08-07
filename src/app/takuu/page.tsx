@@ -1,6 +1,6 @@
 
 // src/app/takuu/page.tsx
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { CheckCircle2, Shield, Wrench } from 'lucide-react';
 

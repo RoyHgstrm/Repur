@@ -126,7 +126,7 @@ export const protectedProcedure = t.procedure
 
     // Fetch Clerk user details
     const clerkUser = await currentUser();
-    if (!clerkUser || !clerkUser.emailAddresses[0]?.emailAddress) {
+    if (!clerkUser || !clerkUser.emailAddresses?.[0]?.emailAddress) {
       throw new TRPCError({
         code: 'UNAUTHORIZED',
         message: 'Clerk user details not available'
@@ -144,8 +144,8 @@ export const protectedProcedure = t.procedure
       [user] = await ctx.db.insert(users).values({
         id: newUserId,
         clerkId: ctx.userId,
-        email: clerkUser.emailAddresses[0].emailAddress,
-        name: clerkUser.firstName || clerkUser.emailAddresses[0].emailAddress, // Use first name or email as name
+        email: clerkUser.emailAddresses?.[0]?.emailAddress,
+        name: clerkUser.firstName || clerkUser.emailAddresses?.[0]?.emailAddress, // Use first name or email as name
         role: "CUSTOMER", // Default role
       }).returning();
 

@@ -5,26 +5,21 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
 import { toast } from '~/components/ui/use-toast';
 import { z } from 'zod';
 import { api } from '~/trpc/react';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "~/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Combobox, type ComboboxOption } from "~/components/ui/combobox";
-import { Progress } from "~/components/ui/progress";
 import { Label } from "~/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
+
 import { 
-  Info, 
   Cpu, 
   MemoryStick, 
   HardDrive, 
   Power, 
   CheckCircle2, 
-  HelpCircle,
   Monitor,
   Zap,
   Shield,
@@ -39,7 +34,7 @@ import { cn } from "~/lib/utils";
 import cpusData from "~/data/parts/cpu.json";
 import gpusData from "~/data/parts/video-card.json";
 
-type Part = { name: string; price: number | null; };
+type Part = { name: string; price: number | null; [key: string]: any; };
 type CpuPart = Part & { core_count: number; boost_clock: number; microarchitecture: string; };
 type GpuPart = Part & { chipset: string; memory: number; };
 
@@ -52,7 +47,7 @@ const PRICING_CONFIG = {
     { series: ["30-series", "RTX 30", "Ryzen 5000"], years: 3 },
     { series: ["20-series", "RTX 20", "Ryzen 3000"], years: 5 },
     { series: ["10-series", "GTX 10", "Ryzen 2000"], years: 7 },
-  ],
+  ] as const,
   DEFAULT_COMPONENT_AGE: 4,
   COMPONENT_DEPRECIATION: {
     CPU: 0.15,
@@ -65,19 +60,19 @@ const PRICING_CONFIG = {
     "Tyydyttävä": 0.6,
     "Huono": 0.3,
     "En tiedä": 0.8,
-  },
+  } as const,
   RAM: {
     BASE_VALUE_PER_GB: 2.5,
-    TYPE_MULTIPLIER: { DDR4: 1.0, DDR5: 1.5, en_tieda_ram_type: 1.0 },
+    TYPE_MULTIPLIER: { DDR4: 1.0, DDR5: 1.5, en_tieda_ram_type: 1.0 } as const,
     SPEED_MULTIPLIER: {
       LOW: 0.9,
       MID: 1.0,
       HIGH: 1.1,
-    },
+    } as const,
     DEFAULT_GB: 16,
   },
   STORAGE: {
-    BASE_VALUE_PER_GB: { SSD: 0.08, HDD: 0.02, en_tieda_storage_type: 0.06 },
+    BASE_VALUE_PER_GB: { SSD: 0.08, HDD: 0.02, en_tieda_storage_type: 0.06 } as const,
     DEFAULT_GB: 512,
   },
   PSU: {
@@ -90,7 +85,7 @@ const PRICING_CONFIG = {
       platinum: 1.1,
       titanium: 1.2,
       en_tieda_psu_efficiency: 0.9,
-    },
+    } as const,
     DEFAULT_WATTAGE: 650,
   },
 };
@@ -122,7 +117,7 @@ const calculateRamValue = (data: FormData): number => {
   const type = data.ramType && data.ramType !== 'en_tieda_ram_type' ? data.ramType : 'en_tieda_ram_type';
   const speed = data.ramSpeed ? parseInt(data.ramSpeed, 10) : 3200;
 
-  let speedMultiplier = PRICING_CONFIG.RAM.SPEED_MULTIPLIER.MID;
+  let speedMultiplier: number = PRICING_CONFIG.RAM.SPEED_MULTIPLIER.MID;
   if (speed < 3000) speedMultiplier = PRICING_CONFIG.RAM.SPEED_MULTIPLIER.LOW;
   if (speed > 3600) speedMultiplier = PRICING_CONFIG.RAM.SPEED_MULTIPLIER.HIGH;
 
@@ -149,8 +144,8 @@ const calculatePsuValue = (data: FormData): number => {
 };
 
 const calculatePrice = (data: FormData): number | null => {
-  const selectedCpu = (cpusData as CpuPart[]).find(c => c.name === data.cpu);
-  const selectedGpu = (gpusData as GpuPart[]).find(g => g.chipset === data.gpu);
+  const selectedCpu = cpusData.find((c) => c.name === data.cpu);
+  const selectedGpu = gpusData.find((g) => g.chipset === data.gpu);
 
   if (!selectedCpu || !selectedGpu || 
       !data.ramSize || !data.ramType || !data.ramSpeed || 
@@ -166,7 +161,7 @@ const calculatePrice = (data: FormData): number | null => {
   const psuValue = calculatePsuValue(data);
 
   const totalMarketValue = cpuValue + gpuValue + ramValue + storageValue + psuValue;
-  const conditionKey = data.condition as keyof typeof PRICING_CONFIG.CONDITION_MULTIPLIERS;
+  const conditionKey = data.condition;
   const conditionMultiplier = PRICING_CONFIG.CONDITION_MULTIPLIERS[conditionKey] || PRICING_CONFIG.CONDITION_MULTIPLIERS["En tiedä"];
   const adjustedValue = totalMarketValue * conditionMultiplier;
   const finalOffer = adjustedValue * PRICING_CONFIG.REPUR_PURCHASE_FACTOR;
@@ -184,12 +179,12 @@ const processAndGroupParts = <T extends Part>(
   sortFn?: (a: ComboboxOption, b: ComboboxOption) => number
 ): ComboboxOption[] => {
   const seenValues = new Set<string>();
-  const groupedOptions: { [key: string]: ComboboxOption[] } = {};
+  const groupedOptions: Record<string, ComboboxOption[]> = {};
 
   parts.forEach(part => {
     if (part.price === null || part.price === 0) return;
 
-    const value = part[groupingKey as keyof T] as string;
+    const value = part[groupingKey] as string;
     if (seenValues.has(value)) return;
     seenValues.add(value);
 

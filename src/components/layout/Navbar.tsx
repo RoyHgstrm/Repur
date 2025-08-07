@@ -15,7 +15,7 @@ export default function Navbar() {
           <span className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent italic">
             Repur
           </span>
-          <span className="text-[var(--color-neutral)] text-lg">.fi</span>
+          <span className="text-white text-lg">.fi</span>
         </Link>
 
         <div className="group flex items-center space-x-4">

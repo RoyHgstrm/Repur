@@ -1,5 +1,5 @@
 import { createTRPCRouter } from "~/server/api/trpc";
-import { publicProcedure, protectedProcedure } from "~/server/api/trpc";
+import { publicProcedure } from "~/server/api/trpc";
 import { listingsRouter } from "./routers/listings";
 
 export const appRouter = createTRPCRouter({

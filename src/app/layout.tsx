@@ -59,13 +59,15 @@ export default function RootLayout({
         <body className={`${inter.className} bg-[var(--color-surface-1)] text-[var(--color-neutral)] antialiased`}>
           <div className=" min-h-screen">
             <Navbar />
-            <main>
-              <Providers>
-                <React.Suspense fallback={<div className="text-center py-8">Ladataan...</div>}>
-                  {children}
-                </React.Suspense>
-              </Providers>
-            </main>
+            <div className="flex min-h-[calc(100vh-theme(spacing.16))] ">
+              <main className="flex-1">
+                <Providers>
+                  <React.Suspense fallback={<div className="text-center py-8">Ladataan...</div>}>
+                    {children}
+                  </React.Suspense>
+                </Providers>
+              </main>
+            </div>
             <Footer />
           </div>
         </body>

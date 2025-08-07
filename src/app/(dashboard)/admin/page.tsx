@@ -11,6 +11,7 @@ import { api } from '~/trpc/react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
+import { Label } from "~/components/ui/label";
 
 // Define the Zod schema for company listings, matching the server-side schema
 const CompanyListingSchema = z.object({
@@ -53,7 +54,7 @@ export default function EmployeeDashboardPage() {
   return (
     <div className="container mx-auto px-container py-section">
       <h1 className="text-3xl-fluid sm:text-4xl-fluid lg:text-5xl-fluid font-bold mb-8 text-center text-[var(--color-neutral)]">
-        Työntekijän Hallintapaneeli
+        Ylläpitäjän Hallintapaneeli
       </h1>
 
       <Tabs defaultValue="companyListings" className="space-y-6">
@@ -87,7 +88,20 @@ function CompanyListingForm() {
     caseModel: '',
     basePrice: 0,
     condition: 'Hyvä',
+    images: [], // Initialize images as an empty array
   });
+
+  const [selectedImage, setSelectedImage] = useState<File[]>([]); // New state for selected image files (array)
+
+  // No longer need fileToBase64 as we'll send FormData directly
+  // const fileToBase64 = (file: File): Promise<string> => {
+  //   return new Promise((resolve, reject) => {
+  //     const reader = new FileReader();
+  //     reader.readAsDataURL(file);
+  //     reader.onload = () => resolve(reader.result as string);
+  //     reader.onerror = (error) => reject(error);
+  //   });
+  // };
 
   const createCompanyListingMutation = api.listings.createCompanyListing.useMutation({
     onSuccess: () => {
@@ -108,9 +122,11 @@ function CompanyListingForm() {
         caseModel: '',
         basePrice: 0,
         condition: 'Hyvä',
+        images: [], // Reset images on success
       });
+      setSelectedImage([]); // Reset selected images on success
     },
-    onError: (error) => {
+    onError: (error: { message: string }) => {
       toast({
         title: "Virhe listauksen luomisessa",
         description: error.message,
@@ -126,7 +142,7 @@ function CompanyListingForm() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
@@ -134,7 +150,33 @@ function CompanyListingForm() {
         ...formData,
         basePrice: parseFloat(formData.basePrice.toString()),
       });
-      createCompanyListingMutation.mutate(validatedData);
+
+      let uploadedImageUrls: string[] = [];
+      if (selectedImage.length > 0) {
+        const uploadFormData = new FormData();
+        selectedImage.forEach((file) => {
+          uploadFormData.append('images', file);
+        });
+
+        // Send files to the local upload API route
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json() as { error?: string };
+          throw new Error(errorData.error || 'Failed to upload images.');
+        }
+
+        const result = await uploadResponse.json() as { imageUrls: string[] };
+        uploadedImageUrls = result.imageUrls;
+      }
+
+      createCompanyListingMutation.mutate({
+        ...validatedData,
+        images: uploadedImageUrls,
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         error.issues.forEach(issue => {
@@ -143,6 +185,12 @@ function CompanyListingForm() {
             description: issue.message,
             variant: "destructive"
           });
+        });
+      } else if (error instanceof Error) {
+        toast({
+          title: "Virhe",
+          description: error.message,
+          variant: "destructive"
         });
       }
     }
@@ -215,10 +263,50 @@ function CompanyListingForm() {
             <Input 
               type="number" 
               placeholder="Perushinta (€)" 
-              value={formData.basePrice}
+              value={formData.basePrice === 0 ? '' : formData.basePrice}
               onChange={(e) => handleInputChange('basePrice', e.target.value)}
               className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="image-upload" className="text-[var(--color-neutral)] font-semibold">Tuotekuvat (max 10)</Label>
+            <Input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              multiple // Allow multiple file selection
+              onChange={(e) => {
+                if (e.target.files) {
+                  const files = Array.from(e.target.files);
+                  if (files.length + selectedImage.length > 10) {
+                    toast({
+                      title: "Liian monta kuvaa",
+                      description: "Voit ladata enintään 10 kuvaa.",
+                      variant: "destructive"
+                    });
+                    return; 
+                  }
+                  setSelectedImage((prev) => [...prev, ...files]);
+                } else {
+                  setSelectedImage([]);
+                }
+              }}
+              className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] file:text-[var(--color-primary)] file:font-semibold"
+            />
+            {selectedImage.length > 0 && (
+              <div className="mt-2 text-sm text-[var(--color-neutral)]/70">
+                <p>Valitut tiedostot: {selectedImage.map(file => file.name).join(', ')}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedImage([])}
+                  className="mt-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                >
+                  Poista kaikki kuvat
+                </Button>
+              </div>
+            )}
           </div>
 
           <div>

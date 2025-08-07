@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import Image from "next/image"; // Import Image component
 import {
   ArrowRight,
   CheckCircle2,
@@ -19,7 +19,6 @@ import {
   Star,
   Users,
   Sparkles,
-  GamepadIcon,
   Monitor,
   HardDrive
 } from "lucide-react";
@@ -27,6 +26,7 @@ import { api } from "~/trpc/react";
 import { type RouterOutputs } from "~/trpc/react";
 import { motion } from "framer-motion";
 import { cn } from "~/lib/utils";
+import Link from "next/link";
 
 type ListingWithSeller = RouterOutputs['listings']['getActiveCompanyListings'][number];
 
@@ -40,7 +40,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { y: 30, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: [0.42, 0, 0.58, 1] } }, // Corrected ease
+  visible: { y: 0, opacity: 1 },
 };
 
 const FeatureCard = ({ icon, title, description, highlight }: {
@@ -51,9 +51,12 @@ const FeatureCard = ({ icon, title, description, highlight }: {
 }) => (
   <motion.div
     variants={itemVariants}
+    initial="hidden"
+    whileInView="visible"
+    viewport={{ once: true, amount: 0.2 }}
+    transition={{ duration: 0.6, ease: [0.42, 0, 0.58, 1] }}
     className={`relative group cursor-pointer ${highlight ? 'md:scale-105' : ''}`}
     whileHover={{ scale: highlight ? 1.08 : 1.05 }}
-    transition={{ duration: 0.2 }}
   >
     <div className={cn(
       "relative backdrop-blur-xl border p-8 rounded-2xl text-center overflow-hidden",
@@ -95,7 +98,13 @@ const FeatureCard = ({ icon, title, description, highlight }: {
 );
 
 const ProductCard = ({ listing }: { listing: ListingWithSeller }) => (
-  <motion.div variants={itemVariants} className="h-full">
+  <motion.div
+    variants={itemVariants}
+    initial="hidden"
+    whileInView="visible"
+    viewport={{ once: true, amount: 0.2 }}
+    transition={{ duration: 0.6, ease: [0.42, 0, 0.58, 1] }}
+    className="h-full">
     <Link href={`/osta/${listing.id}`} className="block h-full group">
       <div className={cn(
         "relative backdrop-blur-xl border rounded-2xl p-6 h-full flex flex-col overflow-hidden transition-all duration-300",
@@ -107,6 +116,26 @@ const ProductCard = ({ listing }: { listing: ListingWithSeller }) => (
           "absolute inset-0 rounded-2xl bg-gradient-to-br from-[var(--color-primary)]/5 to-[var(--color-tertiary)]/5 opacity-0 transition-opacity duration-300",
           "group-hover:opacity-100"
         )}></div>
+
+        {/* Image Display or Placeholder */}
+        <div className="relative w-full aspect-video rounded-t-xl overflow-hidden mb-4 border-b border-[var(--color-border)]">
+          {listing.images && listing.images.length > 0 ? (
+            <Image
+              src={listing.images[0]!}
+              alt={listing.title || "Product image"}
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full bg-[var(--color-surface-3)] flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center text-[var(--color-neutral)]/50">
+                <span className="text-5xl font-extrabold italic bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">R</span>
+                <span className="text-sm mt-1">Ei kuvaa</span>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="relative z-10 flex-grow">
           <div className="flex items-start justify-between mb-4">
@@ -150,6 +179,10 @@ const ProductCard = ({ listing }: { listing: ListingWithSeller }) => (
 const StatCard = ({ value, label, icon }: { value: string, label: string, icon: React.ReactNode }) => (
   <motion.div
     variants={itemVariants}
+    initial="hidden"
+    whileInView="visible"
+    viewport={{ once: true, amount: 0.2 }}
+    transition={{ duration: 0.6, ease: [0.42, 0, 0.58, 1] }}
     className="text-center p-6 rounded-xl bg-[var(--color-surface-2)]/30 backdrop-blur-sm border border-[var(--color-border)]/30"
   >
     <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-tertiary)]/20 mb-3">
@@ -311,7 +344,7 @@ export default function HomePage() {
 
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-center">
               <span className="block sm:inline text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-text-primary)] to-[var(--color-text-secondary)]">
-                Gaming-Koneet
+                Peli-Koneet
               </span>
               <span className="block sm:inline text-gradient-primary sm:pl-2">
                 Valmiina Toimintaan
@@ -379,7 +412,7 @@ export default function HomePage() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-text-primary)] to-[var(--color-text-secondary)]">
                 Miksi
               </span>
-              <span className="text-gradient-primary">
+              <span className="text-gradient-primary pl-2 md:pl-3">
                 Repur.fi?
               </span>
             </h2>
@@ -467,7 +500,7 @@ export default function HomePage() {
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-text-primary)] to-[var(--color-text-secondary)]">
                   Muuta Vanha Koneesi
                 </span>
-                <span className="text-gradient-secondary pl-1 md:pl-2">
+                <span className="text-gradient-secondary pl-2 md:pl-3">
                   Käteiseksi
                 </span>
               </h2>
@@ -502,7 +535,7 @@ export default function HomePage() {
                 <Button
                   asChild
                   size="lg"
-                  className="group bg-gradient-to-r from-[var(--color-secondary)] to-[var(--color-primary)] hover:from-[var(--color-secondary-dark)] hover:to-[var(--color-primary-dark)] text-white font-bold text-lg px-8 py-6 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[var(--color-secondary)]/25"
+                  className="group relative bg-gradient-to-r from-[var(--color-secondary)] to-[var(--color-primary)] hover:from-[var(--color-secondary-dark)] hover:to-[var(--color-primary-dark)] text-white font-bold text-lg px-8 py-6 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[var(--color-secondary)]/25"
                 >
                   <Link href="/myy">
                     <span className="flex items-center">
@@ -516,7 +549,7 @@ export default function HomePage() {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="group rounded-2xl border-2 border-[var(--color-border)] hover:border-[var(--color-secondary)] bg-[var(--color-surface-2)]/50 backdrop-blur-sm hover:bg-[var(--color-secondary)]/30 text-[var(--color-text-primary)] hover:text-[var(--color-secondary-light)] transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                  className="group text-lg px-10 py-6 rounded-2xl border-2 border-[var(--color-border)] hover:border-[var(--color-secondary)] bg-[var(--color-surface-2)]/50 backdrop-blur-sm hover:bg-[var(--color-secondary)]/30 text-[var(--color-text-primary)] hover:text-[var(--color-secondary-light)] transition-all duration-300 hover:scale-105 hover:shadow-xl"
                 >
                   <Link href="/osta">
                     Katso Esimerkkihintoja
@@ -548,9 +581,9 @@ export default function HomePage() {
                   </div>
 
                   <blockquote className="text-sm xs:text-base sm:text-lg md:text-xl-fluid font-medium text-[var(--color-text-primary)] mb-4 md:mb-6 lg:mb-lg leading-relaxed pt-4 sm:pt-6 md:pt-10 text-center md:text-left">
-                    "Sain 4 vuotta vanhasta RTX 3080 -koneestani 850€. Prosessi oli
+                    &quot;Sain 4 vuotta vanhasta RTX 3080 -koneestani 850€. Prosessi oli
                     uskomattoman helppoa ja raha tuli tilille seuraavana päivänä.
-                    Suosittelen lämpimästi!"
+                    Suosittelen lämpimästi!&quot;
                   </blockquote>
 
                   <footer className="flex flex-col sm:flex-row items-center pt-4 sm:pt-6 md:pt-10 gap-2 sm:gap-4">
@@ -569,46 +602,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
-      <section className="py-section relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-surface-1)] via-[var(--color-primary)]/30 to-[var(--color-surface-1)]"></div>
-        <div className="container mx-auto px-2 sm:px-4 md:px-6 lg:px-8 text-center relative z-10">
+      {/* Uusi CTA Section - Mission & Quality Focus */}
+      <section className="py-section relative bg-gradient-to-br from-[var(--color-surface-1)] to-[var(--color-surface-2)]">
+        <div className="container mx-auto px-container relative z-10 text-center">
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.6 }}
             transition={{ duration: 0.8 }}
-            className="w-full max-w-[98vw] xs:max-w-xl sm:max-w-2xl md:max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto"
+            className="w-full max-w-5xl mx-auto"
           >
-            <h2 className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[var(--color-text-primary)] mb-3 xs:mb-4 sm:mb-6">
-              Valmiina myymään tietokoneesi helposti?
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-accent)]/20 border border-[var(--color-primary)]/30 mb-8">
+              <Award className="w-4 h-4 text-[var(--color-primary)] mr-2" />
+              <span className="text-sm text-[var(--color-primary)] font-medium">Sitoutuminen Laatuun</span>
+            </div>
+
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-gradient-primary mb-6 leading-tight">
+              Yli 500 Tyytyväistä Asiakasta –
+              <br />
+              Liity Joukkoon!
             </h2>
-            <p className="text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl text-[var(--color-text-secondary)] mb-4 xs:mb-6 sm:mb-8">
-              Saat tarjouksen nopeasti ja rahat tilillesi jopa seuraavana päivänä. Aloita myynti nyt – se on täysin riskitöntä ja vaivatonta!
+            <p className="text-xl md:text-2xl text-[var(--color-text-secondary)] mb-10 max-w-3xl mx-auto leading-relaxed">
+              Jokainen myymämme tietokone edustaa sitoutumistamme
+              laatuun, luotettavuuteen ja kestävään kehitykseen.
+              Me emme myy vain tietokoneita – me myymme mielenrauhaa.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-2 xs:gap-3 sm:gap-4 w-full">
+
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Button
                 asChild
                 size="lg"
-                className="w-full sm:w-auto bg-gradient-to-r from-[var(--color-secondary)] to-[var(--color-primary)] text-white font-semibold shadow-lg hover:from-[var(--color-secondary-dark)] hover:to-[var(--color-primary-dark)] transition text-base xs:text-lg md:text-xl"
-              >
-                <Link href="/myy">
-                  Myy tietokoneesi nyt
-                </Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto border-[var(--color-border)] text-[var(--color-text-primary)] hover:bg-[var(--color-surface-3)] transition text-base xs:text-lg md:text-xl"
+                className="group relative bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-tertiary)] hover:from-[var(--color-primary-dark)] hover:to-[var(--color-tertiary)]/90 text-white font-bold text-lg px-10 py-6 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[var(--color-primary)]/25 border-0"
               >
                 <Link href="/osta">
-                  Katso esimerkkihintoja
+                  <span className="relative z-10 flex items-center">
+                    Selaa Koneita
+                    <ShoppingCart className="ml-3 w-5 h-5 group-hover:rotate-12 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-tertiary)]/20 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </Link>
               </Button>
-            </div>
-            <div className="mt-4 xs:mt-6 sm:mt-8 text-[var(--color-text-secondary)] text-xs xs:text-sm sm:text-base">
-              <span>Kiitos kun luotat meihin – tehdään tietokoneesi myynnistä helppoa ja turvallista.</span>
+
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="group text-lg px-10 py-6 rounded-2xl border-2 border-[var(--color-border)] hover:border-[var(--color-secondary)] bg-[var(--color-surface-2)]/50 backdrop-blur-sm hover:bg-[var(--color-secondary)]/30 text-[var(--color-text-primary)] hover:text-[var(--color-secondary-light)] transition-all duration-300 hover:scale-105 hover:shadow-xl"
+              >
+                <Link href="/meista">
+                  Lue Meistä Lisää
+                </Link>
+              </Button>
             </div>
           </motion.div>
         </div>

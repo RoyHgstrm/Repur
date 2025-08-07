@@ -25,8 +25,8 @@ import {
   CheckCircle,
   Info,
   Zap,
-  Monitor,
-  Gamepad2
+  Gamepad2,
+  ShieldCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fi } from 'date-fns/locale';
@@ -37,6 +37,7 @@ import { useParams, useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { type RouterOutputs } from '~/trpc/react';
 import { cn } from '~/lib/utils';
+import CollapsibleComponent from '~/components/ui/CollapsibleComponent';
 
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };
@@ -76,6 +77,52 @@ export default function ListingDetailPage() {
       case 'Tyydyttävä': return 'bg-gradient-to-r from-red-500 to-pink-400 text-white';
       default: return 'bg-gradient-to-r from-gray-500 to-slate-400 text-white';
     }
+  };
+
+  // Simplified FPS estimation based on performance rating
+  // HOW: This function estimates FPS for different games and settings based on the system's performance rating.
+  // WHY: Provides users with a clear, relatable measure of a PC's gaming capability, enhancing transparency and user confidence, without requiring complex real-world benchmarks on every listing.
+  const getEstimatedFps = (rating: number) => {
+    const fpsMap = {
+      // Base FPS for a mid-range (rating 3) system at 1080p Medium
+      baseFps: 60,
+
+      // Adjustments per rating point for 1080p
+      ratingAdjust: 20,
+
+      // Game-specific multipliers
+      games: {
+        "Fortnite": { "1080p": { "Medium": 1.0, "High": 0.85, "Epic": 0.7 }, "1440p": { "Medium": 0.7, "High": 0.55, "Epic": 0.4 }, "4K": { "Medium": 0.4, "High": 0.3, "Epic": 0.2 } },
+        "Cyberpunk 2077": { "1080p": { "Medium": 0.8, "High": 0.6, "Ultra": 0.4 }, "1440p": { "Medium": 0.5, "High": 0.4, "Ultra": 0.3 }, "4K": { "Medium": 0.2, "High": 0.15, "Ultra": 0.1 } },
+        "CS2 (Counter-Strike 2)": { "1080p": { "Medium": 1.2, "High": 1.0, "Max": 0.9 }, "1440p": { "Medium": 0.9, "High": 0.75, "Max": 0.6 }, "4K": { "Medium": 0.5, "High": 0.4, "Max": 0.3 } },
+        "Grand Theft Auto V": { "1080p": { "Medium": 1.1, "High": 0.9, "Very High": 0.7 }, "1440p": { "Medium": 0.8, "High": 0.65, "Very High": 0.5 }, "4K": { "Medium": 0.45, "High": 0.35, "Very High": 0.25 } },
+        "Elden Ring": { "1080p": { "Medium": 0.9, "High": 0.7, "Max": 0.5 }, "1440p": { "Medium": 0.6, "High": 0.5, "Max": 0.35 }, "4K": { "Medium": 0.3, "High": 0.2, "Max": 0.15 } },
+      },
+    };
+
+    const estimatedFps: { game: string; resolutions: { resolution: string; settings: { quality: string; fps: number; }[]; }[]; }[] = [];
+
+    for (const gameName in fpsMap.games) {
+      const gameData = fpsMap.games[gameName as keyof typeof fpsMap.games];
+      const resolutions: { resolution: string; settings: { quality: string; fps: number; }[]; }[] = [];
+
+      for (const resolution in gameData) {
+        const settingsData = gameData[resolution as keyof typeof gameData];
+        const settings: { quality: string; fps: number; }[] = [];
+
+        for (const quality in settingsData) {
+          const multiplier = settingsData[quality as keyof typeof settingsData];
+          // Adjust base FPS based on the difference from rating 3
+          const calculatedFps = Math.round(
+            (fpsMap.baseFps + (rating - 3) * fpsMap.ratingAdjust) * multiplier
+          );
+          settings.push({ quality, fps: Math.max(1, calculatedFps) }); // Ensure at least 1 FPS
+        }
+        resolutions.push({ resolution, settings });
+      }
+      estimatedFps.push({ game: gameName, resolutions });
+    }
+    return estimatedFps;
   };
 
   if (isLoading) {
@@ -140,6 +187,7 @@ export default function ListingDetailPage() {
   }
 
   const performance = getPerformanceRating(listing.gpu, listing.cpu);
+  const estimatedGameFps = getEstimatedFps(performance.rating);
   const specs = [
     { label: "Prosessori", value: listing.cpu, Icon: Cpu, color: "text-[var(--color-primary)]" },
     { label: "Näytönohjain", value: listing.gpu, Icon: Gauge, color: "text-[var(--color-accent)]" },
@@ -193,7 +241,7 @@ export default function ListingDetailPage() {
         </div>
       </div>
 
-      <div className="container-responsive py-8">
+      <div className="max-w-7xl mx-auto py-8 px-container">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Main Content - Left Column */}
           <div className="xl:col-span-2 space-y-6">
@@ -205,7 +253,7 @@ export default function ListingDetailPage() {
                     {/* Main Image */}
                     <div className="relative aspect-video bg-surface-1 group cursor-pointer">
                       <Image 
-                        src={listing.images[selectedImageIndex] ?? listing.images[0]!} 
+                        src={listing.images[selectedImageIndex] ?? listing.images[0]}
                         alt={`${listing.title} - kuva ${selectedImageIndex + 1}`}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -308,6 +356,53 @@ export default function ListingDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* FPS Estimates */}
+            <Card className="bg-surface-2 border-[var(--color-border-light)]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl-fluid">
+                  <Gamepad2 className="w-5 h-5 text-[var(--color-primary)]" />
+                  Arvioitu FPS
+                </CardTitle>
+                <CardDescription className="text-secondary">
+                  Nämä ovat arvioita pelien ruudunpäivitysnopeuksista eri asetuksilla. Todellinen suorituskyky voi vaihdella.
+                  Lähde: [UL Benchmarks](https://support.benchmarks.ul.com/support/solutions/articles/44002196922-game-performance-estimation)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-md space-y-4">
+                {estimatedGameFps.map((gameData, gameIdx) => (
+                  <div key={gameIdx} className="group relative bg-surface-1 rounded-lg border border-[var(--color-border)] p-4 overflow-hidden transition-all duration-300 hover:shadow-md">
+                    {/* Animated gradient background on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/5 to-[var(--color-accent)]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="relative z-10">
+                      <h3 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
+                        <Gamepad2 className="w-5 h-5 text-[var(--color-accent)]" />
+                        {gameData.game}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-4">
+                        {gameData.resolutions.map((resData, resIdx) => (
+                          <div key={resIdx} className="space-y-1">
+                            <p className="text-sm font-medium text-secondary">{resData.resolution}</p>
+                            <ul className="space-y-0.5">
+                              {resData.settings.map((setting, settingIdx) => (
+                                <li key={settingIdx} className="flex justify-between items-center text-xs text-tertiary">
+                                  <span className="flex items-center gap-1.5">
+                                    {setting.quality}:
+                                  </span>
+                                  <span className="font-semibold text-primary rounded-md bg-surface-2 px-2 py-0.5 border border-[var(--color-border)]">
+                                    {setting.fps} FPS
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar - Right Column */}
@@ -335,13 +430,14 @@ export default function ListingDetailPage() {
                 </div>
 
                 {/* Performance Rating */}
-                <div className="flex items-center justify-between p-3 bg-surface-1 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Gamepad2 className="w-5 h-5 text-[var(--color-accent)]" />
-                    <span className="text-sm font-medium text-secondary">Suorituskyky</span>
+                <div className="flex flex-col gap-2 xs:gap-3 p-3 bg-surface-1 rounded-lg
+                  sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Gamepad2 className="w-5 h-5 text-[var(--color-accent)] flex-shrink-0" />
+                    <span className="text-sm font-medium text-secondary truncate">Suorituskyky</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
+                  <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2 sm:justify-end w-full sm:w-auto">
+                    <div className="flex gap-0.5 xs:gap-1 justify-start xs:justify-end">
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
@@ -354,7 +450,7 @@ export default function ListingDetailPage() {
                         />
                       ))}
                     </div>
-                    <span className="text-sm font-semibold text-primary">{performance.label}</span>
+                    <span className="text-sm font-semibold text-primary text-left xs:text-right">{performance.label}</span>
                   </div>
                 </div>
               </CardHeader>
@@ -422,6 +518,62 @@ export default function ListingDetailPage() {
               </CardContent>
             </Card>
           </div>
+        </div>
+
+        {/* Bottom Content Area */}
+        <div className="mt-8 space-y-6 max-w-7xl mx-auto">
+          {/* Shipping, Warranty, Service Agreement - Collapsible Sections */}
+          <Card className="bg-surface-2 border-[var(--color-border-light)]">
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold text-primary">
+                Toimitus, Takuu ja Huoltosopimus
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 md:p-8 space-y-4">
+              <CollapsibleComponent
+                title="Toimitus"
+                icon={<Truck className="h-5 w-5 min-w-[1.25rem] min-h-[1.25rem]" />}
+              >
+                <p className="text-sm sm:text-base text-[var(--color-neutral)]/80 leading-relaxed">
+                  Verkkokaupassamme asiointi on helppoa ja vaivatonta aina tilaamisesta toimitukseen asti. Kaikki tilaukset lähetetään aina viimeistään seuraavana arkipäivänä tilauksen tekemisestä, joten voit odottaa pakettisi saapuvan nopeasti – tyypillisesti 2-4 arkipäivän kuluessa. Lisäksi tarjoamme kaikille tilauksille ilmaisen toimituksen, joten voit tehdä ostoksia ilman ylimääräisiä kuluja.
+                  <br /><br />
+                  Pidämme sinut ajan tasalla tilauksesi etenemisestä ja ilmoitamme, kun pakettisi on matkalla.
+                </p>
+              </CollapsibleComponent>
+
+              <CollapsibleComponent
+                title="Takuu ja palautukset"
+                icon={<ShieldCheck className="h-5 w-5 min-w-[1.25rem] min-h-[1.25rem]" />}
+              >
+                <h4 className="font-semibold text-sm sm:text-base text-[var(--color-neutral)] mb-2">Palautusoikeus</h4>
+                <p className="text-sm sm:text-base text-[var(--color-neutral)]/80 leading-relaxed mb-4">
+                  Haluamme, että olet täysin tyytyväinen ostoksiisi. Siksi tarjoamme kaikille tuotteille 14 päivän palautusoikeuden. Jos jostain syystä et ole tyytyväinen ostokseesi, voit palauttaa sen alkuperäisessä kunnossa ja pakkauksessa 14 päivän kuluessa tilauksen vastaanottamisesta. Palautus on maksuton. <Link href="/takuu" className="text-[var(--color-primary)] hover:underline">Voit lukea lisää palautusehdoistamme.</Link>
+                </p>
+                <h4 className="font-semibold text-sm sm:text-base text-[var(--color-neutral)] mb-2">Vuoden takuu</h4>
+                <p className="text-sm sm:text-base text-[var(--color-neutral)]/80 leading-relaxed">
+                  Kaikilla tuotteillamme on vuoden takuu, joka kattaa tekniset viat. Takuu alkaa ostopäivästä ja se kattaa valmistus- ja materiaalivirheet, jotka vaikuttavat tuotteen normaaliin käyttöön. Mikäli tuotteessasi ilmenee takuuaikana teknisiä vikoja, korjaamme tai vaihdamme tuotteen maksutta. <Link href="/takuu" className="text-[var(--color-primary)] hover:underline">Voit lukea takuusta lisää takuuehdoistamme.</Link>
+                  <br /><br />
+                  Jos sinulla on kysyttävää takuusta tai palautusprosessista, ota rohkeasti yhteyttä asiakaspalveluumme. Olemme täällä auttaaksemme!
+                </p>
+              </CollapsibleComponent>
+
+              <CollapsibleComponent
+                title="Repur RESPAWN™ Huoltosopimus"
+                icon={<Zap className="h-5 w-5 min-w-[1.25rem] min-h-[1.25rem]" />}
+              >
+                <p className="text-sm sm:text-base text-[var(--color-neutral)]/80 leading-relaxed mb-3">
+                  Repur RESPAWN™ Huoltosopimus on avain huolettomaan pelikokemukseen ja täydelliseen mielenrauhaan. Kun ostat koneesi Repurlta, saat rajoitetun ajan täysin maksutta kattavan palvelupaketin, joka sisältää:
+                </p>
+                <ul className="text-sm sm:text-base text-[var(--color-neutral)]/80 list-disc list-inside space-y-1">
+                  <li>12 kuukauden takuu kaikille osille</li>
+                  <li>Etätuki ongelmatilanteissa</li>
+                  <li>Ilmainen vianmääritys ja korjaus</li>
+                  <li>Takuuhuolto kahdessa päivässä</li>
+                </ul>
+                <Link href="/tuki" className="text-[var(--color-primary)] hover:underline text-sm sm:text-base mt-3 inline-block">Lue lisää huoltosopimuksesta</Link>
+              </CollapsibleComponent>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
