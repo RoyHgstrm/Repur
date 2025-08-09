@@ -29,7 +29,7 @@ export default function RootLayout({
           colorInputText: 'oklch(var(--color-neutral))',
         },
         elements: {
-          card: 'bg-[var(--color-surface-secondary)] border-[var(--color-border)] shadow-xl rounded-xl',
+          card: 'bg-[var(--color-surface-2)] border-[var(--color-border)] shadow-xl rounded-xl',
           formButtonPrimary: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white transition-colors duration-200',
           formButtonSecondary: 'bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-neutral)] transition-colors duration-200',
           socialButtonsBlockButton: 'bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-neutral)] transition-colors duration-200',

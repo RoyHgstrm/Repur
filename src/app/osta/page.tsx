@@ -7,9 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { toast } from '~/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Label } from '~/components/ui/label';
-import { cn } from '~/lib/utils';
+// import { cn } from '~/lib/utils';
 import { type RouterOutputs } from '~/trpc/react';
-import { Search, Zap, Shield, Truck, Star, Filter, SortAsc, Heart, Eye } from 'lucide-react';
+import { Search, Zap, Shield, Truck, Star, Filter, SortAsc } from 'lucide-react';
 import { ProductCard } from "~/components/features/ProductCard";
 import { api } from '~/trpc/react';
 

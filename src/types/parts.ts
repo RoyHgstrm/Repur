@@ -66,18 +66,5 @@ export interface GpuPart {
   length: number | null;
 }
 
-// Declare modules for JSON files to provide type inference
-declare module '*.json' {
-  const value: any; // Fallback for other JSONs
-  export default value;
-}
-
-declare module '@/data/parts/cpu.json' {
-  const value: CpuPart[];
-  export default value;
-}
-
-declare module '@/data/parts/video-card.json' {
-  const value: GpuPart[];
-  export default value;
-}
+// Note: JSON module resolution is handled by tsconfig "resolveJsonModule": true.
+// JSON imports are cast where needed to typed arrays (see usage sites).

@@ -1,72 +1,123 @@
-
 // src/app/takuu/page.tsx
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
-import { CheckCircle2, Shield, Wrench } from 'lucide-react';
+import { Button } from '~/components/ui/button';
+import { CheckCircle2, Shield, Wrench, Truck, Info, Clock } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Takuu - Repur.fi',
-  description: 'Tutustu Repur.fi:n kattavaan 12 kuukauden takuuseen. Tarjoamme luotettavaa tukea ja turvaa kunnostetuille tietokoneillemme.',
+  description: 'Repur.fi – 12 kuukauden takuu kunnostetuille pelikoneille. Lue mitä takuu kattaa ja miten teet takuupyynnön.',
 };
 
-const warrantyFeatures = [
-  {
-    icon: <Shield className="w-8 h-8 text-[var(--color-primary)]" />,
-    title: '12 Kuukauden Kattava Takuu',
-    description: 'Jokainen myymämme tietokone sisältää 12 kuukauden takuun, joka kattaa laitteistoviat ja toimintahäiriöt. Pelaa huoletta, me pidämme huolen lopusta.',
-  },
-  {
-    icon: <Wrench className="w-8 h-8 text-[var(--color-primary)]" />,
-    title: 'Ammattitaitoinen Huolto',
-    description: 'Jos kohtaat ongelmia, asiantunteva tiimimme diagnosoi ja korjaa vian nopeasti. Käytämme vain laadukkaita varaosia varmistaaksemme koneesi pitkäikäisyyden.',
-  },
-  {
-    icon: <CheckCircle2 className="w-8 h-8 text-[var(--color-primary)]" />,
-    title: 'Laadunvarmistus',
-    description: 'Kaikki tietokoneemme läpikäyvät tiukan testaus- ja kunnostusprosessin ennen myyntiä. Takaamme, että saat laadukkaan ja luotettavan tuotteen.',
-  },
-];
-
 export default function TakuuPage() {
+  const highlights = [
+    { Icon: Shield, title: '12 kuukauden takuu', desc: 'Kaikille koneille. Takuu alkaa ostopäivästä.' },
+    { Icon: Wrench, title: 'Ammattitaitoinen huolto', desc: 'Diagnoosi ja korjaus laadukkailla varaosilla.' },
+    { Icon: CheckCircle2, title: 'Testattu laatu', desc: 'Jokainen kone kuormitustestataan ennen myyntiä.' },
+    { Icon: Truck, title: 'Nopea käsittely', desc: 'Takuuhuollot käsitellään viipymättä.' },
+  ];
+
   return (
-    <div className="container mx-auto px-container py-section">
-      <header className="text-center mb-xl">
-        <h1 className="text-4xl-fluid font-extrabold tracking-tight text-[var(--color-text-primary)]">
-          Repur.fi Takuu
-        </h1>
-        <p className="mt-md max-w-3xl mx-auto text-lg-fluid text-[var(--color-text-secondary)]">
-          Seisomme tuotteidemme takana. Tarjoamme selkeän ja reilun takuun, jotta voit keskittyä olennaiseen: pelaamiseen.
-        </p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-lg mb-2xl">
-        {warrantyFeatures.map((feature, index) => (
-          <Card key={index} className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 p-lg text-center shadow-md hover:shadow-lg transition-shadow">
-            <div className="flex justify-center mb-md">{feature.icon}</div>
-            <h3 className="text-xl-fluid font-bold text-[var(--color-text-primary)] mb-sm">{feature.title}</h3>
-            <p className="text-[var(--color-text-secondary)] text-base-fluid">{feature.description}</p>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 p-xl shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-2xl-fluid font-bold text-[var(--color-text-primary)]">Takuuehdot lyhyesti</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-md text-[var(--color-text-secondary)] list-disc list-inside">
-            <li>Takuu on voimassa 12 kuukautta ostopäivästä.</li>
-            <li>Takuu kattaa kaikki laitteistoviat, jotka eivät ole käyttäjän itse aiheuttamia.</li>
-            <li>Ohjelmistovirheet, haittaohjelmat tai virukset eivät kuulu takuun piiriin.</li>
-            <li>Takuu ei kata fyysisiä vaurioita, nesteen aiheuttamia vikoja tai virheellisestä käytöstä johtuvia ongelmia.</li>
-            <li>Takuukorjaukset suoritetaan meidän toimestamme. Laitteen omatoiminen avaaminen tai korjaaminen voi mitätöidä takuun.</li>
-            <li>Säilytä ostokuitti, se toimii takuutodistuksena.</li>
-          </ul>
-          <p className="mt-lg text-[var(--color-text-secondary)]">
-            Jos sinulla on kysyttävää takuusta tai haluat tehdä takuuvaatimuksen, ole hyvä ja <a href="/yhteystiedot" className="text-[var(--color-primary)] hover:underline">ota meihin yhteyttä</a>.
+    <main className="min-h-screen bg-surface-1">
+      <section className="mx-auto max-w-7xl px-container py-12">
+        <header className="text-center space-y-4 mb-8">
+          <h1 className="text-4xl-fluid font-extrabold text-primary">Takuu</h1>
+          <p className="text-lg-fluid text-secondary max-w-3xl mx-auto">
+            Seisomme tuotteidemme takana. Tarjoamme selkeän ja reilun takuun, jotta voit keskittyä pelaamiseen.
           </p>
-        </CardContent>
-      </Card>
-    </div>
+        </header>
+
+        {/* Highlights */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          {highlights.map(({ Icon, title, desc }) => (
+            <Card key={title} className="bg-surface-2 border-[var(--color-border-light)]">
+              <CardContent className="p-5 flex items-start gap-3">
+                <Icon className="h-5 w-5 text-[var(--color-primary)]" />
+                <div>
+                  <p className="text-sm font-semibold text-primary">{title}</p>
+                  <p className="text-sm text-secondary">{desc}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Coverage */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card className="bg-surface-2 border-[var(--color-border-light)]">
+            <CardHeader>
+              <CardTitle className="text-xl-fluid">Mitä takuu kattaa</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="text-sm text-secondary space-y-2 list-disc list-inside">
+                <li>Laitteistoviat normaalissa käytössä (CPU, GPU, RAM, emolevy, SSD/HDD, virtalähde)</li>
+                <li>Vastaanottovaiheessa havaitsemattomat valmistus- ja komponenttivirheet</li>
+                <li>Korjaus Repur.fi:n huollossa – käytämme laadukkaita varaosia</li>
+              </ul>
+            </CardContent>
+          </Card>
+          <Card className="bg-surface-2 border-[var(--color-border-light)]">
+            <CardHeader>
+              <CardTitle className="text-xl-fluid">Mitä takuu ei kata</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="text-sm text-secondary space-y-2 list-disc list-inside">
+                <li>Käyttö- ja ohjelmistovirheet, haittaohjelmat tai käyttöjärjestelmän rikkoutuminen</li>
+                <li>Fyysiset vauriot, nestevahingot tai väärästä käytöstä aiheutuneet viat</li>
+                <li>Omatoimiset korjaukset tai muutokset, jotka rikkovat takuusinetit</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* How to claim */}
+        <Card className="bg-surface-2 border-[var(--color-border-light)] mb-8">
+          <CardHeader>
+            <CardTitle className="text-xl-fluid">Näin teet takuupyynnön</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { title: '1. Varmista tiedot', desc: 'Etsi tilausnumero ja kuvaile vika lyhyesti.' },
+              { title: '2. Ota yhteyttä', desc: <>Täytä <Link href="/tuki" className="text-[var(--color-primary)] hover:underline">tukipyyntö</Link> tai ota yhteyttä <Link href="/yhteystiedot" className="text-[var(--color-primary)] hover:underline">yhteystiedoista</Link>.</> },
+              { title: '3. Toimitus huoltoon', desc: 'Saat ohjeet laitteen pakkaamiseen ja toimitukseen.' },
+              { title: '4. Korjaus ja palautus', desc: 'Korjaamme ja testaamme – palautamme koneen viipymättä.' },
+            ].map(({ title, desc }) => (
+              <div key={title} className="space-y-1">
+                <p className="text-sm font-semibold text-primary">{title}</p>
+                <p className="text-sm text-secondary">{desc}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Additional notes */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-surface-2 border-[var(--color-border-light)]">
+            <CardContent className="p-6 flex items-start gap-3">
+              <Clock className="h-5 w-5 text-[var(--color-primary)]" />
+              <p className="text-sm text-secondary">
+                Käsittelemme takuupyynnöt mahdollisimman nopeasti. Arvioitu käsittelyaika ilmoitetaan tapauskohtaisesti
+                vian laadusta riippuen.
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-surface-2 border-[var(--color-border-light)]">
+            <CardContent className="p-6 flex items-start gap-3">
+              <Info className="h-5 w-5 text-[var(--color-primary)]" />
+              <p className="text-sm text-secondary">
+                Takuu ei rajoita kuluttajansuojalain mukaisia oikeuksiasi. Säilytä ostokuitti – se toimii takuutodistuksena.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* CTA */}
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link href="/tuki"><Button className="h-11 px-6">Tee tukipyyntö</Button></Link>
+          <Link href="/yhteystiedot"><Button variant="outline" className="h-11 px-6">Yhteystiedot</Button></Link>
+        </div>
+      </section>
+    </main>
   );
 }

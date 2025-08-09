@@ -286,21 +286,22 @@ const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number, total
   </div>
 );
 
-const FormStep = ({ title, description, children, isActive }: { title: string, description: string, children: React.ReactNode, isActive: boolean }) => (
-  <motion.div
-    initial={{ opacity: 0, x: 50 }}
-    animate={{ opacity: isActive ? 1 : 0, x: isActive ? 0 : -50 }}
-    transition={{ duration: 0.4, ease: "easeOut" }}
-    className={cn("space-y-6", !isActive && "absolute w-full top-0 left-0 pointer-events-none")}
+const FormStep = ({ title, description, children }: { title: string, description: string, children: React.ReactNode }) => (
+  <motion.section
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -8 }}
+    transition={{ duration: 0.32, ease: "easeOut" }}
+    className="space-y-6"
   >
-    <div className="text-center mb-8">
+    <div className="text-center mb-6">
       <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
       <p className="text-gray-600 max-w-2xl mx-auto">{description}</p>
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {children}
     </div>
-  </motion.div>
+  </motion.section>
 );
 
 export default function MyyPage() {
@@ -308,13 +309,27 @@ export default function MyyPage() {
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const TOTAL_STEPS = 4;
+  const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({});
+
+  // Local helpers for inline error management
+  const setFieldError = (field: keyof FormData, message: string) => {
+    setErrors((prev) => ({ ...prev, [field]: message }));
+  };
+  const clearFieldError = (field: keyof FormData) => {
+    setErrors((prev) => {
+      if (!(field in prev)) return prev;
+      const next = { ...prev } as Record<string, string | undefined>;
+      delete next[field as string];
+      return next;
+    });
+  };
 
   // Remove price from display labels
   const processedCpuOptions: ComboboxOption[] = useMemo(() => {
     return processAndGroupParts(
       cpusData as CpuPart[],
       'name',
-      (cpu) => (cpu as CpuPart).name.includes('Ryzen') ? 'AMD Processors' : 'Intel Processors',
+      (cpu) => cpu.name.includes('Ryzen') ? 'AMD Processors' : 'Intel Processors',
       (cpu) => cpu.name, // Just show the name, no price
       (a, b) => a.label.localeCompare(b.label)
     );
@@ -324,7 +339,7 @@ export default function MyyPage() {
     return processAndGroupParts(
       gpusData as GpuPart[],
       'chipset',
-      (gpu) => (gpu as GpuPart).chipset.includes('Radeon') ? 'AMD Graphics Cards' : 'NVIDIA Graphics Cards',
+      (gpu) => gpu.chipset.includes('Radeon') ? 'AMD Graphics Cards' : 'NVIDIA Graphics Cards',
       (gpu) => gpu.chipset, // Just show the chipset, no price
       (a, b) => a.label.localeCompare(b.label)
     );
@@ -349,6 +364,7 @@ export default function MyyPage() {
     { id: '3200MHz', value: '3200', label: '3200 MHz' }, 
     { id: '3600MHz', value: '3600', label: '3600 MHz' }, 
     { id: '4800MHz', value: '4800', label: '4800 MHz (DDR5)'},
+    { id: '5600MHz', value: '5600', label: '5600 MHz (DDR5)'},
     { id: 'en_tieda_ram_speed', value: 'en_tieda_ram_speed', label: 'En tiedä' }
   ], []);
   
@@ -397,7 +413,50 @@ export default function MyyPage() {
   ], []);
 
   const handleInputChange = (field: keyof FormData, value: string) => {
+    clearFieldError(field);
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Validate required fields for each step before allowing next
+  const validateStep = (step: number): boolean => {
+    let isValid = true;
+    const req = (field: keyof FormData, message: string) => {
+      const v = formData[field];
+      if (!v || String(v).trim() === "") {
+        setFieldError(field, message);
+        isValid = false;
+      }
+    };
+
+    if (step === 1) {
+      req("cpu", "Valitse prosessori");
+      req("gpu", "Valitse näytönohjain");
+    }
+    if (step === 2) {
+      req("ramSize", "Valitse RAM-koko");
+      req("ramType", "Valitse RAM-tyyppi");
+      req("ramSpeed", "Valitse RAM-nopeus");
+      req("storageType", "Valitse tallennustilan tyyppi");
+      req("storageSize", "Valitse tallennustilan koko");
+    }
+    if (step === 3) {
+      req("psuWattage", "Valitse virtalähteen teho");
+      req("psuEfficiency", "Valitse virtalähteen hyötysuhde");
+      if (!formData.title || formData.title.trim().length < 5) {
+        setFieldError("title", "Otsikon on oltava vähintään 5 merkkiä");
+        isValid = false;
+      }
+      req("condition", "Valitse koneen yleiskunto");
+    }
+
+    if (!isValid) {
+      toast({
+        title: "Puutteelliset tiedot",
+        description: "Täydennä vaaditut kentät ennen siirtymistä eteenpäin.",
+        variant: "destructive",
+      });
+    }
+    return isValid;
   };
 
   const debouncedCalculatePrice = useCallback(() => {
@@ -411,6 +470,23 @@ export default function MyyPage() {
     }, 500);
     return () => clearTimeout(handler);
   }, [formData, debouncedCalculatePrice]);
+
+  // Persist progress locally so users can resume later
+  useEffect(() => {
+    try {
+      const savedData = localStorage.getItem("myyFormData");
+      const savedStep = localStorage.getItem("myyCurrentStep");
+      if (savedData) setFormData(JSON.parse(savedData));
+      if (savedStep) setCurrentStep(parseInt(savedStep, 10));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("myyFormData", JSON.stringify(formData));
+      localStorage.setItem("myyCurrentStep", String(currentStep));
+    } catch {}
+  }, [formData, currentStep]);
 
   const createTradeInSubmissionMutation = api.listings.createTradeInSubmission.useMutation({
     onSuccess: () => {
@@ -451,65 +527,72 @@ export default function MyyPage() {
     }
   };
 
-  const nextStep = () => setCurrentStep(s => Math.min(s + 1, TOTAL_STEPS + 1));
+  const nextStep = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep((s) => Math.min(s + 1, TOTAL_STEPS + 1));
+    }
+  };
   const prevStep = () => setCurrentStep(s => Math.max(s - 1, 1));
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-1)] text-[var(--color-neutral)]">
+    <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)] text-[var(--color-neutral)]">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-tertiary)] to-[var(--color-primary-dark)] text-[var(--color-neutral)]">
-        <div className="container mx-auto px-container py-section">
-          <div className="text-center max-w-4xl mx-auto">
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/10 via-[var(--color-secondary)]/10 to-[var(--color-accent)]/10" />
+        <div className="container-responsive py-section relative">
+          <div className="text-center space-y-6 max-w-4xl mx-auto">
+            <motion.h1
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-4xl-fluid sm:text-5xl-fluid font-extrabold mb-6 !text-white"
+              className="text-gradient-primary text-4xl-fluid md:text-5xl-fluid font-black leading-tight"
             >
               Myy Tietokoneesi Repur.fi:lle
             </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
+
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-lg-fluid opacity-90 mb-8"
+              transition={{ delay: 0.08 }}
+              className="text-secondary text-lg-fluid max-w-2xl mx-auto"
             >
               Anna vanhalle pelikoneellesi uusi elämä. Saat reilun tarjouksen ja tuet samalla kierrätystaloutta.
             </motion.p>
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
+
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="flex flex-wrap justify-center gap-6 text-sm-fluid"
+              transition={{ delay: 0.16 }}
+              className="flex flex-wrap justify-center gap-6 mt-4 text-sm-fluid"
             >
-              <div className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-[var(--color-success)]" />
-                <span>12 kuukauden takuu</span>
+              <div className="flex items-center gap-2 text-accent-secondary">
+                <Shield className="w-5 h-5" />
+                <span className="text-sm font-medium">12kk Takuu</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Recycle className="w-5 h-5 text-[var(--color-info)]" />
-                <span>Ympäristöystävällistä</span>
+              <div className="flex items-center gap-2 text-accent-primary">
+                <Recycle className="w-5 h-5" />
+                <span className="text-sm font-medium">Ympäristöystävällistä</span>
               </div>
-              <div className="flex items-center space-x-2">
-                <Award className="w-5 h-5 text-[var(--color-warning)]" />
-                <span>Luotettava kumppani</span>
+              <div className="flex items-center gap-2 text-accent-coral">
+                <Award className="w-5 h-5" />
+                <span className="text-sm font-medium">Luotettava kumppani</span>
               </div>
             </motion.div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-container py-section">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="w-full py-8 mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Main Form */}
-          <div className="xl:col-span-3">
-            <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
+            <div className="xl:col-span-3">
+            <Card className="card-responsive bg-[var(--color-surface-2)] shadow-lg">
               {currentStep <= TOTAL_STEPS && (
                 <CardHeader className="bg-[var(--color-surface-3)] border-b border-[var(--color-border)]">
                   <StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
                 </CardHeader>
               )}
               
-              <CardContent className="p-lg">
+               <CardContent className="p-6">
                 <AnimatePresence mode="wait">
                   {currentStep === TOTAL_STEPS + 1 ? (
                     <motion.div
@@ -537,14 +620,14 @@ export default function MyyPage() {
                       </Button>
                     </motion.div>
                   ) : (
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                      <div className="relative min-h-[500px]">
+                     <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="relative min-h-[280px] md:min-h-[420px]">
                         {/* Step 1: Core Components */}
                         {currentStep === 1 && (
                           <FormStep 
                             title="Ydinkomponentit" 
                             description="Valitse koneesi tärkeimmät osat - prosessori ja näytönohjain." 
-                            isActive={currentStep === 1}
+                            
                           >
                             <div className="space-y-4">
                               <Label className="flex items-center text-[var(--color-neutral)] font-semibold">
@@ -582,15 +665,15 @@ export default function MyyPage() {
                           <FormStep 
                             title="Muisti ja Tallennustila" 
                             description="Kerro meille koneesi muistin ja tallennustilan tiedot." 
-                            isActive={currentStep === 2}
+                            
                           >
-                            <div className="bg-[var(--color-surface-3)]/50 p-lg rounded-xl border border-[var(--color-border)]">
+                            <div className="bg-[var(--color-surface-3)]/50 p-6 rounded-xl border border-[var(--color-border)]">
                               <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
                                 <MemoryStick className="mr-2 text-[var(--color-primary)]" /> 
                                 Muisti (RAM)
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="space-y-2">
+                             <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Koko</Label>
                                   <Combobox 
                                     options={RAM_OPTIONS} 
@@ -598,8 +681,11 @@ export default function MyyPage() {
                                     onValueChange={(v) => handleInputChange('ramSize', v)} 
                                     placeholder="Valitse..." 
                                   />
+                               {errors.ramSize && (
+                                 <p className="text-xs text-red-500">{errors.ramSize}</p>
+                               )}
                                 </div>
-                                <div className="space-y-2">
+                             <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Tyyppi</Label>
                                   <Combobox 
                                     options={RAM_TYPE_OPTIONS} 
@@ -607,8 +693,11 @@ export default function MyyPage() {
                                     onValueChange={(v) => handleInputChange('ramType', v)} 
                                     placeholder="Valitse..." 
                                   />
+                               {errors.ramType && (
+                                 <p className="text-xs text-red-500">{errors.ramType}</p>
+                               )}
                                 </div>
-                                <div className="space-y-2">
+                             <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Nopeus</Label>
                                   <Combobox 
                                     options={RAM_SPEED_OPTIONS} 
@@ -616,17 +705,20 @@ export default function MyyPage() {
                                     onValueChange={(v) => handleInputChange('ramSpeed', v)} 
                                     placeholder="Valitse..." 
                                   />
+                               {errors.ramSpeed && (
+                                 <p className="text-xs text-red-500">{errors.ramSpeed}</p>
+                               )}
                                 </div>
                               </div>
                             </div>
                             
-                            <div className="bg-[var(--color-surface-3)]/50 p-lg rounded-xl border border-[var(--color-border)]">
+                            <div className="bg-[var(--color-surface-3)]/50 p-6 rounded-xl border border-[var(--color-border)]">
                               <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
                                 <HardDrive className="mr-2 text-[var(--color-primary)]" /> 
                                 Tallennustila
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
+                             <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Tyyppi</Label>
                                   <Combobox 
                                     options={STORAGE_TYPE_OPTIONS} 
@@ -634,8 +726,11 @@ export default function MyyPage() {
                                     onValueChange={(v) => handleInputChange('storageType', v)} 
                                     placeholder="Valitse..." 
                                   />
+                               {errors.storageType && (
+                                 <p className="text-xs text-red-500">{errors.storageType}</p>
+                               )}
                                 </div>
-                                <div className="space-y-2">
+                             <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Koko</Label>
                                   <Combobox 
                                     options={STORAGE_SIZE_OPTIONS} 
@@ -643,6 +738,9 @@ export default function MyyPage() {
                                     onValueChange={(v) => handleInputChange('storageSize', v)} 
                                     placeholder="Valitse..." 
                                   />
+                               {errors.storageSize && (
+                                 <p className="text-xs text-red-500">{errors.storageSize}</p>
+                               )}
                                 </div>
                               </div>
                             </div>
@@ -654,15 +752,15 @@ export default function MyyPage() {
                           <FormStep 
                             title="Virtalähde ja Lisätiedot" 
                             description="Viimeistele tiedot virtalähteellä ja muilla yksityiskohdilla." 
-                            isActive={currentStep === 3}
+                            
                           >
-                            <div className="bg-[var(--color-surface-3)]/50 p-lg rounded-xl border border-[var(--color-border)] col-span-full">
+                            <div className="bg-[var(--color-surface-3)]/50 p-6 rounded-xl border border-[var(--color-border)] col-span-full">
                               <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
                                 <Power className="mr-2 text-[var(--color-primary)]" /> 
                                 Virtalähde (PSU)
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2">
+                             <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Teho</Label>
                                   <Combobox 
                                     options={PSU_WATTAGE_OPTIONS} 
@@ -670,8 +768,11 @@ export default function MyyPage() {
                                     onValueChange={(v) => handleInputChange('psuWattage', v)} 
                                     placeholder="Valitse..." 
                                   />
+                               {errors.psuWattage && (
+                                 <p className="text-xs text-red-500">{errors.psuWattage}</p>
+                               )}
                                 </div>
-                                <div className="space-y-2">
+                             <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Hyötysuhde</Label>
                                   <Combobox 
                                     options={PSU_EFFICIENCY_OPTIONS} 
@@ -679,11 +780,14 @@ export default function MyyPage() {
                                     onValueChange={(v) => handleInputChange('psuEfficiency', v)} 
                                     placeholder="Valitse..." 
                                   />
+                               {errors.psuEfficiency && (
+                                 <p className="text-xs text-red-500">{errors.psuEfficiency}</p>
+                               )}
                                 </div>
                               </div>
                             </div>
                             
-                            <div className="space-y-4">
+                             <div className="space-y-4">
                               <Label className="text-[var(--color-neutral)] font-semibold">Otsikko</Label>
                               <Input 
                                 placeholder="Otsikko (esim. Tehokas Pelitietokone)" 
@@ -691,6 +795,9 @@ export default function MyyPage() {
                                 onChange={(e) => handleInputChange('title', e.target.value)} 
                                 className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
                               />
+                               {errors.title && (
+                                 <p className="text-xs text-red-500">{errors.title}</p>
+                               )}
                             </div>
                             
                             <div className="space-y-4">
@@ -714,7 +821,7 @@ export default function MyyPage() {
                               />
                             </div>
                             
-                            <div className="space-y-4 col-span-full">
+                             <div className="space-y-4 col-span-full">
                               <Label className="text-[var(--color-neutral)] font-semibold">Koneen yleiskunto</Label>
                               <Combobox 
                                 options={CONDITION_OPTIONS} 
@@ -722,6 +829,9 @@ export default function MyyPage() {
                                 onValueChange={(v) => handleInputChange('condition', v)} 
                                 placeholder="Valitse koneen yleiskunto..." 
                               />
+                               {errors.condition && (
+                                 <p className="text-xs text-red-500">{errors.condition}</p>
+                               )}
                             </div>
                           </FormStep>
                         )}
@@ -731,9 +841,9 @@ export default function MyyPage() {
                           <FormStep 
                             title="Yhteystiedot" 
                             description="Tarvitsemme yhteystietosi tarjouksen lähettämistä varten." 
-                            isActive={currentStep === 4}
+                            
                           >
-                            <div className="space-y-4">
+                             <div className="space-y-4">
                               <Label className="text-[var(--color-neutral)] font-semibold">Sähköpostiosoite *</Label>
                               <Input 
                                 placeholder="Sähköpostiosoite" 
@@ -743,6 +853,9 @@ export default function MyyPage() {
                                 className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
                                 required
                               />
+                               {errors.contactEmail && (
+                                 <p className="text-xs text-red-500">{errors.contactEmail}</p>
+                               )}
                             </div>
                             
                             <div className="space-y-4">
@@ -760,36 +873,36 @@ export default function MyyPage() {
                       </div>
 
                       {/* Navigation Buttons */}
-                      <div className="flex justify-between items-center pt-lg border-t border-[var(--color-border)]/50">
-                        <Button 
-                          type="button"
-                          variant="outline" 
-                          onClick={prevStep} 
-                          disabled={currentStep === 1}
-                          className="flex items-center space-x-2 px-lg py-md"
-                        >
+                       <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-6 border-t border-[var(--color-border)]/50">
+                         <Button 
+                           type="button"
+                           variant="outline" 
+                           onClick={prevStep} 
+                           disabled={currentStep === 1}
+                           className="flex items-center space-x-2 px-4 py-3 w-full sm:w-auto"
+                         >
                           <ArrowLeft className="w-4 h-4" />
                           <span>Edellinen</span>
                         </Button>
                         
-                        {currentStep < TOTAL_STEPS ? (
-                          <Button 
-                            type="button"
-                            onClick={nextStep}
-                            className="flex items-center space-x-2 px-lg py-md bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
-                          >
+                           {currentStep < TOTAL_STEPS ? (
+                           <Button 
+                             type="button"
+                             onClick={nextStep}
+                             className="flex items-center justify-center space-x-2 px-4 py-3 w-full sm:w-auto bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90"
+                           >
                             <span>Seuraava</span>
                             <ArrowRight className="w-4 h-4" />
                           </Button>
                         ) : (
-                          <Button 
-                            type="submit" 
-                            disabled={createTradeInSubmissionMutation.isPending || !formData.cpu || !formData.gpu || !formData.title || !formData.contactEmail}
-                            className="flex items-center space-x-2 px-xl py-md bg-gradient-to-r from-[var(--color-success)] to-[var(--color-primary)] hover:from-[var(--color-success)]/90 hover:to-[var(--color-primary)]/90"
-                          >
-                            {createTradeInSubmissionMutation.isPending ? (
+                           <Button 
+                             type="submit" 
+                              disabled={createTradeInSubmissionMutation.status === 'pending' || !formData.cpu || !formData.gpu || !formData.title || !formData.contactEmail}
+                              className="flex items-center justify-center space-x-2 px-6 py-3 w-full sm:w-auto bg-gradient-to-r from-[var(--color-success)] to-[var(--color-primary)] hover:from-[var(--color-success)]/90 hover:to-[var(--color-primary)]/90"
+                           >
+                            {createTradeInSubmissionMutation.status === 'pending' ? (
                               <>
-                                <div className="w-4 h-4 border-2 border-[var(--color-neutral)] border-t-transparent rounded-full animate-spin" />
+                                <div className="w-4 h-4 border-2 border-[var(--color-neutral)] border-t-transparent rounded-full animate-spin" aria-hidden />
                                 <span>Lähetetään...</span>
                               </>
                             ) : (
@@ -818,7 +931,7 @@ export default function MyyPage() {
                   Hinta-arvio
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-lg">
+               <CardContent className="p-6">
                 {estimatedPrice !== null ? (
                   <motion.div 
                     initial={{ scale: 0.9, opacity: 0 }}
@@ -849,7 +962,7 @@ export default function MyyPage() {
             </Card>
 
             {/* Process Steps */}
-            <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg">
+            <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]/50 shadow-lg mt-4">
               <CardHeader>
                 <CardTitle className="text-xl-fluid font-bold text-[var(--color-neutral)]">
                   Miten prosessi toimii?
@@ -895,7 +1008,7 @@ export default function MyyPage() {
             </Card>
 
             {/* Benefits */}
-            <Card className="bg-gradient-to-br from-[var(--color-surface-3)]/50 to-[var(--color-surface-4)]/50 border-[var(--color-border)]/50 shadow-lg">
+            <Card className="bg-gradient-to-br mt-4 from-[var(--color-surface-3)]/50 to-[var(--color-surface-4)]/50 border-[var(--color-border)]/50 shadow-lg">
               <CardContent className="p-lg">
                 <h3 className="font-bold text-[var(--color-neutral)] mb-4">Miksi valita Repur.fi?</h3>
                 <div className="space-y-3">

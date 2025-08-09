@@ -1,6 +1,6 @@
 "use client"
 import { api } from '~/trpc/react';
-import { notFound } from 'next/navigation';
+// import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
@@ -26,7 +26,14 @@ import {
   Info,
   Zap,
   Gamepad2,
-  ShieldCheck
+  ShieldCheck,
+  Maximize2,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fi } from 'date-fns/locale';
@@ -34,11 +41,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { type RouterOutputs } from '~/trpc/react';
 import { cn } from '~/lib/utils';
 import CollapsibleComponent from '~/components/ui/CollapsibleComponent';
 import { FPS_DATA } from '~/lib/fpsConstants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };
@@ -55,9 +63,49 @@ export default function ListingDetailPage() {
   const { data: listingData, isLoading, error } = api.listings.getCompanyListingById.useQuery({ id });
 
   const listing = listingData as DetailedListing;
+  // Ensure hooks are called before any early returns to keep hook order consistent
+  const [selectedGame, setSelectedGame] = useState<string | null>(null);
+  const [estimatedGameFps, setEstimatedGameFps] = useState(() => getEstimatedFps(3, null, null));
+
+  // Removed backdrop/palette usage to keep images simple and cover the view
+  // Lightbox state (declared but not used if not rendered)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
+  const openModal = (index: number) => { setModalImageIndex(index); setIsModalOpen(true); };
+  const closeModal = () => setIsModalOpen(false);
+  const prevImage = () => setModalImageIndex((i) => (i - 1 + images.length) % images.length);
+  const nextImage = () => setModalImageIndex((i) => (i + 1) % images.length);
+  const [isZoomed, setIsZoomed] = useState(false);
+  const downloadImage = async () => {
+    try {
+      const url = images[modalImageIndex];
+      if (!url) return;
+      const a = document.createElement('a');
+      a.href = url; a.download = 'image.jpg'; a.click();
+    } catch {}
+  };
+  const shareImage = async () => {
+    try {
+      const url = images[modalImageIndex];
+      if (!url || !('share' in navigator)) return;
+      await (navigator as any).share({ url });
+    } catch {}
+  };
 
   // Performance rating based on components
-  const getPerformanceRating = (gpu: string | null, cpu: string | null) => {
+  const performance = listing ? getPerformanceRating(listing.gpu, listing.cpu) : { rating: 3, label: 'Perus' } as const;
+  // Safe helpers for current image and list
+  const images = Array.isArray(listing?.images) ? (listing!.images as string[]) : [];
+  const currentImage = images[selectedImageIndex] || images[0];
+  // Derived inputs for FPS calculation
+  const gpuForCalc = listing?.gpu ?? null;
+  const cpuForCalc = listing?.cpu ?? null;
+  useEffect(() => {
+    setEstimatedGameFps(getEstimatedFps(performance.rating, gpuForCalc, cpuForCalc));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [performance.rating, gpuForCalc, cpuForCalc]);
+
+  function getPerformanceRating(gpu: string | null, cpu: string | null) {
     const gpuLower = (gpu ?? '').toLowerCase();
     const cpuLower = (cpu ?? '').toLowerCase();
     
@@ -68,7 +116,10 @@ export default function ListingDetailPage() {
     if (gpuLower.includes('gtx') || gpuLower.includes('rx 5') || 
         cpuLower.includes('i5') || cpuLower.includes('ryzen 5')) return { rating: 3, label: 'Hyvä' };
     return { rating: 2, label: 'Perus' };
-  };
+  }
+
+  // Returns two representative colors from an image URL for dynamic UI theming
+  // (palette extraction removed)
 
   const getConditionColor = (condition: string | null) => {
     switch (condition) {
@@ -80,10 +131,29 @@ export default function ListingDetailPage() {
     }
   };
 
+  // Additional tuning multipliers to improve estimated FPS accuracy heuristically
+  function getGpuTierMultiplier(gpu: string | null): number {
+    const g = (gpu ?? "").toLowerCase();
+    if (/rtx\s*4090|rtx\s*4080|rx\s*79\d{2}/.test(g)) return 1.35;
+    if (/rtx\s*4070|rtx\s*4060|rx\s*77\d{2}|rx\s*76\d{2}/.test(g)) return 1.15;
+    if (/rtx\s*3090|rtx\s*3080|rtx\s*3070|rx\s*69\d{2}|rx\s*68\d{2}|rx\s*67\d{2}/.test(g)) return 1.2;
+    if (/rtx\s*3060|rtx\s*3050|rx\s*66\d{2}|rx\s*65\d{2}/.test(g)) return 1.05;
+    if (/gtx\s*16|gtx\s*10|rx\s*5\d{2,3}/.test(g)) return 0.9;
+    return 1.0;
+  }
+
+  function getCpuTierMultiplier(cpu: string | null): number {
+    const c = (cpu ?? "").toLowerCase();
+    if (/i9|ryzen\s*9/.test(c)) return 1.15;
+    if (/i7|ryzen\s*7/.test(c)) return 1.08;
+    if (/i5|ryzen\s*5/.test(c)) return 1.0;
+    return 0.9;
+  }
+
   // Simplified FPS estimation based on performance rating
   // HOW: This function estimates FPS for different games and settings based on the system's performance rating.
   // WHY: Provides users with a clear, relatable measure of a PC's gaming capability, enhancing transparency and user confidence, without requiring complex real-world benchmarks on every listing.
-  const getEstimatedFps = (rating: number) => {
+  function getEstimatedFps(rating: number, gpu: string | null, cpu: string | null) {
     const allFpsData: { game: string; resolution: string; quality: string; multiplier: number; }[] = [];
 
     for (const gameName in FPS_DATA.GAMES) {
@@ -104,9 +174,9 @@ export default function ListingDetailPage() {
     const estimatedFpsMap = new Map<string, Map<string, { quality: string; fps: number; }[]>>();
 
     allFpsData.forEach(({ game, resolution, quality, multiplier }) => {
-      const calculatedFps = Math.round(
-        (FPS_DATA.BASE_FPS + (rating - 3) * FPS_DATA.RATING_ADJUST) * multiplier
-      );
+      const perfBase = FPS_DATA.BASE_FPS + (rating - 3) * FPS_DATA.RATING_ADJUST;
+      const tuning = Math.min(1.5, Math.max(0.75, getGpuTierMultiplier(gpu) * getCpuTierMultiplier(cpu)));
+      const calculatedFps = Math.round(perfBase * multiplier * tuning);
       const fps = Math.max(1, calculatedFps);
 
       if (!estimatedFpsMap.has(game)) {
@@ -129,7 +199,7 @@ export default function ListingDetailPage() {
       result.push({ game, resolutions });
     });
     return result;
-  };
+  }
 
   if (isLoading) {
     return (
@@ -172,7 +242,19 @@ export default function ListingDetailPage() {
 
   if (error) {
     if (error.data?.code === 'NOT_FOUND') {
-      notFound();
+      // Render a friendly not found view instead of using notFound() here to avoid conditional hooks issues
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)] flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="text-6xl">🕵️‍♂️</div>
+            <h2 className="text-2xl-fluid font-bold text-primary">Listaus ei löytynyt</h2>
+            <p className="text-secondary">Pyydettyä kohdetta ei ole tai se on poistettu.</p>
+            <Button onClick={() => router.push('/osta')} variant="outline">
+              Takaisin listaukseen
+            </Button>
+          </div>
+        </div>
+      );
     }
     return (
       <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)] flex items-center justify-center">
@@ -188,12 +270,7 @@ export default function ListingDetailPage() {
     );
   }
 
-  if (!listing) {
-    notFound();
-  }
-
-  const performance = getPerformanceRating(listing.gpu, listing.cpu);
-  const estimatedGameFps = getEstimatedFps(performance.rating);
+  // (removed duplicate performance/effect block)
   const specs = [
     { label: "Prosessori", value: listing.cpu, Icon: Cpu, color: "text-[var(--color-primary)]" },
     { label: "Näytönohjain", value: listing.gpu, Icon: Gauge, color: "text-[var(--color-accent)]" },
@@ -207,7 +284,7 @@ export default function ListingDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)]">
       {/* Navigation Header */}
-      <div className="sticky top-0 z-40 bg-surface-1/80 backdrop-blur-md border-b border-[var(--color-border)]">
+      <div className="sticky top-0 z-40 bg-surface-1 backdrop-blur-md border-b border-[var(--color-border)]">
         <div className="container-responsive py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -251,59 +328,164 @@ export default function ListingDetailPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Main Content - Left Column */}
           <div className="xl:col-span-2 space-y-6">
-            {/* Image Gallery */}
-            <Card className="overflow-hidden bg-surface-2 border-[var(--color-border-light)]">
-              <CardContent className="p-0">
-                {listing.images && listing.images.length > 0 ? (
-                  <div className="space-y-4">
-                    {/* Main Image */}
-                    <div className="relative aspect-video bg-surface-1 group cursor-pointer">
-                      <Image 
-                        src={listing.images[selectedImageIndex] ?? listing.images[0]}
-                        alt={`${listing.title} - kuva ${selectedImageIndex + 1}`}
-                        fill
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        priority
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    </div>
-                    
-                    {/* Thumbnail Gallery */}
-                    {listing.images.length > 1 && (
-                      <div className="p-4">
-                        <div className="flex gap-2 overflow-x-auto pb-2">
-                          {listing.images.map((image: string, index: number) => (
-                            <button
-                              key={nanoid()}
-                              onClick={() => setSelectedImageIndex(index)}
-                              className={cn(
-                                "relative aspect-square w-20 h-20 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0",
-                                selectedImageIndex === index 
-                                  ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20" 
-                                  : "border-[var(--color-border)] hover:border-[var(--color-primary)]/50"
-                              )}
-                            >
-                              <Image 
-                                src={image} 
-                                alt={`Thumbnail ${index + 1}`}
-                                fill
-                                className="object-cover"
-                              />
-                            </button>
-                          ))}
-                        </div>
+                {/* Main Gallery Card */}
+      <Card className="overflow-hidden bg-gradient-to-br from-surface-2 to-surface-1 border-[var(--color-border-light)] shadow-lg hover:shadow-xl transition-all duration-500">
+        <CardContent className="p-0">
+          <div className="space-y-0">
+            {/* Main Image Display (cover, no backdrop) */}
+            <div className="relative aspect-video overflow-hidden group cursor-pointer" onClick={() => openModal(selectedImageIndex)}>
+              {currentImage ? (
+                <Image 
+                  src={currentImage}
+                  alt={`${listing.title} - kuva ${selectedImageIndex + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                  priority
+                />
+              ) : (
+                <div className="w-full h-full bg-surface-3" />
+              )}
+            </div>
+            
+            {/* Thumbnail Gallery (fix border cut-off) */}
+            {images && images.length > 1 ? (
+              <div className="p-4 sm:p-6">
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {images.map((image: string, index: number) => (
+                    <button
+                      key={`thumb-${index}`}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className="relative flex-shrink-0"
+                      aria-label={`Valitse kuva ${index + 1}`}
+                    >
+                      <div className={cn(
+                        "relative aspect-square w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden",
+                        "border",
+                        selectedImageIndex === index ? "border-[var(--color-primary)]" : "border-[var(--color-border)]"
+                      )}>
+                        {image ? (
+                          <Image 
+                            src={image} 
+                            alt={`Thumbnail ${index + 1}`}
+                            fill
+                            className="object-cover"
+                            sizes="80px"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-surface-3" />
+                        )}
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="aspect-video bg-gradient-to-br from-surface-1 to-surface-3 flex flex-col items-center justify-center text-tertiary p-8">
-                    <ImageIcon className="h-16 w-16 mb-4 opacity-50" />
-                    <span className="text-lg-fluid font-medium">Ei kuvia saatavilla</span>
-                    <span className="text-sm text-tertiary mt-1">Kuvat lisätään pian</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      {selectedImageIndex === index && (
+                        <div className="absolute -inset-1 rounded-[0.9rem] ring-2 ring-[var(--color-primary)]/40 pointer-events-none" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Image counter */}
+                <div className="text-center mt-3 text-sm text-tertiary">
+                  {selectedImageIndex + 1} / {images.length}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Full-screen Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center">
+          {/* Close button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={closeModal}
+            className="absolute top-4 right-4 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 backdrop-blur-sm transition-all duration-300"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+          
+          {/* Navigation arrows */}
+          {images && images.length > 1 ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 backdrop-blur-sm transition-all duration-300"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 hover:bg-black/70 text-white rounded-full p-3 backdrop-blur-sm transition-all duration-300"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </Button>
+            </>
+          ) : null}
+          
+          {/* Action buttons */}
+          <div className="absolute top-4 left-4 z-50 flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsZoomed(!isZoomed)}
+              className="bg-black/50 hover:bg-black/70 text-white rounded-full p-3 backdrop-blur-sm transition-all duration-300"
+            >
+              {isZoomed ? <ZoomOut className="w-5 h-5" /> : <ZoomIn className="w-5 h-5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={downloadImage}
+              className="bg-black/50 hover:bg-black/70 text-white rounded-full p-3 backdrop-blur-sm transition-all duration-300"
+            >
+              <Download className="w-5 h-5" />
+            </Button>
+            {typeof navigator !== 'undefined' && 'share' in navigator ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={shareImage}
+                className="bg-black/50 hover:bg-black/70 text-white rounded-full p-3 backdrop-blur-sm transition-all duration-300"
+              >
+                <Share2 className="w-5 h-5" />
+              </Button>
+          ) : null}
+          </div>
+          
+          {/* Modal image */}
+          <div className={cn(
+            "relative w-full h-full flex items-center justify-center p-4 transition-transform duration-300",
+            isZoomed ? "cursor-zoom-out" : "cursor-zoom-in"
+          )} onClick={() => setIsZoomed(!isZoomed)}>
+            <Image
+              src={images[modalImageIndex]}
+              alt={`${listing.title} - kuva ${modalImageIndex + 1}`}
+              width={1920}
+              height={1080}
+              className={cn(
+                "max-w-full max-h-full object-contain transition-transform duration-500",
+                isZoomed ? "scale-150 sm:scale-200" : "scale-100"
+              )}
+              priority
+            />
+          </div>
+          
+          {/* Image info bar */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 bg-black/50 backdrop-blur-md rounded-full px-4 py-2 text-white text-sm">
+            {modalImageIndex + 1} / {images.length}
+            {images && images.length > 1 ? (
+              <span className="ml-2 text-white/70">• Use arrow keys to navigate</span>
+            ) : null}
+          </div>
+        </div>
+
+        )}
 
             {/* Description */}
             <Card className="bg-surface-2 border-[var(--color-border-light)]">
@@ -363,50 +545,73 @@ export default function ListingDetailPage() {
               </CardContent>
             </Card>
 
-            {/* FPS Estimates */}
+            {/* FPS Estimates - compact and responsive */}
             <Card className="bg-surface-2 border-[var(--color-border-light)]">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl-fluid">
-                  <Gamepad2 className="w-5 h-5 text-[var(--color-primary)]" />
-                  Arvioitu FPS
-                </CardTitle>
-                <CardDescription className="text-secondary">
-                  Nämä ovat arvioita pelien ruudunpäivitysnopeuksista eri asetuksilla. Todellinen suorituskyky voi vaihdella.
-                  Lähde: [UL Benchmarks](https://support.benchmarks.ul.com/support/solutions/articles/44002196922-game-performance-estimation)
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-xl-fluid">
+                    <Gamepad2 className="w-5 h-5 text-[var(--color-primary)]" />
+                    Arvioitu FPS
+                  </CardTitle>
+                  <span className="text-xs text-tertiary">Arvio – ei takuuarvo</span>
+                </div>
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="text-xs text-secondary">Peli:</span>
+                  <Select onValueChange={(v) => setSelectedGame(v)} value={selectedGame ?? undefined}>
+                    <SelectTrigger className="h-10 w-64 rounded-lg bg-surface-1 backdrop-blur-sm border-[var(--color-border)] text-primary focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/30">
+                      <SelectValue placeholder="Valitse peli" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-surface-2 backdrop-blur-md border-[var(--color-border)] shadow-xl">
+                      {estimatedGameFps.map((g) => (
+                        <SelectItem key={g.game} value={g.game}>{g.game}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <CardDescription className="text-secondary mt-2">
+                  Suuntaa-antavat ruudunpäivitysnopeudet eri resoluutioilla ja asetuksilla.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-md space-y-4">
-                {estimatedGameFps.map((gameData, gameIdx) => (
-                  <div key={gameIdx} className="group relative bg-surface-1 rounded-lg border border-[var(--color-border)] p-4 overflow-hidden transition-all duration-300 hover:shadow-md">
-                    {/* Animated gradient background on hover */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/5 to-[var(--color-accent)]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="relative z-10">
-                      <h3 className="text-lg font-semibold text-primary mb-3 flex items-center gap-2">
-                        <Gamepad2 className="w-5 h-5 text-[var(--color-accent)]" />
-                        {gameData.game}
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-3 gap-x-4">
+              <CardContent className="p-4 space-y-3">
+                {!selectedGame && (
+                  <div className="flex flex-col items-center justify-center text-center py-8 bg-surface-1 rounded-lg border border-[var(--color-border)]">
+                    <Gamepad2 className="w-8 h-8 text-[var(--color-accent)] mb-2" />
+                    <p className="text-sm text-secondary">Valitse peli nähdäksesi arvioidun FPS:n eri asetuksilla</p>
+                  </div>
+                )}
+                {selectedGame && (() => {
+                  const gameData = estimatedGameFps.find(g => g.game === selectedGame);
+                  if (!gameData) return null;
+                  return (
+                    <div className="bg-gradient-to-b from-surface-1 to-surface-2 rounded-xl border border-[var(--color-border)] p-4">
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <h3 className="text-base font-semibold text-primary flex items-center gap-2 truncate">
+                          <Gamepad2 className="w-4 h-4 text-[var(--color-accent)]" />
+                          <span className="truncate">{gameData.game}</span>
+                        </h3>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {gameData.resolutions.map((resData, resIdx) => (
-                          <div key={resIdx} className="space-y-1">
-                            <p className="text-sm font-medium text-secondary">{resData.resolution}</p>
-                            <ul className="space-y-0.5">
+                          <div key={resIdx} className="rounded-lg bg-surface-1 border border-[var(--color-border)] p-3">
+                            <p className="text-xs font-semibold text-secondary mb-2">{resData.resolution}</p>
+                            <div className="flex flex-wrap gap-1.5">
                               {resData.settings.map((setting, settingIdx) => (
-                                <li key={settingIdx} className="flex justify-between items-center text-xs text-tertiary">
-                                  <span className="flex items-center gap-1.5">
-                                    {setting.quality}:
-                                  </span>
-                                  <span className="font-semibold text-primary rounded-md bg-surface-2 px-2 py-0.5 border border-[var(--color-border)]">
-                                    {setting.fps} FPS
-                                  </span>
-                                </li>
+                                <span
+                                  key={settingIdx}
+                                  className="inline-flex items-center gap-1 text-xs font-medium rounded-md px-2 py-1 border border-[var(--color-border)] bg-surface-2 text-primary"
+                                >
+                                  <span className="text-tertiary">{setting.quality}</span>
+                                  <span className="h-1 w-1 rounded-full bg-[var(--color-border-light)]" />
+                                  <span className="font-semibold">{setting.fps}</span>
+                                </span>
                               ))}
-                            </ul>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>

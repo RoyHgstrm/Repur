@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+// Removed unused Card imports to satisfy lint rules
 import Image from "next/image"; // Import Image component
 import {
   ArrowRight,
@@ -19,8 +19,7 @@ import {
   Star,
   Users,
   Sparkles,
-  Monitor,
-  HardDrive
+  Monitor
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { type RouterOutputs } from "~/trpc/react";
@@ -121,7 +120,7 @@ const ProductCard = ({ listing }: { listing: ListingWithSeller }) => (
         <div className="relative w-full aspect-video rounded-t-xl overflow-hidden mb-4 border-b border-[var(--color-border)]">
           {listing.images && listing.images.length > 0 ? (
             <Image
-              src={listing.images[0]!}
+              src={listing.images[0]}
               alt={listing.title || "Product image"}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

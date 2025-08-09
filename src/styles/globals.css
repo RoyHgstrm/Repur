@@ -41,6 +41,8 @@
   --color-text-primary: oklch(92% 0.02 260); /* Slightly tinted white */
   --color-text-secondary: oklch(78% 0.04 240); /* Muted with color */
   --color-text-tertiary: oklch(65% 0.06 220); /* More muted with color */
+  /* Neutral alias used widely in TSX (map to primary text by default) */
+  --color-neutral: var(--color-text-primary);
   
   /* Enhanced Semantic States with More Vibrance */
   --color-success: oklch(65% 0.25 145); /* Deeper vibrant green */
@@ -171,7 +173,8 @@
   
   a:hover {
     color: var(--color-accent-light);
-    text-shadow: 0 0 8px oklch(var(--color-primary) / 0.3);
+    /* Avoid nested oklch(); blend primary with transparency for glow */
+    text-shadow: 0 0 8px color-mix(in oklch, var(--color-primary) 30%, transparent);
   }
 
   /* Enhanced selection colors */
@@ -262,6 +265,13 @@
 .surface-2 { background: var(--color-surface-2); }
 .surface-3 { background: var(--color-surface-3); }
 .surface-4 { background: var(--color-surface-4); }
+
+/* Background utility aliases to match Tailwind-like naming we use in TSX */
+.bg-surface-1 { background-color: var(--color-surface-1); }
+.bg-surface-2 { background-color: var(--color-surface-2); }
+.bg-surface-3 { background-color: var(--color-surface-3); }
+.bg-surface-4 { background-color: var(--color-surface-4); }
+.bg-surface-inverse { background-color: var(--color-surface-inverse); }
 
 .surface-gradient {
   background: var(--gradient-surface);
