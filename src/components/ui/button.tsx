@@ -9,15 +9,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[var(--color-primary)] text-[var(--color-surface-inverse)] hover:bg-[var(--color-primary)]/90",
+        default: "bg-[var(--color-primary)] text-[var(--color-surface-inverse)] hover:bg-[var(--color-primary)]/90 hover:cursor-pointer",
         destructive:
-          "bg-[var(--color-error)] text-[var(--color-surface-inverse)] hover:bg-[var(--color-error)]/90",
+          "bg-[var(--color-error)] text-[var(--color-surface-inverse)] hover:bg-[var(--color-error)]/90 hover:cursor-pointer",
         outline:
-          "border border-[var(--color-border)] bg-transparent text-[var(--color-neutral)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-neutral)]",
+          "border border-[var(--color-border)] bg-transparent text-[var(--color-neutral)] hover:bg-[var(--color-surface-3)] hover:text-[var(--color-neutral)] hover:cursor-pointer",
         secondary:
-          "bg-[var(--color-surface-3)] text-[var(--color-neutral)] hover:bg-[var(--color-surface-2)]",
-        ghost: "hover:bg-[var(--color-surface-3)] hover:text-[var(--color-neutral)] text-[var(--color-neutral)]",
-        link: "text-[var(--color-primary)] underline-offset-4 hover:underline",
+          "bg-[var(--color-surface-3)] text-[var(--color-neutral)] hover:bg-[var(--color-surface-2)] hover:cursor-pointer",
+        ghost: "hover:bg-[var(--color-surface-3)] hover:text-[var(--color-neutral)] text-[var(--color-neutral)] hover:cursor-pointer",
+        link: "text-[var(--color-primary)] underline-offset-4 hover:underline hover:cursor-pointer",
       },
       size: {
         default: "h-10 px-4 py-2",

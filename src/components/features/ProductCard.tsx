@@ -7,6 +7,8 @@ import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
 import { Heart, Eye, Zap, Shield, Truck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
+import { Progress } from "~/components/ui/progress";
 
 type ListingWithSeller = RouterOutputs['listings']['getActiveCompanyListings'][number];
 
@@ -47,19 +49,54 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
     return '🎮';
   };
 
+  // Simple performance score heuristic based on GPU/CPU strings (0-100)
+  const computePerformanceScore = (gpu: string | null, cpu: string | null): number => {
+    const g = (gpu ?? '').toLowerCase();
+    const c = (cpu ?? '').toLowerCase();
+    let score = 40; // base
+    if (/rtx\s*4090|rtx\s*4080|rx\s*7900/.test(g)) score += 45;
+    else if (/rtx\s*4070|rtx\s*3090|rx\s*6800/.test(g)) score += 35;
+    else if (/rtx\s*3060|rtx\s*2080|rx\s*6700|gtx\s*1080/.test(g)) score += 25;
+    else if (/gtx\s*1660|rx\s*580/.test(g)) score += 15;
+
+    if (/i9|ryzen\s*9/.test(c)) score += 15;
+    else if (/i7|ryzen\s*7/.test(c)) score += 10;
+    else if (/i5|ryzen\s*5/.test(c)) score += 6;
+
+    return Math.max(0, Math.min(100, score));
+  };
+
+  const perfScore = computePerformanceScore(listing.gpu ?? null, listing.cpu ?? null);
+
+  // Discount logic: compute active discounted price if within window
+  const now = new Date();
+  // Some deployments may not include discount fields in the response shape → feature-detect
+  const discountAmountNum = ('discountAmount' in listing && (listing as any).discountAmount != null)
+    ? Number((listing as any).discountAmount)
+    : 0;
+  const hasWindow = ('discountStart' in listing && 'discountEnd' in listing
+    && (listing as any).discountStart && (listing as any).discountEnd)
+    ? now >= new Date(String((listing as any).discountStart)) && now <= new Date(String((listing as any).discountEnd))
+    : false;
+  const basePriceNum = Number(listing.basePrice ?? 0);
+  const finalPrice = hasWindow && discountAmountNum > 0
+    ? Math.max(0, basePriceNum - discountAmountNum)
+    : basePriceNum;
+
+
+
   return (
     <div className="group relative w-full">
-      {/* Performance Badge - Responsive positioning */}
-      <div className="absolute -top-2 -right-2 z-30 sm:-top-3 sm:-right-3">
-        <div className="bg-gradient-to-r from-[var(--color-accent)] to-[var(--color-primary)] text-white text-xs font-bold px-2 py-1 sm:px-3 sm:py-1.5 rounded-full shadow-lg flex items-center gap-1 backdrop-blur-sm">
-          <span className="text-sm">{getPerformanceIcon(listing.gpu)}</span>
-          <span className="hidden sm:inline">#1</span>
-        </div>
-      </div>
 
       <Link href={`/osta/${listing.id}`} className="block w-full">
         <Card className="h-full flex flex-col bg-gradient-to-br from-surface-2 to-surface-3 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/50 shadow-lg hover:shadow-2xl hover:shadow-[var(--color-primary)]/20 transition-all duration-700 ease-out group-hover:-translate-y-1 sm:group-hover:-translate-y-2 overflow-hidden backdrop-blur-sm">
-          
+          {hasWindow && discountAmountNum > 0 && (
+            <div className="absolute top-3 right-3 z-10">
+              <span className="discount-badge badge-spotlight" aria-label="Alennus voimassa">
+                ✨ ALENNUS
+              </span>
+            </div>
+          )}
           {/* Image - cover container, no backdrop */}
           <div
             className="
@@ -76,7 +113,7 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
                 alt={listing.title || 'Product image'}
                 fill
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, (max-width: 1024px) 60vw, 50vw"
-                className="object-cover"
+                className="object-contain"
                 priority={false}
                 loading="lazy"
               />
@@ -119,9 +156,25 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
                 {listing.condition ?? 'Tuntematon kunto'}
               </Badge>
               <div className="text-right sm:text-right">
-                <div className="text-xl sm:text-2xl md:text-3xl font-black bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
-                  {listing.basePrice ?? 0} €
-                </div>
+                {hasWindow && discountAmountNum > 0 ? (
+                  <div className="space-y-1">
+                    <div className="inline-flex items-center gap-2">
+                      <span className="badge-spotlight animate-pulse-soft inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/40 text-[var(--color-accent)] text-xs font-semibold">
+                        ✨ Alennus
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2 justify-end">
+                      <span className="text-sm text-tertiary line-through">{basePriceNum} €</span>
+                      <span className="glow-accent-hover text-xl sm:text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-accent)] to-[var(--color-primary)] bg-clip-text text-transparent">
+                        {finalPrice} €
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xl sm:text-2xl md:text-3xl font-black bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
+                    {basePriceNum} €
+                  </div>
+                )}
                 <div className="text-xs text-tertiary">sis. alv</div>
               </div>
             </div>
@@ -129,6 +182,12 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
 
           {/* Card Content - Improved responsive grid */}
           <CardContent className="flex-grow space-y-3 text-sm px-3 sm:px-4 md:px-6">
+            {/* Performance rating row */}
+            <div className="flex items-center gap-3">
+              <div className="min-w-[100px] text-xs text-tertiary">Suorituskyky</div>
+              <Progress value={perfScore} className="h-2 flex-1" />
+              <div className="text-xs font-semibold text-primary w-10 text-right">{perfScore}</div>
+            </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 p-2.5 sm:p-3 bg-surface-1 rounded-xl transition-colors hover:bg-surface-1/80">
                 <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full flex-shrink-0"></div>
@@ -164,7 +223,7 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
                 className="flex-1 border-[var(--color-border-light)] text-secondary hover:bg-[var(--color-primary)]/10 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all duration-300 rounded-lg"
                 onClick={(e) => {
                   e.preventDefault();
-                  // Quick view logic
+                  window.location.href = `/osta/${listing.id}`;
                 }}
               >
                 <Eye className="w-4 h-4 mr-1.5" />
@@ -179,7 +238,17 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
                 }}
               >
                 <Zap className="w-4 h-4 mr-1.5" />
-                <span className="hidden sm:inline">Osta Nyt</span>
+                {/* Enhanced Purchase Dialog */}
+                <EnhancedPurchaseDialog
+                  trigger={<span className="hidden sm:inline">Osta Nyt</span>}
+                  productTitle={listing.title}
+                  priceEUR={finalPrice}
+                  onConfirm={() => {
+                    // navigate to checkout
+                  }}
+                  confirmLabel="Siirry kassalle"
+                  cancelLabel="Sulje"
+                />
                 <span className="sm:hidden">Osta</span>
               </Button>
             </div>

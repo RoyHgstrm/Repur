@@ -88,7 +88,7 @@ export const createTRPCRouter = t.router;
  * You can remove this if you don't like it, but it can help catch unwanted waterfalls by simulating
  * network latency that would occur in production but not in local development.
  */
-const timingMiddleware = t.middleware(async ({ next, path }) => {
+const timingMiddleware = t.middleware(async ({ next, path, type, ctx, getRawInput }) => {
   const start = Date.now();
 
   if (t._config.isDev) {
@@ -99,8 +99,19 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 
   const result = await next();
 
-  const end = Date.now();
-  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  const durationMs = Date.now() - start;
+  const user = ctx.userId ?? 'anonymous';
+  let inputKeys: string[] = [];
+  try {
+    const raw = await getRawInput();
+    inputKeys = raw && typeof raw === 'object' ? Object.keys(raw as object) : [];
+  } catch {}
+  const baseMsg = `[tRPC] ${type?.toUpperCase?.() ?? 'op'} ${path} by ${user} in ${durationMs}ms`;
+  if (result.ok) {
+    console.log(`${baseMsg} OK`);
+  } else {
+    console.error(`${baseMsg} ERROR: ${result.error.message}`, { code: result.error.code, inputKeys });
+  }
 
   return result;
 });
@@ -133,10 +144,10 @@ export const protectedProcedure = t.procedure
       });
     }
 
-    // Retrieve or create the internal user ID from the database using the Clerk userId
-    let user = await ctx.db.query.users.findFirst({
-      where: eq(users.clerkId, ctx.userId),
-    });
+    // Sync/Upsert Clerk user → DB on every protected call to keep DB up to date
+    let user = await ctx.db.query.users.findFirst({ where: eq(users.clerkId, ctx.userId) });
+    const email = clerkUser.emailAddresses?.[0]?.emailAddress;
+    const displayName = clerkUser.firstName || clerkUser.username || email;
 
     if (!user) {
       // User not found in database, create a new entry
@@ -144,9 +155,9 @@ export const protectedProcedure = t.procedure
       [user] = await ctx.db.insert(users).values({
         id: newUserId,
         clerkId: ctx.userId,
-        email: clerkUser.emailAddresses?.[0]?.emailAddress,
-        name: clerkUser.firstName || clerkUser.emailAddresses?.[0]?.emailAddress, // Use first name or email as name
-        role: "CUSTOMER", // Default role
+        email: email!,
+        name: displayName || email!,
+        role: (clerkUser.publicMetadata as any)?.role === 'ADMIN' || (clerkUser.publicMetadata as any)?.role === 'EMPLOYEE' ? (clerkUser.publicMetadata as any).role : 'CUSTOMER',
       }).returning();
 
       if (!user) {
@@ -155,12 +166,26 @@ export const protectedProcedure = t.procedure
           message: 'Failed to create user in database'
         });
       }
+    } else {
+      // Update basic fields if changed (email/name/role)
+      const newRole = (clerkUser.publicMetadata as any)?.role as string | undefined;
+      const shouldUpdate = (email && email !== user.email) || (displayName && displayName !== user.name) || (newRole && newRole !== user.role);
+      if (shouldUpdate) {
+        await ctx.db.update(users)
+          .set({
+            email: email ?? user.email,
+            name: displayName ?? user.name,
+            role: newRole ?? user.role,
+          })
+          .where(eq(users.id, user.id));
+      }
     }
 
     return next({
       ctx: {
         ...ctx,
-        userId: user.id, // Overwrite with internal user ID from database
+        userId: user.id, // internal user ID
+        userRole: user.role,
       },
     });
   });

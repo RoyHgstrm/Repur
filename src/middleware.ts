@@ -5,13 +5,15 @@ const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/myy(.*)',
   '/ura(.*)',
-  '/tuki(.*)'
+  '/tuki(.*)',
+  '/admin(.*)',
+  '/Admin(.*)'
 ])
 
 export default clerkMiddleware(async (auth, request) => {
   // Check if the route is protected
   if (isProtectedRoute(request)) {
-    const { userId } = await auth();
+    const { userId, redirectToSignIn, sessionClaims } = await auth();
     
     // If no user is authenticated, redirect to sign-in
     if (!userId) {
@@ -19,6 +21,8 @@ export default clerkMiddleware(async (auth, request) => {
       signInUrl.searchParams.set('redirect_url', request.url)
       return NextResponse.redirect(signInUrl)
     }
+
+    // Role enforcement is handled server-side in admin layout; middleware only ensures authentication
   }
 })
 

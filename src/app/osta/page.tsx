@@ -12,6 +12,7 @@ import { type RouterOutputs } from '~/trpc/react';
 import { Search, Zap, Shield, Truck, Star, Filter, SortAsc } from 'lucide-react';
 import { ProductCard } from "~/components/features/ProductCard";
 import { api } from '~/trpc/react';
+import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
 
 export default function OstaPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -227,99 +228,7 @@ export default function OstaPage() {
         )}
       </div>
 
-      {/* Enhanced Purchase Dialog */}
-      <Dialog open={selectedListing !== null} onOpenChange={() => setSelectedListing(null)}>
-        <DialogContent className="max-w-md bg-gradient-to-br from-surface-2 to-surface-3 text-primary border-[var(--color-border-light)] shadow-2xl">
-          <DialogHeader className="space-y-4">
-            <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] rounded-full mb-4">
-                <Zap className="w-8 h-8 text-white" />
-              </div>
-              <DialogTitle className="text-2xl-fluid font-bold text-gradient-primary">
-                Osta {selectedListing?.title ?? 'tietokone'}
-              </DialogTitle>
-              <p className="text-secondary mt-2">Täytä ostotiedot ja saat koneesi nopeasti!</p>
-            </div>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            {/* Price Summary */}
-            <div className="p-4 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 rounded-lg border border-[var(--color-primary)]/20">
-              <div className="flex justify-between items-center">
-                <span className="text-secondary">Kokonaishinta:</span>
-                <span className="text-3xl-fluid font-black text-gradient-primary">
-                  {selectedListing?.basePrice ?? 0} €
-                </span>
-              </div>
-              <p className="text-xs text-tertiary mt-1">Sisältää alv:n ja ilmaisen toimituksen</p>
-            </div>
 
-            {/* Payment Method */}
-            <div className="space-y-2">
-              <Label className="text-secondary font-medium flex items-center gap-2">
-                💳 Maksutapa
-              </Label>
-              <Select 
-                value={purchaseDetails.paymentMethod}
-                onValueChange={(value) => setPurchaseDetails(prev => ({
-                  ...prev,
-                  paymentMethod: value
-                }))}
-              >
-                <SelectTrigger className="h-12 bg-surface-1 border-[var(--color-border-light)] text-primary">
-                  <SelectValue placeholder="Valitse maksutapa" />
-                </SelectTrigger>
-                <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
-                  <SelectItem value="kortti">💳 Korttimaksu</SelectItem>
-                  <SelectItem value="lasku">📄 Lasku (14 pv)</SelectItem>
-                  <SelectItem value="verkkopankki">🏦 Verkkopankki</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Shipping Address */}
-            <div className="space-y-2">
-              <Label className="text-secondary font-medium flex items-center gap-2">
-                🚚 Toimitusosoite
-              </Label>
-              <Input 
-                placeholder="Katu, postinumero, kaupunki" 
-                value={purchaseDetails.shippingAddress}
-                onChange={(e) => setPurchaseDetails(prev => ({
-                  ...prev,
-                  shippingAddress: e.target.value
-                }))}
-                className="h-12 bg-surface-1 border-[var(--color-border-light)] text-primary placeholder:text-tertiary focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)]"
-              />
-            </div>
-
-            {/* Purchase Button */}
-            <Button 
-              className="w-full h-12 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
-              onClick={handlePurchase}
-              disabled={!purchaseDetails.paymentMethod || !purchaseDetails.shippingAddress || purchaseMutation.status === 'pending'}
-            >
-              {purchaseMutation.status === 'pending' ? (
-                <div className="flex items-center gap-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                  Käsitellään...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5" />
-                  Vahvista Osto {selectedListing?.basePrice ?? 0} €
-                </div>
-              )}
-            </Button>
-
-            {/* Security Notice */}
-            <div className="text-center text-xs text-tertiary">
-              <Shield className="w-4 h-4 inline mr-1" />
-              Turvallinen maksu SSL-salauksella
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

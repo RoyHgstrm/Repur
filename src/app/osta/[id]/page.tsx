@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/com
 import { Button } from '~/components/ui/button';
 import { Badge } from '~/components/ui/badge';
 import { 
-  DollarSign, 
+  Euro, 
   Cpu, 
   Gauge, 
   MemoryStick, 
@@ -44,14 +44,18 @@ import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { type RouterOutputs } from '~/trpc/react';
 import { cn } from '~/lib/utils';
+// server-only types/imports removed to keep this a Client Component file
 import CollapsibleComponent from '~/components/ui/CollapsibleComponent';
 import { FPS_DATA } from '~/lib/fpsConstants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
 
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };
   evaluatedBy?: { name: string | null; };
 };
+
+
 
 export default function ListingDetailPage() {
   const params = useParams();
@@ -284,7 +288,7 @@ export default function ListingDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)]">
       {/* Navigation Header */}
-      <div className="sticky top-0 z-40 bg-surface-1 backdrop-blur-md border-b border-[var(--color-border)]">
+      <div className=" top-0 z-999 top-16  backdrop-blur-lg border-b border-[var(--color-border)]">
         <div className="container-responsive py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -333,25 +337,42 @@ export default function ListingDetailPage() {
         <CardContent className="p-0">
           <div className="space-y-0">
             {/* Main Image Display (cover, no backdrop) */}
-            <div className="relative aspect-video overflow-hidden group cursor-pointer" onClick={() => openModal(selectedImageIndex)}>
+            <div className="relative aspect-video overflow-hidden group cursor-pointer " onClick={() => openModal(selectedImageIndex)}>
               {currentImage ? (
                 <Image 
                   src={currentImage}
                   alt={`${listing.title} - kuva ${selectedImageIndex + 1}`}
                   fill
-                  className="object-cover"
+                  className="object-contain edge-fade py-2"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                   priority
                 />
               ) : (
-                <div className="w-full h-full bg-surface-3" />
+                <div className="w-full h-full bg-surface-3 flex items-center justify-center">
+                  {/* Repur.fi logo SVG placeholder - replace with official SVG if available */}
+                  <svg
+                    width="96"
+                    height="96"
+                    viewBox="0 0 96 96"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="opacity-40"
+                    aria-label="Repur.fi logo"
+                  >
+                    <circle cx="48" cy="48" r="46" fill="#2563eb" stroke="#1e293b" strokeWidth="4"/>
+                    <path
+                      d="M32 68V28h20c8.837 0 16 7.163 16 16s-7.163 16-16 16H44v8h-8zm12-16h8a8 8 0 100-16h-8v16z"
+                      fill="#fff"
+                    />
+                  </svg>
+                </div>
               )}
             </div>
             
             {/* Thumbnail Gallery (fix border cut-off) */}
             {images && images.length > 1 ? (
               <div className="p-4 sm:p-6">
-                <div className="flex gap-3 overflow-x-auto pb-2">
+                <div className="flex gap-3 overflow-x-auto p-6">
                   {images.map((image: string, index: number) => (
                     <button
                       key={`thumb-${index}`}
@@ -369,7 +390,7 @@ export default function ListingDetailPage() {
                             src={image} 
                             alt={`Thumbnail ${index + 1}`}
                             fill
-                            className="object-cover"
+                            className="object-contain edge-fade-mask"
                             sizes="80px"
                           />
                         ) : (
@@ -469,7 +490,7 @@ export default function ListingDetailPage() {
               width={1920}
               height={1080}
               className={cn(
-                "max-w-full max-h-full object-contain transition-transform duration-500",
+                "max-w-full max-h-full object-contain transition-transform duration-500 edge-fade-mask",
                 isZoomed ? "scale-150 sm:scale-200" : "scale-100"
               )}
               priority
@@ -667,27 +688,96 @@ export default function ListingDetailPage() {
               </CardHeader>
 
               <CardContent className="space-y-6">
-                {/* Price */}
-                <div className="text-center p-6 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 rounded-xl border border-[var(--color-primary)]/20">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <DollarSign className="h-6 w-6 text-[var(--color-success)]" />
-                    <span className="text-sm text-secondary">Hinta</span>
-                  </div>
-                  <div className="text-4xl-fluid font-black bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
-                    {listing.basePrice} €
-                  </div>
-                  <p className="text-xs text-tertiary mt-1">Sisältää alv:n</p>
-                </div>
+                {/* Price (with discount if active) */}
+                {(() => {
+                  const basePriceNum = Number(listing.basePrice ?? 0);
+                  const discountAmountNum = ('discountAmount' in listing && (listing as any).discountAmount != null)
+                    ? Number((listing as any).discountAmount) : 0;
+                  const now = new Date();
+                  const hasWindow = ('discountStart' in listing && 'discountEnd' in listing
+                    && (listing as any).discountStart && (listing as any).discountEnd)
+                    ? now >= new Date(String((listing as any).discountStart)) && now <= new Date(String((listing as any).discountEnd))
+                    : false;
+                  const finalPrice = hasWindow && discountAmountNum > 0
+                    ? Math.max(0, basePriceNum - discountAmountNum)
+                    : basePriceNum;
+                  return (
+                    <div className="text-center p-6 bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-accent)]/10 rounded-xl border border-[var(--color-primary)]/20">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <Euro className="w-4 h-4 text-[var(--color-secondary-light)] mr-2" />
+                        <span className="text-sm text-secondary">Hinta</span>
+                      </div>
+                      {hasWindow && discountAmountNum > 0 ? (
+                        <div className="space-y-2">
+                          <div className="inline-flex items-center gap-2">
+                            <span className="badge-spotlight animate-pulse-soft inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/40 text-[var(--color-accent)] text-xs font-semibold">
+                              ✨ Alennus
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-center gap-3">
+                            <span className="text-xl text-tertiary line-through">{basePriceNum} €</span>
+                            <span className="glow-accent-hover text-4xl-fluid font-black bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-accent)] to-[var(--color-primary)] bg-clip-text text-transparent">
+                              {finalPrice} €
+                            </span>
+                          </div>
+                          <div className="text-xs text-tertiary">Alennus voimassa {new Date(String((listing as any).discountEnd)).toLocaleDateString('fi-FI')}</div>
+                        </div>
+                      ) : (
+                        <div className="text-4xl-fluid font-black bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
+                          {basePriceNum} €
+                        </div>
+                      )}
+                      <p className="text-xs text-tertiary mt-1">Sisältää alv:n</p>
+                    </div>
+                  );
+                })()}
 
                 {/* Action Buttons */}
                 <div className="space-y-3">
-                  <Button 
-                    className="w-full h-12 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all"
-                    size="lg"
-                  >
-                    <Zap className="w-5 h-5 mr-2" />
-                    Osta Nyt {listing.basePrice} €
-                  </Button>
+                  <EnhancedPurchaseDialog
+                    trigger={
+                      <Button 
+                        className="w-full h-12 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all"
+                        size="lg"
+                      >
+                        <Zap className="w-5 h-5 mr-2" />
+                        {(() => {
+                          const basePriceNum = Number(listing.basePrice ?? 0);
+                          const discountAmountNum = ('discountAmount' in listing && (listing as any).discountAmount != null)
+                            ? Number((listing as any).discountAmount) : 0;
+                          const now = new Date();
+                          const hasWindow = ('discountStart' in listing && 'discountEnd' in listing
+                            && (listing as any).discountStart && (listing as any).discountEnd)
+                            ? now >= new Date(String((listing as any).discountStart)) && now <= new Date(String((listing as any).discountEnd))
+                            : false;
+                          const finalPrice = hasWindow && discountAmountNum > 0
+                            ? Math.max(0, basePriceNum - discountAmountNum)
+                            : basePriceNum;
+                          return `Osta nyt ${finalPrice} €`;
+                        })()}
+                      </Button>
+                    }
+                    productTitle={listing.title ?? "Tuote"}
+                    priceEUR={(() => {
+                      const basePriceNum = Number(listing.basePrice ?? 0);
+                      const discountAmountNum = ('discountAmount' in listing && (listing as any).discountAmount != null)
+                        ? Number((listing as any).discountAmount) : 0;
+                      const now = new Date();
+                      const hasWindow = ('discountStart' in listing && 'discountEnd' in listing
+                        && (listing as any).discountStart && (listing as any).discountEnd)
+                        ? now >= new Date(String((listing as any).discountStart)) && now <= new Date(String((listing as any).discountEnd))
+                        : false;
+                      return hasWindow && discountAmountNum > 0
+                        ? Math.max(0, basePriceNum - discountAmountNum)
+                        : basePriceNum;
+                    })()}
+                    onConfirm={() => {
+                      // TODO: Integrate checkout action here
+                      // This dialog is reusable across app; individual pages decide action
+                    }}
+                    confirmLabel="Siirry kassalle"
+                    cancelLabel="Sulje"
+                  />
                   
                   <div className="grid grid-cols-2 gap-2">
                     <Button 

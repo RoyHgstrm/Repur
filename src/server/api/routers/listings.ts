@@ -21,6 +21,37 @@ const CompanyListingSchema = z.object({
   images: z.array(z.string()).optional(),
 });
 
+// Helper to accept HTML datetime-local (YYYY-MM-DDTHH:mm) and empty strings
+const OptionalLocalDate = z.preprocess((val) => {
+  if (val === '' || val === null || val === undefined) return undefined;
+  return val;
+}, z.coerce.date()).optional();
+
+// Update schema: allow partial updates, but require id
+const UpdateCompanyListingSchema = z.object({
+  id: z.string(),
+  title: z.string().min(5).optional(),
+  description: z.string().min(10).max(2048).optional(),
+  cpu: z.string().optional(),
+  gpu: z.string().optional(),
+  ram: z.string().optional(),
+  storage: z.string().optional(),
+  motherboard: z.string().optional(),
+  powerSupply: z.string().optional(),
+  caseModel: z.string().optional(),
+  basePrice: z.number().positive().optional(),
+  discountAmount: z.number().min(0).optional(),
+  discountStart: OptionalLocalDate,
+  discountEnd: OptionalLocalDate,
+  condition: z.enum(["Uusi", "Kuin uusi", "Hyvä", "Tyydyttävä"]).optional(),
+  images: z.array(z.string()).optional(),
+}).refine((data) => {
+  if (data.discountStart && data.discountEnd) {
+    return data.discountEnd > data.discountStart;
+  }
+  return true;
+}, { message: 'discountEnd täytyy olla alkamisen jälkeen', path: ['discountEnd'] });
+
 const TradeInSubmissionSchema = z.object({
   title: z.string().min(5, "Otsikko on liian lyhyt"),
   description: z.string().max(2048, "Kuvaus on liian pitkä").optional(), // Optional for user submission
@@ -36,9 +67,13 @@ const TradeInSubmissionSchema = z.object({
   contactPhone: z.string().optional(),
 });
 
+// Zod enum wrappers for Drizzle enums (required by tRPC input parsing)
+const ListingStatusSchema = z.enum(listingStatusEnum.enumValues);
+const TradeInStatusSchema = z.enum(tradeInStatusEnum.enumValues);
+
 const EvaluateTradeInSchema = z.object({
   tradeInListingId: z.string(),
-  status: tradeInStatusEnum,
+  status: TradeInStatusSchema,
   estimatedValue: z.number().optional(),
   evaluationNotes: z.string().optional(),
 });
@@ -66,7 +101,16 @@ export const listingsRouter = createTRPCRouter({
         basePrice: input.basePrice.toString(), // Ensure numeric is stored as string
         sellerId: ctx.userId,
         status: 'ACTIVE', // Company listings are active by default once posted
-      }).returning();
+      }).returning({
+        id: listings.id,
+        title: listings.title,
+        description: listings.description,
+        status: listings.status,
+        basePrice: listings.basePrice,
+        sellerId: listings.sellerId,
+        createdAt: listings.createdAt,
+        updatedAt: listings.updatedAt,
+      });
 
       return listing[0];
     }),
@@ -75,21 +119,79 @@ export const listingsRouter = createTRPCRouter({
   getActiveCompanyListings: publicProcedure
     .input(z.object({ limit: z.number().optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const listingsData = await ctx.db.query.listings.findMany({
-        where: eq(listings.status, 'ACTIVE'),
-        limit: input?.limit,
-        with: {
-          seller: true,
-        },
-      });
-      return listingsData;
+      try {
+        const listingsData = await ctx.db.query.listings.findMany({
+          where: eq(listings.status, 'ACTIVE'),
+          limit: input?.limit,
+          // Try with discount fields first
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            cpu: true,
+            gpu: true,
+            ram: true,
+            storage: true,
+            motherboard: true,
+            powerSupply: true,
+            caseModel: true,
+            basePrice: true,
+            discountAmount: true,
+            discountStart: true,
+            discountEnd: true,
+            condition: true,
+            images: true,
+            sellerId: true,
+            evaluatedById: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          with: {
+            seller: true,
+          },
+        });
+        return listingsData;
+      } catch (err) {
+        const message = String((err as any)?.message ?? err);
+        if (/discount_/i.test(message) || /column\s+"discount/i.test(message)) {
+          // Retry without discount fields (remote DB not migrated yet)
+          const listingsData = await ctx.db.query.listings.findMany({
+            where: eq(listings.status, 'ACTIVE'),
+            limit: input?.limit,
+            columns: {
+              id: true,
+              title: true,
+              description: true,
+              status: true,
+              cpu: true,
+              gpu: true,
+              ram: true,
+              storage: true,
+              motherboard: true,
+              powerSupply: true,
+              caseModel: true,
+              basePrice: true,
+              condition: true,
+              images: true,
+              sellerId: true,
+              evaluatedById: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+            with: { seller: true },
+          });
+          return listingsData;
+        }
+        throw err;
+      }
     }),
 
   // Employee: Evaluate and activate a company listing
   evaluateCompanyListing: protectedProcedure
     .input(z.object({ 
-      companyListingId: z.string(), // Changed from listingId
-      status: listingStatusEnum, // Changed from z.enum(['ACTIVE', 'ARCHIVED'])
+      companyListingId: z.string(),
+      status: ListingStatusSchema,
       basePrice: z.number().optional()
     }))
     .mutation(async ({ ctx, input }) => {
@@ -108,9 +210,121 @@ export const listingsRouter = createTRPCRouter({
           evaluatedById: ctx.userId,
         })
         .where(eq(listings.id, input.companyListingId))
-        .returning();
+        .returning({
+          id: listings.id,
+          title: listings.title,
+          status: listings.status,
+          basePrice: listings.basePrice,
+          evaluatedById: listings.evaluatedById,
+          updatedAt: listings.updatedAt,
+        });
 
       return updatedListing[0];
+    }),
+
+  // Employee/Admin: Update company listing fields
+  updateCompanyListing: protectedProcedure
+    .input(UpdateCompanyListingSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db.query.users.findFirst({ where: eq(users.id, ctx.userId) });
+      if (user?.role !== 'EMPLOYEE' && user?.role !== 'ADMIN') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Vain työntekijät ja ylläpitäjät voivat muokata listauksia' });
+      }
+
+      const { id, basePrice, discountAmount, discountStart, discountEnd, ...rest } = input;
+      const updateData: Record<string, unknown> = { ...rest };
+      if (basePrice !== undefined) updateData.basePrice = basePrice.toString();
+      if (discountAmount !== undefined) updateData.discountAmount = discountAmount.toString();
+      if (discountStart !== undefined) updateData.discountStart = discountStart; // already Date via z.coerce
+      if (discountEnd !== undefined) updateData.discountEnd = discountEnd;     // already Date via z.coerce
+
+      // If nothing to update, return current row (no-op) to avoid "No values to set"
+      if (Object.keys(updateData).length === 0) {
+        const current = await ctx.db.query.listings.findFirst({
+          where: eq(listings.id, id),
+          columns: {
+            id: true, title: true, description: true, status: true, basePrice: true, cpu: true, gpu: true,
+            ram: true, storage: true, motherboard: true, powerSupply: true, caseModel: true,
+            condition: true, images: true, updatedAt: true,
+          },
+        });
+        if (!current) throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
+        return current;
+      }
+
+      const updated = await ctx.db.update(listings)
+        .set(updateData)
+        .where(eq(listings.id, id))
+        .returning({
+          id: listings.id,
+          title: listings.title,
+          description: listings.description,
+          status: listings.status,
+          basePrice: listings.basePrice,
+          cpu: listings.cpu,
+          gpu: listings.gpu,
+          ram: listings.ram,
+          storage: listings.storage,
+          motherboard: listings.motherboard,
+          powerSupply: listings.powerSupply,
+          caseModel: listings.caseModel,
+          condition: listings.condition,
+          images: listings.images,
+          updatedAt: listings.updatedAt,
+        })
+        .catch(async (err: unknown) => {
+          const message = String((err as any)?.message ?? err);
+          const triedDiscountFields =
+            updateData.discountAmount !== undefined ||
+            updateData.discountStart !== undefined ||
+            updateData.discountEnd !== undefined;
+          if (triedDiscountFields && /discount_/i.test(message)) {
+            // Retry without discount fields (likely migration not applied yet)
+            delete (updateData as any).discountAmount;
+            delete (updateData as any).discountStart;
+            delete (updateData as any).discountEnd;
+            if (Object.keys(updateData).length === 0) {
+              // Nothing else to update → return current row as no-op
+              const current = await ctx.db.query.listings.findFirst({
+                where: eq(listings.id, id),
+                columns: {
+                  id: true, title: true, description: true, status: true, basePrice: true, cpu: true, gpu: true,
+                  ram: true, storage: true, motherboard: true, powerSupply: true, caseModel: true,
+                  condition: true, images: true, updatedAt: true,
+                },
+              });
+              if (!current) throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
+              return [current];
+            }
+            return await ctx.db
+              .update(listings)
+              .set(updateData)
+              .where(eq(listings.id, id))
+              .returning({
+                id: listings.id,
+                title: listings.title,
+                description: listings.description,
+                status: listings.status,
+                basePrice: listings.basePrice,
+                cpu: listings.cpu,
+                gpu: listings.gpu,
+                ram: listings.ram,
+                storage: listings.storage,
+                motherboard: listings.motherboard,
+                powerSupply: listings.powerSupply,
+                caseModel: listings.caseModel,
+                condition: listings.condition,
+                images: listings.images,
+                updatedAt: listings.updatedAt,
+              });
+          }
+          throw err;
+        });
+
+      if (!updated[0]) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
+      }
+      return updated[0];
     }),
 
   // Create a trade-in request (User submission)
@@ -152,6 +366,22 @@ export const listingsRouter = createTRPCRouter({
         },
       });
       return tradeInsData;
+    }),
+
+  // Employee/Admin: Get trade-in listings with optional status filter
+  getTradeInListings: protectedProcedure
+    .input(z.object({ status: TradeInStatusSchema.optional() }).optional())
+    .query(async ({ ctx, input }) => {
+      const user = await ctx.db.query.users.findFirst({ where: eq(users.id, ctx.userId) });
+      if (user?.role !== 'EMPLOYEE' && user?.role !== 'ADMIN') {
+        throw new TRPCError({ code: 'FORBIDDEN', message: 'Vain työntekijät ja ylläpitäjät voivat tarkastella trade-in-pyyntöjä' });
+      }
+
+      const rows = await ctx.db.query.tradeInListings.findMany({
+        ...(input?.status ? { where: eq(tradeInListings.status, input.status) } : {} as any),
+        with: { user: true },
+      });
+      return rows;
     }),
 
   // Employee: Evaluate a trade-in listing
@@ -230,23 +460,94 @@ export const listingsRouter = createTRPCRouter({
     return userListingsData;
   }),
 
+  // Employee/Admin: Get all company listings
+  getAllCompanyListings: protectedProcedure.query(async ({ ctx }) => {
+    // Verify role via DB sync (protectedProcedure keeps DB user synced)
+    const staff = await ctx.db.query.users.findFirst({ where: eq(users.id, ctx.userId) });
+    if (staff?.role !== 'EMPLOYEE' && staff?.role !== 'ADMIN') {
+      throw new TRPCError({ code: 'FORBIDDEN', message: 'Vain henkilöstö voi nähdä kaikki listaukset' });
+    }
+
+    const rows = await ctx.db.query.listings.findMany({
+      columns: { id: true, title: true, status: true, basePrice: true },
+      with: { seller: true },
+    });
+    return rows;
+  }),
+
   // Get a single company listing by ID
   getCompanyListingById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      const listing = await ctx.db.query.listings.findFirst({
-        where: eq(listings.id, input.id),
-        with: {
-          seller: true,
-          evaluatedBy: true,
-        },
-      });
-
-      if (!listing) {
-        throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
+      try {
+        const listing = await ctx.db.query.listings.findFirst({
+          where: eq(listings.id, input.id),
+          columns: {
+            id: true,
+            title: true,
+            description: true,
+            status: true,
+            cpu: true,
+            gpu: true,
+            ram: true,
+            storage: true,
+            motherboard: true,
+            powerSupply: true,
+            caseModel: true,
+            basePrice: true,
+            discountAmount: true,
+            discountStart: true,
+            discountEnd: true,
+            condition: true,
+            images: true,
+            sellerId: true,
+            evaluatedById: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+          with: {
+            seller: true,
+            evaluatedBy: true,
+          },
+        });
+        if (!listing) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
+        }
+        return listing;
+      } catch (err) {
+        const message = String((err as any)?.message ?? err);
+        if (/discount_/i.test(message) || /column\s+"discount/i.test(message)) {
+          const listing = await ctx.db.query.listings.findFirst({
+            where: eq(listings.id, input.id),
+            columns: {
+              id: true,
+              title: true,
+              description: true,
+              status: true,
+              cpu: true,
+              gpu: true,
+              ram: true,
+              storage: true,
+              motherboard: true,
+              powerSupply: true,
+              caseModel: true,
+              basePrice: true,
+              condition: true,
+              images: true,
+              sellerId: true,
+              evaluatedById: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+            with: { seller: true, evaluatedBy: true },
+          });
+          if (!listing) {
+            throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
+          }
+          return listing;
+        }
+        throw err;
       }
-
-      return listing;
     }),
 
   // Employee: Mark trade-in as 'Contacted'

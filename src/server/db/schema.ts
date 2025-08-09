@@ -57,6 +57,10 @@ export const listings = createTable("listing", {
   powerSupply: varchar("power_supply", { length: 255 }).notNull(),
   caseModel: varchar("case_model", { length: 255 }), // Made optional
   basePrice: numeric("base_price").notNull(),
+  // Optional campaign discount fields
+  discountAmount: numeric("discount_amount"),
+  discountStart: timestamp("discount_start", { withTimezone: true }),
+  discountEnd: timestamp("discount_end", { withTimezone: true }),
   condition: pgEnum("Condition", ["Uusi", "Kuin uusi", "Hyvä", "Tyydyttävä", "Huono"])("condition").notNull(),
   images: varchar("images", { length: 2048 }).array().default(sql`'{}'::text[]`).notNull(),
   sellerId: varchar("seller_id", { length: 255 }).references(() => users.id), // Company's internal seller (employee/admin)

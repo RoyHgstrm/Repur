@@ -6,12 +6,34 @@ import { dark } from '@clerk/themes'
 import '~/styles/globals.css'
 import Providers from '~/components/layout/Providers'
 import React from 'react'
+import type { Metadata } from 'next'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata = {
-  title: 'Repur.fi - Kunnostetut Pelikoneet',
-  description: 'Kunnostetut ja luotettavat pelikoneet edulliseen hintaan',
+export const metadata: Metadata = {
+  metadataBase: new URL('https://repur.fi'),
+  title: {
+    default: 'Repur.fi – Kunnostetut pelikoneet',
+    template: '%s | Repur.fi',
+  },
+  description: 'Kunnostetut, testatut pelikoneet 12 kk takuulla. Reilu hinnoittelu ja ilmainen toimitus Suomessa.',
+  keywords: ['kunnostetut tietokoneet', 'pelikone', 'refurbished pc', 'gaming pc', 'Repur.fi', 'takuu', 'ilmainen toimitus'],
+  icons: {
+    icon: '/icon.svg',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'fi_FI',
+    url: 'https://repur.fi',
+    siteName: 'Repur.fi',
+    title: 'Repur.fi – Kunnostetut pelikoneet',
+    description: 'Premium-tason pelikoneet kunnostettuna. 12 kk takuu ja ilmainen toimitus.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Repur.fi – Kunnostetut pelikoneet',
+    description: 'Premium-tason pelikoneet kunnostettuna. 12 kk takuu ja ilmainen toimitus.',
+  },
 }
 
 export default function RootLayout({
@@ -22,36 +44,41 @@ export default function RootLayout({
       appearance={{
         baseTheme: dark,
         variables: {
-          colorPrimary: 'oklch(var(--color-primary))', // Repur brand blue
-          colorBackground: 'oklch(var(--color-surface-1))', // Dark background
-          colorText: 'oklch(var(--color-neutral))',
-          colorInputBackground: 'oklch(var(--color-surface-2))',
-          colorInputText: 'oklch(var(--color-neutral))',
+          colorPrimary: '#2563eb',
+          colorText: '#e5e7eb',
+          colorBackground: '#0b1220',
+          colorInputBackground: 'rgba(17, 24, 39, 0.6)',
+          colorInputText: '#e5e7eb',
         },
         elements: {
-          card: 'bg-[var(--color-surface-2)] border-[var(--color-border)] shadow-xl rounded-xl',
-          formButtonPrimary: 'bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white transition-colors duration-200',
-          formButtonSecondary: 'bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-neutral)] transition-colors duration-200',
-          socialButtonsBlockButton: 'bg-[var(--color-surface-2)] hover:bg-[var(--color-surface-3)] text-[var(--color-neutral)] transition-colors duration-200',
-          socialButtonsBlockButtonText: 'text-[var(--color-neutral)]',
-          formFieldLabel: 'text-[var(--color-neutral)] font-medium',
-          formFieldInput: 'bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-neutral)] focus:ring-2 focus:ring-[var(--color-primary)]/40 focus:border-[var(--color-primary)] transition-all duration-200',
-          footerActionLink: 'text-[var(--color-primary)] hover:text-[var(--color-primary)]/80 transition-colors duration-200',
-          footerActionText: 'text-[var(--color-neutral)]',
-          
-          // Remove Clerk branding and improve typography
-          logoImage: 'hidden', // Hide logo
-          headerTitle: 'text-[var(--color-neutral)] text-2xl font-bold tracking-tight',
-          headerSubtitle: 'text-[var(--color-neutral)] text-base',
-          
-          // Icons and interactive elements
-          formFieldInputIcon: 'text-[var(--color-neutral)]/50 focus:text-[var(--color-primary)]',
-          formFieldInputRightIcon: 'text-[var(--color-neutral)]/50 focus:text-[var(--color-primary)]',
+          // Cards and containers
+          card: 'bg-[#0e1424]/95 border border-white/10 shadow-xl rounded-xl backdrop-blur-md',
+          headerTitle: 'text-[#e5e7eb] text-2xl font-bold tracking-tight',
+          headerSubtitle: 'text-[#cbd5e1] text-base',
+
+          // Fields
+          formFieldLabel: 'text-[#e5e7eb] font-medium',
+          formFieldInput: 'bg-[#111827]/60 border border-white/10 text-[#e5e7eb] placeholder-white/40 focus:ring-2 focus:ring-[#2563eb]/40 focus:border-[#2563eb] transition-all duration-200',
+          formFieldInputIcon: 'text-white/50 focus:text-[#2563eb]',
+          formFieldInputRightIcon: 'text-white/50 focus:text-[#2563eb]',
+
+          // Buttons
+          formButtonPrimary: 'bg-[#2563eb] hover:bg-[#1d4ed8] text-white transition-colors duration-200',
+          formButtonSecondary: 'bg-[#0e1424] hover:bg-[#111827] text-[#e5e7eb] border border-white/10 transition-colors duration-200',
+          socialButtonsBlockButton: 'bg-[#0e1424] hover:bg-[#111827] text-[#e5e7eb] border border-white/10 transition-colors duration-200',
+          socialButtonsBlockButtonText: 'text-[#e5e7eb]',
+
+          // Footer links
+          footerActionLink: 'text-[#2563eb] hover:text-[#60a5fa] transition-colors duration-200',
+          footerActionText: 'text-[#cbd5e1]',
+
+          // Misc
+          logoImage: 'hidden',
         },
         layout: {
-          logoPlacement: 'none', // Remove logo placement
-          socialButtonsVariant: 'iconButton', // Compact social buttons
-          showOptionalFields: false, // Minimize optional fields
+          logoPlacement: 'none',
+          socialButtonsVariant: 'iconButton',
+          showOptionalFields: false,
         },
       }}
     >

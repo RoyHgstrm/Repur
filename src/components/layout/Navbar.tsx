@@ -37,7 +37,7 @@ export default function Navbar() {
             <Link href="/meista" className="text-secondary hover:text-primary transition-colors">Meistä</Link>
 
             <SignedOut>
-              <SignInButton mode="modal">
+              <Link href="/sign-in">
                 <Button
                   variant="outline"
                   size="sm"
@@ -45,7 +45,7 @@ export default function Navbar() {
                 >
                   Kirjaudu
                 </Button>
-              </SignInButton>
+              </Link>
             </SignedOut>
 
             <SignedIn>
@@ -100,9 +100,11 @@ export default function Navbar() {
             <Link href="/myy" className="block px-2 py-2 rounded-lg text-primary hover:bg-[var(--color-surface-2)]">Myy</Link>
             <Link href="/meista" className="block px-2 py-2 rounded-lg text-primary hover:bg-[var(--color-surface-2)]">Meistä</Link>
             <SignedOut>
-              <SignInButton mode="modal">
-                <Button className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90">Kirjaudu</Button>
-              </SignInButton>
+              <Link href="/sign-in" className="block">
+                <Button className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90">
+                  Kirjaudu
+                </Button>
+              </Link>
             </SignedOut>
           </div>
         </div>

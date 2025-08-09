@@ -50,6 +50,8 @@ export default function Footer() {
             <h3 className="text-xl-fluid mb-4 font-semibold text-primary">Yritys</h3>
             <ul className="space-y-2">
               <li><Link href="/meista" className="text-secondary hover:text-primary">Meistä</Link></li>
+              <li><Link href="/kayttoehdot" className="text-secondary hover:text-primary">Käyttöehdot</Link></li>
+              <li><Link href="/tietosuoja" className="text-secondary hover:text-primary">Tietosuojakäytäntö</Link></li>
             </ul>
           </div>
         </div>
