@@ -370,6 +370,24 @@ export default function ListingDetailPage() {
             </div>
           </div>
         )}
+         {/* Status banner (shown only when not ACTIVE) */}
+         {(() => {
+           const status = (listing?.status as string | undefined) ?? 'ACTIVE';
+           if (status === 'ACTIVE') return null;
+           const isSold = status === 'SOLD';
+           const message = isSold ? 'Tämä listaus on myyty.' : 'Tämä listaus on arkistoitu.';
+           const colorClasses = isSold
+             ? 'border-[var(--color-error)]/40 bg-[var(--color-error)]/10'
+             : 'border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10';
+           return (
+             <div className="mb-4">
+               <div className={cn('rounded-xl border p-4 flex items-center gap-2', colorClasses)}>
+                 <Info className={cn('w-5 h-5', isSold ? 'text-[var(--color-error)]' : 'text-[var(--color-warning)]')} />
+                 <div className="font-semibold text-[var(--color-text-primary)]">{message}</div>
+               </div>
+             </div>
+           );
+         })()}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Main Content - Left Column */}
           <div className="order-2 xl:order-1 xl:col-span-2 space-y-6">
@@ -773,16 +791,37 @@ export default function ListingDetailPage() {
                   );
                 })()}
 
-                {/* Action Buttons */}
-                <div className="space-y-3">
-                  <EnhancedPurchaseDialog
-                    trigger={
-                      <Button 
-                        className="w-full h-12 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all"
-                        size="lg"
-                      >
-                        <Zap className="w-5 h-5 mr-2" />
-                        {(() => {
+                {/* Action Buttons (render only when ACTIVE) */}
+                {(() => {
+                  const status = (listing?.status as string | undefined) ?? 'ACTIVE';
+                  if (status !== 'ACTIVE') return null;
+                  return (
+                    <div className="space-y-3">
+                      <EnhancedPurchaseDialog
+                        trigger={
+                          <Button 
+                            className="w-full h-12 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all"
+                            size="lg"
+                          >
+                            <Zap className="w-5 h-5 mr-2" />
+                            {(() => {
+                              const basePriceNum = Number(listing.basePrice ?? 0);
+                              const discountAmountNum = ('discountAmount' in listing && (listing as any).discountAmount != null)
+                                ? Number((listing as any).discountAmount) : 0;
+                              const now = new Date();
+                              const hasWindow = ('discountStart' in listing && 'discountEnd' in listing
+                                && (listing as any).discountStart && (listing as any).discountEnd)
+                                ? now >= new Date(String((listing as any).discountStart)) && now <= new Date(String((listing as any).discountEnd))
+                                : false;
+                              const finalPrice = hasWindow && discountAmountNum > 0
+                                ? Math.max(0, basePriceNum - discountAmountNum)
+                                : basePriceNum;
+                              return `Osta nyt ${finalPrice} €`;
+                            })()}
+                          </Button>
+                        }
+                        productTitle={listing.title ?? "Tuote"}
+                        priceEUR={(() => {
                           const basePriceNum = Number(listing.basePrice ?? 0);
                           const discountAmountNum = ('discountAmount' in listing && (listing as any).discountAmount != null)
                             ? Number((listing as any).discountAmount) : 0;
@@ -791,52 +830,35 @@ export default function ListingDetailPage() {
                             && (listing as any).discountStart && (listing as any).discountEnd)
                             ? now >= new Date(String((listing as any).discountStart)) && now <= new Date(String((listing as any).discountEnd))
                             : false;
-                          const finalPrice = hasWindow && discountAmountNum > 0
+                          return hasWindow && discountAmountNum > 0
                             ? Math.max(0, basePriceNum - discountAmountNum)
                             : basePriceNum;
-                          return `Osta nyt ${finalPrice} €`;
                         })()}
-                      </Button>
-                    }
-                    productTitle={listing.title ?? "Tuote"}
-                    priceEUR={(() => {
-                      const basePriceNum = Number(listing.basePrice ?? 0);
-                      const discountAmountNum = ('discountAmount' in listing && (listing as any).discountAmount != null)
-                        ? Number((listing as any).discountAmount) : 0;
-                      const now = new Date();
-                      const hasWindow = ('discountStart' in listing && 'discountEnd' in listing
-                        && (listing as any).discountStart && (listing as any).discountEnd)
-                        ? now >= new Date(String((listing as any).discountStart)) && now <= new Date(String((listing as any).discountEnd))
-                        : false;
-                      return hasWindow && discountAmountNum > 0
-                        ? Math.max(0, basePriceNum - discountAmountNum)
-                        : basePriceNum;
-                    })()}
-                    onConfirm={async () => {
-                      try {
-                        const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
-                        const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;
-                        const res = await createCheckout.mutateAsync({
-                          companyListingId: listing.id,
-                          successUrl,
-                          cancelUrl,
-                        });
-                        const stripe = await getStripe();
-                        if (stripe) {
-                          await stripe.redirectToCheckout({ sessionId: res.id });
-                        } else if (res.url) {
-                          window.location.href = res.url;
-                        }
-                      } catch (e) {
-                        console.error(e);
-                      }
-                    }}
-                    confirmLabel="Siirry kassalle"
-                    cancelLabel="Sulje"
-                  />
-                  
-
-                </div>
+                        onConfirm={async () => {
+                          try {
+                            const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
+                            const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;
+                            const res = await createCheckout.mutateAsync({
+                              companyListingId: listing.id,
+                              successUrl,
+                              cancelUrl,
+                            });
+                            const stripe = await getStripe();
+                            if (stripe) {
+                              await stripe.redirectToCheckout({ sessionId: res.id });
+                            } else if (res.url) {
+                              window.location.href = res.url;
+                            }
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                        confirmLabel="Siirry kassalle"
+                        cancelLabel="Sulje"
+                      />
+                    </div>
+                  );
+                })()}
 
                 {/* Trust Indicators */}
                 <div className="space-y-3 pt-4 border-t border-[var(--color-border)]">

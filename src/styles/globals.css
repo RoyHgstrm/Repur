@@ -14,14 +14,14 @@
   --radius: 0.625rem;
   color-scheme: dark;
 
-  /* Enhanced Vibrant Color Palette - OKLCH for better perceptual uniformity */
-  --color-primary: oklch(65% 0.28 260); /* Deeper electric blue */
-  --color-primary-light: oklch(75% 0.25 260); /* Lighter blue for accents */
-  --color-primary-dark: oklch(55% 0.3 260); /* Even deeper blue for contrast */
-  
-  --color-secondary: oklch(70% 0.27 160); /* Deeper emerald green */
-  --color-secondary-light: oklch(80% 0.24 160); /* Light green accents */
-  --color-secondary-dark: oklch(60% 0.3 160); /* Even deeper green */
+  /* Gradient-inspired Color Palette: from-purple-400 to-amber-600 */
+  --color-primary: oklch(74.5% 0.19 300); /* Approx. purple-400 */
+  --color-primary-light: oklch(80% 0.16 300); /* Lighter purple */
+  --color-primary-dark: oklch(65% 0.22 300); /* Deeper purple */
+
+  --color-secondary: oklch(90% 0.28 75); /* Even brighter, more saturated amber */
+  --color-secondary-light: oklch(96% 0.23 75); /* Brightest, most saturated amber */
+  --color-secondary-dark: oklch(80% 0.32 75); /* Deeper, even more saturated amber */
   
   --color-accent: oklch(72% 0.32 45); /* Deeper coral/orange */
   --color-accent-light: oklch(82% 0.28 45); /* Light coral */

@@ -66,7 +66,9 @@ export default function Navbar() {
             className="inline-flex items-center gap-2 group"
             aria-label="Etusivu"
           >
-              <img src="/icon.svg" alt="Repur.fi logo" className="h-10 w-10" />
+              <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-purple-400 to-amber-600 text-white text-2xl font-extrabold tracking-tight shadow group-hover:bg-[var(--color-primary-dark)] transition-colors">
+                R
+              </span>
             <span className="text-4xl font-extrabold tracking-tight text-[var(--color-neutral)] group-hover:text-[var(--color-primary)] transition-colors">
               Repur.fi
             </span>
