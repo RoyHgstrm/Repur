@@ -7,11 +7,12 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
 import { CheckCircle2, Package, ShieldCheck, Truck, Wrench, FileText, Search } from "lucide-react";
+import type { ReactNode } from "react";
 
 type Guide = {
   id: string;
   title: string;
-  icon: JSX.Element;
+  icon: ReactNode;
   items: { label: string; description: string }[];
 };
 

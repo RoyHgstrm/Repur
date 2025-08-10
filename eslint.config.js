@@ -19,8 +19,7 @@ export default tseslint.config(
     },
     extends: [
       ...tseslint.configs.recommended,
-      ...tseslint.configs.recommendedTypeChecked,
-      ...tseslint.configs.stylisticTypeChecked,
+      ...tseslint.configs.stylistic,
     ],
     rules: {
       "@typescript-eslint/array-type": "off",
@@ -34,10 +33,8 @@ export default tseslint.config(
         { argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/require-await": "off",
-      "@typescript-eslint/no-misused-promises": [
-        "error",
-        { checksVoidReturn: { attributes: false } },
-      ],
+      // Disable type-aware rules in flat config to avoid requiring project service
+      "@typescript-eslint/no-misused-promises": "off",
       "@typescript-eslint/no-unsafe-assignment": "off", // Disable this specific warning
       "@typescript-eslint/no-unsafe-call": "off", // Disable this specific warning
       "@typescript-eslint/no-explicit-any": "off", // Temporarily disable for onError callbacks

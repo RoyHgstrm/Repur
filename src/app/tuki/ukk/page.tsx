@@ -7,13 +7,14 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
 import { ShieldCheck, Truck, Search, Info, Package, Wrench, Cpu, Gauge } from "lucide-react";
+import type { ReactNode } from "react";
 import CollapsibleComponent from "~/components/ui/CollapsibleComponent";
 
 type FAQ = { q: string; a: string };
 type FAQCategory = {
   id: string;
   title: string;
-  icon: JSX.Element;
+  icon: ReactNode;
   faqs: FAQ[];
 };
 

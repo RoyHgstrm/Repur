@@ -152,7 +152,7 @@ export default function OstaPage() {
                   placeholder="Prosessori, näytönohjain, malli..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 bg-surface-3 border-[var(--color-border-light)] text-primary placeholder:text-tertiary focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all"
+                  className="pl-10 h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary placeholder:text-tertiary focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:border-[var(--color-primary)] transition-all"
                 />
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function OstaPage() {
             <div className="space-y-2">
               <Label className="text-secondary font-medium">Kunto</Label>
               <Select value={filterCondition} onValueChange={setFilterCondition}>
-                <SelectTrigger className="h-12 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                <SelectTrigger className="h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary">
                   <div className="flex items-center gap-2">
                     <Filter className="w-4 h-4" />
                     <SelectValue placeholder="Kaikki kunnot" />
@@ -181,7 +181,7 @@ export default function OstaPage() {
             <div className="space-y-2">
               <Label className="text-secondary font-medium">Järjestä</Label>
               <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                <SelectTrigger className="h-12 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                <SelectTrigger className="h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary">
                   <div className="flex items-center gap-2">
                     <SortAsc className="w-4 h-4" />
                     <SelectValue />
@@ -205,7 +205,7 @@ export default function OstaPage() {
           </div>
         </div>
 
-        {/* Listings Grid */}
+        {/* Listings - Mobile list view and desktop grid */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16 space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-[var(--color-primary)] border-t-transparent"></div>
@@ -220,11 +220,33 @@ export default function OstaPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredAndSortedListings?.map((listing: ActiveListing, _index) => (
-              <ProductCard key={listing.id ?? ''} listing={listing} onPurchaseClick={setSelectedListing} />
-            ))}
-          </div>
+          <>
+            {/* Mobile list view */}
+            <div className="sm:hidden space-y-3">
+              {filteredAndSortedListings?.map((listing: ActiveListing, index) => (
+                <ProductCard
+                  key={listing.id ?? ''}
+                  listing={listing}
+                  onPurchaseClick={setSelectedListing}
+                  variant="list"
+                  eager={index < 3}
+                />
+              ))}
+            </div>
+
+            {/* Tablet/Desktop grid */}
+            <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+              {filteredAndSortedListings?.map((listing: ActiveListing, index) => (
+                <ProductCard
+                  key={listing.id ?? ''}
+                  listing={listing}
+                  onPurchaseClick={setSelectedListing}
+                  variant="grid"
+                  eager={index < 4}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 

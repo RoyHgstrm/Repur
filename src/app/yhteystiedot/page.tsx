@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function YhteystiedotPage() {
   return (
-    <main className="min-h-screen ">
+    <main className="min-h-screen bg-surface-1">
       <section className="mx-auto max-w-7xl px-container py-12">
         <header className="text-center space-y-4 mb-8">
           <h1 className="text-4xl-fluid font-extrabold text-primary">Yhteystiedot</h1>
@@ -22,7 +22,7 @@ export default function YhteystiedotPage() {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           <Card className="bg-surface-2 border-[var(--color-border-light)]">
             <CardContent className="p-6 text-center space-y-2">
               <Mail className="w-6 h-6 text-[var(--color-primary)] mx-auto" />
@@ -37,18 +37,11 @@ export default function YhteystiedotPage() {
               <Phone className="w-6 h-6 text-[var(--color-primary)] mx-auto" />
               <CardTitle className="text-base">Puhelin</CardTitle>
               <p className="text-sm text-secondary">Arkisin klo 9–17</p>
-              <a href="tel:+358123456789" className="text-sm text-[var(--color-primary)] hover:underline">+358 12 345 6789</a>
+              <a href="tel:+358403254972" className="text-sm text-[var(--color-primary)] hover:underline">+358 12 345 6789</a>
             </CardContent>
           </Card>
 
-          <Card className="bg-surface-2 border-[var(--color-border-light)]">
-            <CardContent className="p-6 text-center space-y-2">
-              <MapPin className="w-6 h-6 text-[var(--color-primary)] mx-auto" />
-              <CardTitle className="text-base">Sijainti</CardTitle>
-              <p className="text-sm text-secondary">Toimipiste (sopimuksen mukaan)</p>
-              <p className="text-sm text-primary">Helsinki, Suomi</p>
-            </CardContent>
-          </Card>
+
         </div>
 
         {/* Opening hours + support links */}

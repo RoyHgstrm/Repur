@@ -33,12 +33,12 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
+    transition: { staggerChildren: 0.05, delayChildren: 0.05 },
   },
 };
 
 const itemVariants = {
-  hidden: { y: 30, opacity: 0 },
+  hidden: { y: 12, opacity: 0 },
   visible: { y: 0, opacity: 1 },
 };
 
@@ -52,10 +52,10 @@ const FeatureCard = ({ icon, title, description, highlight }: {
     variants={itemVariants}
     initial="hidden"
     whileInView="visible"
-    viewport={{ once: true, amount: 0.2 }}
-    transition={{ duration: 0.6, ease: [0.42, 0, 0.58, 1] }}
-    className={`relative group cursor-pointer ${highlight ? 'md:scale-105' : ''}`}
-    whileHover={{ scale: highlight ? 1.08 : 1.05 }}
+    viewport={{ once: true, amount: 0.15 }}
+    transition={{ duration: 0.35, ease: [0.25, 0.25, 0.25, 1] }}
+    className={`relative group cursor-pointer transform-gpu ${highlight ? 'md:scale-105' : ''}`}
+    whileHover={{ scale: highlight ? 1.04 : 1.03 }}
   >
     <div className={cn(
       "relative backdrop-blur-xl border p-8 rounded-2xl text-center overflow-hidden",
@@ -65,20 +65,20 @@ const FeatureCard = ({ icon, title, description, highlight }: {
     )}>
       {/* Animated background */}
       <div className={cn(
-        "absolute inset-0 rounded-2xl bg-gradient-to-br from-[var(--color-primary)]/10 via-[var(--color-tertiary)]/5 to-transparent opacity-0 transition-all duration-500",
+        "absolute inset-0 rounded-2xl bg-gradient-to-br from-[var(--color-primary)]/10 via-[var(--color-tertiary)]/5 to-transparent opacity-0 transition-opacity duration-200",
         "group-hover:opacity-100"
       )}></div>
 
       {/* Glow effect */}
       <div className={cn(
-        "absolute inset-0 rounded-2xl blur-xl opacity-0 transition-opacity duration-500",
+        "absolute inset-0 rounded-2xl blur-xl opacity-0 transition-opacity duration-200",
         highlight ? "bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-tertiary)]/10" : "bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-secondary)]/10",
         "group-hover:opacity-100"
       )}></div>
 
       <div className="relative z-10">
         <div className={cn(
-          "inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 transition-all duration-300",
+          "inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 transition-transform duration-200 transform-gpu",
           highlight
             ? "bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-tertiary)] shadow-lg shadow-[var(--color-primary)]/25"
             : "bg-[var(--color-surface-3)]/50 group-hover:from-[var(--color-primary)] group-hover:to-[var(--color-secondary)]"
@@ -103,9 +103,9 @@ const StatCard = ({ value, label, icon }: { value: string, label: string, icon: 
     variants={itemVariants}
     initial="hidden"
     whileInView="visible"
-    viewport={{ once: true, amount: 0.2 }}
-    transition={{ duration: 0.6, ease: [0.42, 0, 0.58, 1] }}
-    className="text-center p-6 rounded-xl bg-[var(--color-surface-2)]/30 backdrop-blur-sm border border-[var(--color-border)]/30"
+    viewport={{ once: true, amount: 0.15 }}
+    transition={{ duration: 0.35, ease: [0.25, 0.25, 0.25, 1] }}
+    className="text-center p-6 rounded-xl bg-[var(--color-surface-2)]/30 backdrop-blur-sm border border-[var(--color-border)]/30 transform-gpu"
   >
     <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-primary)]/20 to-[var(--color-tertiary)]/20 mb-3">
       {icon}
@@ -119,13 +119,13 @@ export default function HomePage() {
   const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery({ limit: 6 });
 
   return (
-    <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen">
+    <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-6 lg:py-0">
       {/* Hero Section - Enhanced */}
       <motion.section
-        className="relative min-h-screen flex items-center justify-center overflow-hidden"
+        className="relative min-h-[70vh] md:min-h-screen flex items-center justify-center overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 1 }}
+        transition={{ duration: 0.6 }}
       >
         {/* Dynamic Background */}
         <div className="absolute inset-0 overflow-hidden">
@@ -133,7 +133,7 @@ export default function HomePage() {
 
           {/* Animated gradient orbs */}
           <motion.div
-            className="absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-[var(--color-primary)]/30 to-[var(--color-tertiary)]/30 rounded-full blur-3xl"
+            className="hidden sm:block absolute top-20 left-20 w-72 h-72 bg-gradient-to-r from-[var(--color-primary)]/30 to-[var(--color-tertiary)]/30 rounded-full blur-3xl"
             animate={{
               scale: [1, 1.2, 1],
               rotate: [0, 180, 360]
@@ -145,7 +145,7 @@ export default function HomePage() {
             }}
           />
           <motion.div
-            className="absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-r from-[var(--color-tertiary)]/20 to-[var(--color-accent)]/20 rounded-full blur-3xl"
+            className="hidden sm:block absolute bottom-20 right-20 w-96 h-96 bg-gradient-to-r from-[var(--color-tertiary)]/20 to-[var(--color-accent)]/20 rounded-full blur-3xl"
             animate={{
               scale: [1.2, 1, 1.2],
               rotate: [360, 180, 0]
@@ -157,7 +157,7 @@ export default function HomePage() {
             }}
           />
           <motion.div
-            className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-r from-[var(--color-quaternary)]/20 to-[var(--color-primary)]/20 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"
+            className="hidden sm:block absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-r from-[var(--color-quaternary)]/20 to-[var(--color-primary)]/20 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"
             animate={{
               scale: [1, 1.3, 1],
               opacity: [0.3, 0.6, 0.3]
@@ -174,8 +174,8 @@ export default function HomePage() {
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true, amount: 0.5 }}
-            transition={{ duration: 0.8 }}
+            viewport={{ once: true, amount: 0.35 }}
+            transition={{ duration: 0.5 }}
           >
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-dark)]/50 to-[var(--color-tertiary)]/50 border border-[var(--color-primary)]/30 mb-8">
               <Sparkles className="w-4 h-4 text-[var(--color-primary-light)] mr-2" />
@@ -202,7 +202,7 @@ export default function HomePage() {
             className="flex flex-col sm:flex-row justify-center gap-6 mb-16"
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
           >
             <Button
               asChild
@@ -291,25 +291,41 @@ export default function HomePage() {
               ))}
             </div>
           ) : (
-            <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-2xl"
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.2 }}
-            >
-              {listings?.map((listing: ListingWithSeller) => (
-                <motion.div
-                  key={listing.id}
-                  variants={itemVariants}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, amount: 0.2 }}
-                >
-                  <ListingCard listing={listing} onPurchaseClick={() => { /* noop on homepage */ }} />
-                </motion.div>
-              ))}
-            </motion.div>
+            <>
+              {/* Mobile list view for featured */}
+              <div className="sm:hidden space-y-3">
+                {listings?.map((listing: ListingWithSeller, index) => (
+                  <ListingCard
+                    key={listing.id}
+                    listing={listing}
+                    onPurchaseClick={() => { /* noop on homepage */ }}
+                    variant="list"
+                    eager={index < 3}
+                  />
+                ))}
+              </div>
+
+              {/* Tablet/Desktop grid */}
+              <motion.div
+                className="hidden sm:grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-2xl"
+                variants={containerVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+              >
+                {listings?.map((listing: ListingWithSeller, index) => (
+                  <motion.div
+                    key={listing.id}
+                    variants={itemVariants}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.2 }}
+                  >
+                    <ListingCard listing={listing} onPurchaseClick={() => { /* noop on homepage */ }} eager={index < 4} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </>
           )}
 
           <div className="text-center pt-10">

@@ -41,7 +41,7 @@ export default function KayttoehdotPage() {
 
             <h2>6. Vastuunrajoitus</h2>
             <p>
-              Emme vastaa välillisistä vahingoista tai kolmansien osapuolten palveluista. Palvelu tarjotaan "sellaisena kuin se on" ilman erillisiä takuita.
+              Emme vastaa välillisistä vahingoista tai kolmansien osapuolten palveluista. Palvelu tarjotaan &quot;sellaisena kuin se on&quot; ilman erillisiä takuita.
             </p>
 
             <h2>7. Muutokset ehtoihin</h2>

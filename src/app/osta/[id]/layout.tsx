@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import React from 'react';
 import { api as createApiCaller } from '~/trpc/server';
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+// Next.js 15 may pass params as a Promise in layout-level generateMetadata
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   try {
+    const resolved = await params;
     const api = createApiCaller({ headers: new Headers() });
-    const listing = await api.listings.getCompanyListingById({ id: params.id });
+    const listing = await api.listings.getCompanyListingById({ id: resolved.id });
     if (!listing) return {};
 
     const title = listing.title ?? 'Repur.fi';

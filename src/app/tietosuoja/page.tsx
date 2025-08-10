@@ -15,7 +15,7 @@ export default function TietosuojaPage() {
         <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]">
           <CardContent className="prose prose-invert max-w-none p-6">
             <h2>1. Rekisterinpitäjä</h2>
-            <p>Repur.fi ("me") toimii henkilötietojen rekisterinpitäjänä.</p>
+            <p>Repur.fi (&quot;me&quot;) toimii henkilötietojen rekisterinpitäjänä.</p>
 
             <h2>2. Kerättävät tiedot</h2>
             <p>

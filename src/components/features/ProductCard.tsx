@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import Link from "next/link";
 import { Badge } from "~/components/ui/badge";
@@ -15,9 +16,11 @@ type ListingWithSeller = RouterOutputs['listings']['getActiveCompanyListings'][n
 interface ProductCardProps {
   listing: ListingWithSeller;
   onPurchaseClick: (listing: ListingWithSeller) => void;
+  variant?: "grid" | "list";
+  eager?: boolean;
 }
 
-export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
+export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager = false }: ProductCardProps) => {
   // Remove palette/backdrop for simpler, faster rendering
 
   const withAlpha = (rgb: string, alpha: number) => (
@@ -85,11 +88,90 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
 
 
 
+  // List variant (compact, mobile-first)
+  if (variant === "list") {
+    return (
+      <div className="group relative w-full">
+        <Link href={`/osta/${listing.id}`} className="block w-full">
+          <Card className="h-full flex flex-row items-stretch bg-surface-2 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/40 shadow-sm hover:shadow-md transition-transform opacity-100 duration-200 ease-out transform-gpu overflow-hidden">
+            {/* Image */}
+            <div className="relative shrink-0 w-28 h-28 sm:w-36 sm:h-28 md:w-40 md:h-32 border-r border-[var(--color-border)]/50">
+              {listing.images && listing.images.length > 0 && listing.images[0] ? (
+                <Image
+                  src={listing.images[0]}
+                  alt={listing.title || 'Product image'}
+                  fill
+                  sizes="(max-width: 640px) 120px, 160px"
+                  className="object-cover"
+                  priority={eager}
+                  loading={eager ? 'eager' : 'lazy'}
+                  fetchPriority={eager ? 'high' : 'auto'}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-surface-3">
+                  <span className="text-sm text-tertiary">Ei kuvaa</span>
+                </div>
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0 p-3 sm:p-4">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="text-sm sm:text-base font-semibold text-primary line-clamp-2 leading-snug flex-1 min-w-0">
+                  {listing.title ?? 'Nimetön tietokone'}
+                </h3>
+                <Badge className={cn("text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full shrink-0", getConditionColor(listing.condition))}>
+                  {listing.condition ?? 'Tuntematon'}
+                </Badge>
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="text-[11px] sm:text-xs text-secondary truncate">CPU: <span className="text-primary font-medium">{listing.cpu ?? 'Ei tietoa'}</span></div>
+                <div className="text-[11px] sm:text-xs text-secondary truncate">GPU: <span className="text-primary font-medium">{listing.gpu ?? 'Ei tietoa'}</span></div>
+              </div>
+
+              <div className="mt-2 flex items-center justify-between">
+                <div className="flex items-baseline gap-1">
+                  {hasWindow && discountAmountNum > 0 ? (
+                    <>
+                      <span className="text-xs text-tertiary line-through">{basePriceNum} €</span>
+                      <span className="text-lg font-extrabold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">{finalPrice} €</span>
+                    </>
+                  ) : (
+                    <span className="text-lg font-extrabold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">{basePriceNum} €</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-[var(--color-border-light)] text-secondary hover:bg-[var(--color-primary)]/10"
+                    onClick={(e) => { e.preventDefault(); window.location.href = `/osta/${listing.id}`; }}
+                  >
+                    Katso
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-8 px-3 text-xs bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white"
+                    onClick={(e) => { e.preventDefault(); onPurchaseClick(listing); }}
+                  >
+                    Osta
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </Link>
+      </div>
+    );
+  }
+
+  // Grid variant (default)
   return (
     <div className="group relative w-full">
 
       <Link href={`/osta/${listing.id}`} className="block w-full">
-        <Card className="h-full flex flex-col bg-gradient-to-br from-surface-2 to-surface-3 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/50 shadow-lg hover:shadow-2xl hover:shadow-[var(--color-primary)]/20 transition-all duration-700 ease-out group-hover:-translate-y-1 sm:group-hover:-translate-y-2 overflow-hidden backdrop-blur-sm">
+        <Card className="h-full flex flex-col bg-gradient-to-br from-surface-2 to-surface-3 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/50 shadow-sm hover:shadow-md transition-transform duration-200 ease-out group-hover:-translate-y-1 sm:group-hover:-translate-y-2 overflow-hidden">
           {hasWindow && discountAmountNum > 0 && (
             <div className="absolute top-3 right-3 z-10">
               <span className="discount-badge badge-spotlight" aria-label="Alennus voimassa">
@@ -114,8 +196,9 @@ export const ProductCard = ({ listing, onPurchaseClick }: ProductCardProps) => {
                 fill
                 sizes="(max-width: 640px) 100vw, (max-width: 768px) 80vw, (max-width: 1024px) 60vw, 50vw"
                 className="object-contain"
-                priority={false}
-                loading="lazy"
+                priority={eager}
+                loading={eager ? 'eager' : 'lazy'}
+                fetchPriority={eager ? 'high' : 'auto'}
               />
             ) : (
               <div className="w-full h-full min-h-[180px] flex items-center justify-center bg-gradient-to-br from-[var(--color-surface-3)] to-[var(--color-surface-2)] rounded-t-xl">
