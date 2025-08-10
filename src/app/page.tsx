@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { api } from "~/trpc/react";
 import { type RouterOutputs } from "~/trpc/react";
+import React from "react";
 import { motion } from "framer-motion";
 import { cn } from "~/lib/utils";
 import { ProductCard as ListingCard } from "~/components/features/ProductCard";
@@ -40,6 +41,96 @@ const containerVariants = {
 const itemVariants = {
   hidden: { y: 12, opacity: 0 },
   visible: { y: 0, opacity: 1 },
+};
+
+// Hero featured listing carousel (uses listings from the page query)
+const HeroFeaturedCarousel = ({ items }: { items: ListingWithSeller[] }) => {
+  const [current, setCurrent] = React.useState(0);
+  const [imgAspect, setImgAspect] = React.useState<number | null>(null);
+  const hasMany = items.length > 1;
+
+  React.useEffect(() => {
+    if (!hasMany) return;
+    const t = setInterval(() => setCurrent((p) => (p + 1) % items.length), 5000);
+    return () => clearInterval(t);
+  }, [items.length, hasMany]);
+
+  if (!items.length) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)]/30 bg-[var(--color-surface-2)]/40 p-6 h-full">
+        <div className="h-64 w-full rounded-xl bg-[var(--color-surface-3)] animate-pulse" />
+        <div className="h-4 w-2/3 mt-4 rounded bg-[var(--color-surface-3)] animate-pulse" />
+        <div className="h-3 w-1/2 mt-2 rounded bg-[var(--color-surface-3)] animate-pulse" />
+      </div>
+    );
+  }
+
+  const product = items[current];
+  const imageUrl = (product.images && product.images[0]) || undefined;
+  const price = Number(product.basePrice);
+
+  const aspectRatio = imgAspect ?? 16 / 9;
+
+  return (
+    <form
+      action={`/osta/${product.id}`}
+      method="get"
+      className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] rounded-3xl lg:pl-12"
+      tabIndex={0}
+      aria-label={`Katso tuote: ${product.title}`}
+    >
+      <motion.button
+        type="submit"
+        className="relative w-full overflow-hidden rounded-2xl border border-[var(--color-border)]/30 shadow-xl transition-shadow hover:shadow-2xl hover:shadow-[var(--color-primary)]/20 cursor-pointer"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4 }}
+        whileHover={{ scale: 1.015 }}
+        whileTap={{ scale: 0.98 }}
+        style={{ aspectRatio }}
+      >
+        {/* Image fills container; aspect-ratio is controlled by style above */}
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={product.title ?? 'Tuotekuva'}
+            fill
+            priority={current === 0}
+            fetchPriority="high"
+            sizes="(max-width: 1024px) 100vw, 640px"
+            className="w-full h-full object-cover"
+            onLoadingComplete={({ naturalWidth, naturalHeight }) => {
+              if (naturalWidth > 0 && naturalHeight > 0) setImgAspect(naturalWidth / naturalHeight);
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[var(--color-primary)]/15 to-[var(--color-tertiary)]/15" />
+        )}
+
+        {/* Overlay content */}
+        <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/50 via-black/10 to-transparent p-3 md:p-5">
+          <div>
+            <h3 className="line-clamp-2 text-base md:text-lg font-bold text-white">{product.title}</h3>
+            <p className="mt-1 text-xs md:text-sm text-gray-200 line-clamp-2">{product.cpu} • {product.gpu}</p>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <div className="text-xl md:text-2xl font-black text-white">{price}€</div>
+            {hasMany && (
+              <div className="flex justify-center gap-2">
+                {items.map((it, i) => (
+                  <span
+                    key={it.id}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${i === current ? 'w-5 bg-white' : 'w-2 bg-white/50'}`}
+                    aria-hidden
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.button>
+    </form>
+  );
 };
 
 const FeatureCard = ({ icon, title, description, highlight }: {
@@ -116,13 +207,27 @@ const StatCard = ({ value, label, icon }: { value: string, label: string, icon: 
 );
 
 export default function HomePage() {
-  const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery({ limit: 6 });
+  const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery(
+    { limit: 6, featuredOnly: true },
+    {
+      staleTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      placeholderData: (prev: ListingWithSeller[] | undefined) => prev,
+    }
+  );
+  // Cache on client for snappy loads; server caches in Redis.
+  const { data: heroStats } = api.metrics.getHeroStats.useQuery(undefined, {
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  });
 
   return (
     <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-6 lg:py-0">
       {/* Hero Section - Enhanced */}
       <motion.section
-        className="relative min-h-[70vh] md:min-h-screen flex items-center justify-center overflow-hidden"
+        className="relative min-h-[60vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
@@ -170,19 +275,19 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="container mx-auto px-6 relative z-10 text-center">
-          <motion.div
-            initial={{ y: 30, opacity: 0 }}
-            whileInView={{ y: 0, opacity: 1 }}
-            viewport={{ once: true, amount: 0.35 }}
-            transition={{ duration: 0.5 }}
-          >
+        <div className="container mx-auto max-w-6xl px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[60vh] md:min-h-[70vh]">
+            <motion.div initial={{ y: 30, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.5 }} className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-dark)]/50 to-[var(--color-tertiary)]/50 border border-[var(--color-primary)]/30 mb-8">
               <Sparkles className="w-4 h-4 text-[var(--color-primary-light)] mr-2" />
-              <span className="text-sm text-gray-100 font-medium">Suomen luotetuin refurb-toimija</span>
+              <span className="text-sm text-gray-100 font-medium">
+                {heroStats
+                  ? `${heroStats.activeCount} aktiivista konetta • keskihinta ${Number.isFinite(heroStats.avgPrice) ? Math.round(heroStats.avgPrice) : 0}€`
+                  : 'Ladataan...'}
+              </span>
             </div>
 
-            <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-8">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6">
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-text-primary)] via-[var(--color-text-secondary)] to-[var(--color-text-primary)]">
                 Pelikoneet
               </span>
@@ -191,60 +296,41 @@ export default function HomePage() {
               </span>
             </h1>
 
-            <p className="text-xl text-[var(--color-text-secondary)] max-w-3xl mx-auto mb-12 leading-relaxed">
+            <p className="text-lg md:text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-8 leading-relaxed">
               Hanki premium-tason gaming-PC puoleen hintaan tai myy omasi
               <span className="text-gradient-primary font-semibold"> hetkessä</span> –
               12 kuukauden takuulla ja ympäristöä säästäen.
             </p>
-          </motion.div>
+            <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 sm:gap-6">
+                <Button asChild size="lg" className="group relative bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-tertiary)] text-white font-bold text-lg px-10 py-6 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[var(--color-primary)]/25 border-0">
+                  <Link href="/osta">
+                    <span className="relative z-10 flex items-center">
+                      Selaa koneita
+                      <ShoppingCart className="ml-3 w-5 h-5 group-hover:rotate-12 transition-transform" />
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-tertiary)]/20 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                  </Link>
+                </Button>
 
-          <motion.div
-            className="flex flex-col sm:flex-row justify-center gap-6 mb-16"
-            initial={{ y: 30, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <Button
-              asChild
-              size="lg"
-              className="group relative bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-tertiary)] hover:from-[var(--color-primary-dark)] hover:to-[var(--color-tertiary)]/90 text-white font-bold text-lg px-10 py-6 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-[var(--color-primary)]/25 border-0"
-            >
-              <Link href="/osta">
-                <span className="relative z-10 flex items-center">
-                  Selaa koneita
-                  <ShoppingCart className="ml-3 w-5 h-5 group-hover:rotate-12 transition-transform" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-tertiary)]/20 rounded-2xl blur opacity-0 group-hover:opacity-20 transition-opacity"></div>
-              </Link>
-            </Button>
+                <Button asChild size="lg" variant="outline" className="group text-lg px-10 py-6 rounded-2xl border-2 border-[var(--color-border)] hover:border-[var(--color-primary)] bg-[var(--color-surface-2)]/50 backdrop-blur-sm hover:bg-[var(--color-primary)]/30 text-[var(--color-text-primary)] hover:text-[var(--color-primary-light)] transition-all duration-300 hover:scale-105 hover:shadow-xl">
+                  <Link href="/myy">
+                    <span className="flex items-center">Myy koneesi – pyydä tarjous</span>
+                  </Link>
+                </Button>
+              </div>
 
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="group text-lg px-10 py-6 rounded-2xl border-2 border-[var(--color-border)] hover:border-[var(--color-primary)] bg-[var(--color-surface-2)]/50 backdrop-blur-sm hover:bg-[var(--color-primary)]/30 text-[var(--color-text-primary)] hover:text-[var(--color-primary-light)] transition-all duration-300 hover:scale-105 hover:shadow-xl"
-            >
-              <Link href="/myy">
-                <span className="flex items-center">
-                  Myy koneesi – pyydä tarjous
-                  <Euro className="ml-3 w-5 h-5 group-hover:scale-110 transition-transform" />
-                </span>
-              </Link>
-            </Button>
-          </motion.div>
+              {/* Highlights */}
+              <div className="mt-10 grid grid-cols-2 gap-4 max-w-xl mx-auto lg:mx-0">
+                <StatCard value="12 kk" label="Takuu" icon={<ShieldCheck className="w-6 h-6 text-[var(--color-tertiary)]" />} />
+                <StatCard value="Ilmainen" label="Toimitus" icon={<Truck className="w-6 h-6 text-[var(--color-accent)]" />} />
+              </div>
+            </motion.div>
 
-          {/* Factual highlights */}
-          <motion.div
-            className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            <StatCard value="12 kk" label="Takuu" icon={<ShieldCheck className="w-6 h-6 text-[var(--color-success)]" />} />
-            <StatCard value="Ilmainen" label="Toimitus" icon={<Truck className="w-6 h-6 text-[var(--color-primary-light)]" />} />
-            <StatCard value="Testattu" label="Suorituskyky" icon={<Gauge className="w-6 h-6 text-[var(--color-tertiary)]" />} />
-            <StatCard value="Kestävä" label="Valinta" icon={<Recycle className="w-6 h-6 text-[var(--color-accent)]" />} />
-          </motion.div>
+            {/* Right: featured listing / carousel */}
+            <div className="order-last lg:order-last mt-6 lg:mt-0 max-w-[720px] sm:max-w-[600px] w-full mx-auto">
+              <HeroFeaturedCarousel items={(listings ?? []).slice(0, 5)} />
+            </div>
+          </div>
         </div>
       </motion.section>
 
@@ -280,7 +366,7 @@ export default function HomePage() {
           </motion.div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-md">
+            <div className="product-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="bg-[var(--color-surface-2)]/50 rounded-2xl p-6 h-64 animate-pulse">
                   <div className="h-4 bg-[var(--color-surface-3)] rounded mb-4"></div>
@@ -294,7 +380,7 @@ export default function HomePage() {
             <>
               {/* Mobile list view for featured */}
               <div className="sm:hidden space-y-3">
-                {listings?.map((listing: ListingWithSeller, index) => (
+                {listings?.map((listing: ListingWithSeller, index: number) => (
                   <ListingCard
                     key={listing.id}
                     listing={listing}
@@ -307,13 +393,13 @@ export default function HomePage() {
 
               {/* Tablet/Desktop grid */}
               <motion.div
-                className="hidden sm:grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-2xl"
+                className="hidden sm:grid product-list grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-6 mb-2xl"
                 variants={containerVariants}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.2 }}
               >
-                {listings?.map((listing: ListingWithSeller, index) => (
+                {listings?.map((listing: ListingWithSeller, index: number) => (
                   <motion.div
                     key={listing.id}
                     variants={itemVariants}
@@ -507,7 +593,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Uusi CTA Section - Mission & Quality Focus */}
+      {/* CTA Section - Laatu & lupaus (ei keksittyjä tilastoja) */}
       <section className="py-section relative bg-gradient-to-br from-[var(--color-surface-1)] to-[var(--color-surface-2)]">
         <div className="container mx-auto px-container relative z-10 text-center">
           <motion.div
@@ -523,9 +609,7 @@ export default function HomePage() {
             </div>
 
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-black text-gradient-primary mb-6 leading-tight">
-              Yli 500 Tyytyväistä Asiakasta –
-              <br />
-              Liity Joukkoon!
+              Laatu, läpinäkyvyys ja takuu
             </h2>
             <p className="text-xl md:text-2xl text-[var(--color-text-secondary)] mb-10 max-w-3xl mx-auto leading-relaxed">
               Jokainen myymämme tietokone edustaa sitoutumistamme

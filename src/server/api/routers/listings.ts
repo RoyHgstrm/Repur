@@ -4,6 +4,7 @@ import { TRPCError } from '@trpc/server';
 import { eq, and } from 'drizzle-orm';
 import { listings, users, tradeInListings, purchases, listingStatusEnum, tradeInStatusEnum } from '~/server/db/schema';
 import { nanoid } from 'nanoid';
+import { redis } from '~/lib/redis';
 
 // Validation schemas
 const CompanyListingSchema = z.object({
@@ -45,6 +46,7 @@ const UpdateCompanyListingSchema = z.object({
   discountEnd: OptionalLocalDate,
   condition: z.enum(["Uusi", "Kuin uusi", "Hyvä", "Tyydyttävä"]).optional(),
   images: z.array(z.string()).optional(),
+  isFeatured: z.boolean().optional(),
 }).refine((data) => {
   if (data.discountStart && data.discountEnd) {
     return data.discountEnd > data.discountStart;
@@ -95,13 +97,15 @@ export const listingsRouter = createTRPCRouter({
         throw new TRPCError({ code: 'FORBIDDEN', message: 'Vain työntekijät ja ylläpitäjät voivat luoda listauksia' });
       }
 
-      const listing = await ctx.db.insert(listings).values({
+      const newListing = {
         id: nanoid(),
         ...input,
         basePrice: input.basePrice.toString(), // Ensure numeric is stored as string
         sellerId: ctx.userId,
-        status: 'ACTIVE', // Company listings are active by default once posted
-      }).returning({
+        status: 'ACTIVE' as const, // Company listings are active by default once posted
+      };
+
+      const listing = await ctx.db.insert(listings).values(newListing).returning({
         id: listings.id,
         title: listings.title,
         description: listings.description,
@@ -112,16 +116,36 @@ export const listingsRouter = createTRPCRouter({
         updatedAt: listings.updatedAt,
       });
 
+      // Invalidate cache
+      await redis.del('listings:active');
+
       return listing[0];
     }),
 
   // Get all active company listings
   getActiveCompanyListings: publicProcedure
-    .input(z.object({ limit: z.number().optional() }).optional())
+    .input(z.object({ limit: z.number().optional(), featuredOnly: z.boolean().optional() }).optional())
     .query(async ({ ctx, input }) => {
+      const onlyFeatured = input?.featuredOnly === true;
+      const cacheKey = onlyFeatured ? 'listings:featured' : 'listings:active';
+      const cachedListings = await redis.get(cacheKey);
+
+      if (cachedListings) {
+        if (typeof cachedListings === 'string') {
+          try {
+            return JSON.parse(cachedListings as string);
+          } catch {
+            // fallthrough to return as-is if not valid JSON
+          }
+        }
+        return cachedListings as unknown as any[];
+      }
+
       try {
         const listingsData = await ctx.db.query.listings.findMany({
-          where: eq(listings.status, 'ACTIVE'),
+          where: (onlyFeatured
+            ? and(eq(listings.status, 'ACTIVE'), eq(listings.isFeatured as any, true as any))
+            : eq(listings.status, 'ACTIVE')) as any,
           limit: input?.limit,
           // Try with discount fields first
           columns: {
@@ -129,6 +153,7 @@ export const listingsRouter = createTRPCRouter({
             title: true,
             description: true,
             status: true,
+            isFeatured: true,
             cpu: true,
             gpu: true,
             ram: true,
@@ -151,11 +176,18 @@ export const listingsRouter = createTRPCRouter({
             seller: true,
           },
         });
+
+        await redis.set(cacheKey, listingsData, { ex: 3600 }); // Cache for 1 hour
+
         return listingsData;
       } catch (err) {
         const message = String((err as any)?.message ?? err);
-        if (/discount_/i.test(message) || /column\s+"discount/i.test(message)) {
-          // Retry without discount fields (remote DB not migrated yet)
+        if (/is_featured/i.test(message) || /column\s+\"is_featured\"/i.test(message)) {
+          // DB not migrated with is_featured yet
+          if (onlyFeatured) {
+            await redis.set(cacheKey, [], { ex: 300 });
+            return [] as any[];
+          }
           const listingsData = await ctx.db.query.listings.findMany({
             where: eq(listings.status, 'ACTIVE'),
             limit: input?.limit,
@@ -164,6 +196,42 @@ export const listingsRouter = createTRPCRouter({
               title: true,
               description: true,
               status: true,
+              cpu: true,
+              gpu: true,
+              ram: true,
+              storage: true,
+              motherboard: true,
+              powerSupply: true,
+              caseModel: true,
+              basePrice: true,
+              discountAmount: true,
+              discountStart: true,
+              discountEnd: true,
+              condition: true,
+              images: true,
+              sellerId: true,
+              evaluatedById: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+            with: { seller: true },
+          });
+          await redis.set(cacheKey, listingsData, { ex: 300 });
+          return listingsData;
+        }
+        if (/discount_/i.test(message) || /column\s+"discount/i.test(message)) {
+          // Retry without discount fields (remote DB not migrated yet)
+          const listingsData = await ctx.db.query.listings.findMany({
+            where: (onlyFeatured
+              ? and(eq(listings.status, 'ACTIVE'), eq(listings.isFeatured as any, true as any))
+              : eq(listings.status, 'ACTIVE')) as any,
+            limit: input?.limit,
+            columns: {
+              id: true,
+              title: true,
+              description: true,
+              status: true,
+              isFeatured: true,
               cpu: true,
               gpu: true,
               ram: true,
@@ -181,6 +249,9 @@ export const listingsRouter = createTRPCRouter({
             },
             with: { seller: true },
           });
+
+          await redis.set(cacheKey, listingsData, { ex: 3600 }); // Cache for 1 hour
+
           return listingsData;
         }
         throw err;
@@ -218,6 +289,10 @@ export const listingsRouter = createTRPCRouter({
           evaluatedById: listings.evaluatedById,
           updatedAt: listings.updatedAt,
         });
+
+      // Invalidate cache
+      await redis.del('listings:active');
+      await redis.del(`listing:${input.companyListingId}`);
 
       return updatedListing[0];
     }),
@@ -324,6 +399,12 @@ export const listingsRouter = createTRPCRouter({
       if (!updated[0]) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
       }
+
+      // Invalidate cache
+      await redis.del('listings:active');
+      await redis.del('listings:featured');
+      await redis.del(`listing:${id}`);
+
       return updated[0];
     }),
 
@@ -440,6 +521,10 @@ export const listingsRouter = createTRPCRouter({
         .set({ status: 'SOLD' })
         .where(eq(listings.id, input.companyListingId));
 
+      // Invalidate cache
+      await redis.del('listings:active');
+      await redis.del(`listing:${input.companyListingId}`);
+
       return purchase[0];
     }),
 
@@ -451,6 +536,7 @@ export const listingsRouter = createTRPCRouter({
         id: true,
         title: true,
         status: true,
+        isFeatured: true,
         basePrice: true,
       },
       with: {
@@ -469,7 +555,7 @@ export const listingsRouter = createTRPCRouter({
     }
 
     const rows = await ctx.db.query.listings.findMany({
-      columns: { id: true, title: true, status: true, basePrice: true },
+      columns: { id: true, title: true, status: true, basePrice: true, isFeatured: true },
       with: { seller: true },
     });
     return rows;
@@ -479,6 +565,20 @@ export const listingsRouter = createTRPCRouter({
   getCompanyListingById: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
+      const cacheKey = `listing:${input.id}`;
+      const cachedListing = await redis.get(cacheKey);
+
+      if (cachedListing) {
+        if (typeof cachedListing === 'string') {
+          try {
+            return JSON.parse(cachedListing as string);
+          } catch {
+            // return as-is if not JSON
+          }
+        }
+        return cachedListing as unknown as any;
+      }
+
       try {
         const listing = await ctx.db.query.listings.findFirst({
           where: eq(listings.id, input.id),
@@ -513,6 +613,9 @@ export const listingsRouter = createTRPCRouter({
         if (!listing) {
           throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
         }
+
+        await redis.set(cacheKey, listing, { ex: 3600 }); // Cache for 1 hour
+
         return listing;
       } catch (err) {
         const message = String((err as any)?.message ?? err);
@@ -544,6 +647,9 @@ export const listingsRouter = createTRPCRouter({
           if (!listing) {
             throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
           }
+
+          await redis.set(cacheKey, listing, { ex: 3600 }); // Cache for 1 hour
+
           return listing;
         }
         throw err;

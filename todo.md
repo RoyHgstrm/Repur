@@ -13,3 +13,16 @@ Tehty tänään:
 - Lomakekontrollit: Pienennetty korkeudet mobiilissa (`h-10 sm:h-12`).
 - Suorituskyky: Kevennetty varjot ja siirtymäkestot mobiilissa, vältetään layout-shift.
  - Etusivu: Lyhennetty animaatiokestoja ja viiveitä, muutettu stagger-arvot, lisätty `transform-gpu`, piilotettu raskaat tausta-animaatiot mobiilissa, lisätty esittelytuotteille mobiilin listanäkymä (eager 3 kpl).
+
+Stripe-maksut (uusi):
+- [x] tRPC `payments.createCheckoutSession` (server) — Stripe Checkout Session EUR, alennusikkuna huomioitu
+- [x] Webhook `POST /api/stripe/webhook` — varmistus allekirjoituksella, merkitsee listauksen `SOLD` ja luo `purchase`
+- [x] Client: `getStripe()` ja Checkout-redirect `ProductCard` + `osta/[id]`
+- [x] Ympäristömuuttujat lisätty validointiin `src/env.js`
+
+Seuraavat askeleet:
+- [ ] Aseta ympäristömuuttujat: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- [ ] Lisää webhook Stripeen: `https://<domain>/api/stripe/webhook`
+- [ ] Testaa Checkout testikorteilla (4242 4242 4242 4242)
+- [ ] Näytä onnistumis-/peruutusviesti URL-parametrien perusteella `osta/[id]`
+- [ ] Lisää tilausnäkymä asiakkaalle (ostohistoria) ja henkilöstölle (tilaukset)

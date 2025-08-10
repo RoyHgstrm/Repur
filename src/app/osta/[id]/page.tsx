@@ -42,13 +42,17 @@ import Link from 'next/link';
 import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { type RouterOutputs } from '~/trpc/react';
 import { cn } from '~/lib/utils';
 // server-only types/imports removed to keep this a Client Component file
 import CollapsibleComponent from '~/components/ui/CollapsibleComponent';
 import { FPS_DATA } from '~/lib/fpsConstants';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
+import { api as trpc } from '~/trpc/react';
 import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
+import { getStripe } from "~/lib/stripe";
+import { useMemo } from 'react';
 
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };
@@ -61,10 +65,22 @@ export default function ListingDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { isSignedIn } = useAuth();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [isFavorited, setIsFavorited] = useState(false);
+  const favToggle = trpc.favorites.toggle.useMutation();
+  const favState = trpc.favorites.isFavorited.useQuery({ listingId: id }, { enabled: !!id && Boolean(isSignedIn) });
 
   const { data: listingData, isLoading, error } = api.listings.getCompanyListingById.useQuery({ id });
+  const [showPurchased, setShowPurchased] = useState(false);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('maksu') === 'onnistui') {
+      setShowPurchased(true);
+      url.searchParams.delete('maksu');
+      window.history.replaceState({}, '', url.pathname + url.search);
+    }
+  }, []);
+  const createCheckout = api.payments.createCheckoutSession.useMutation();
 
   const listing = listingData as DetailedListing;
   // Ensure hooks are called before any early returns to keep hook order consistent
@@ -315,12 +331,26 @@ export default function ListingDetailPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setIsFavorited(!isFavorited)}
-                className={cn("p-2 rounded-full", isFavorited && "text-red-500")}
+                onClick={() => favToggle.mutate({ listingId: id }, { onSuccess: () => favState.refetch() })}
+                className={cn("p-2 rounded-full", favState.data?.favorited && "text-[var(--color-success)]")}
               >
-                <Heart className={cn("w-5 h-5", isFavorited && "fill-current")} />
+                {favState.data?.favorited ? <CheckCircle className="w-5 h-5 text-[var(--color-success)]" /> : <Heart className="w-5 h-5" />}
               </Button>
-              <Button variant="ghost" size="sm" className="p-2 rounded-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 rounded-full"
+                onClick={() => {
+                  const url = `${window.location.origin}/osta/${id}`;
+                  if (navigator.share) {
+                    navigator.share({ url, title: listing.title });
+                  } else {
+                    void navigator.clipboard.writeText(url);
+                  }
+                }}
+                aria-label="Jaa"
+                title="Jaa"
+              >
                 <Share2 className="w-5 h-5" />
               </Button>
             </div>
@@ -329,21 +359,32 @@ export default function ListingDetailPage() {
       </div>
 
       <div className="max-w-7xl mx-auto py-8 px-container">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {showPurchased && (
+          <div className="mb-4">
+            <div className="rounded-xl border border-[var(--color-border)] bg-gradient-to-r from-[var(--color-secondary)]/10 to-[var(--color-primary)]/10 p-4">
+              <div className="flex items-center gap-2 text-[var(--color-text-primary)]">
+                <CheckCircle className="w-5 h-5 text-[var(--color-success)]" />
+                <div className="font-semibold">Osto vahvistettu</div>
+              </div>
+              <div className="text-sm text-[var(--color-text-secondary)] mt-1">Kiitos ostoksesta! Saat pian vahvistussähköpostin ja toimitustiedot.</div>
+            </div>
+          </div>
+        )}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Main Content - Left Column */}
-          <div className="xl:col-span-2 space-y-6">
+          <div className="order-2 xl:order-1 xl:col-span-2 space-y-6">
                 {/* Main Gallery Card */}
       <Card className="overflow-hidden bg-gradient-to-br from-surface-2 to-surface-1 border-[var(--color-border-light)] shadow-lg hover:shadow-xl transition-all duration-500">
         <CardContent className="p-0">
           <div className="space-y-0">
             {/* Main Image Display (cover, no backdrop) */}
-            <div className="relative aspect-video overflow-hidden group cursor-pointer " onClick={() => openModal(selectedImageIndex)}>
+            <div className="relative aspect-video overflow-hidden group cursor-pointer rounded-lg" onClick={() => openModal(selectedImageIndex)}>
               {currentImage ? (
                 <Image 
                   src={currentImage}
                   alt={`${listing.title} - kuva ${selectedImageIndex + 1}`}
                   fill
-                  className="object-contain edge-fade py-2"
+                  className="object-contain edge-fade py-2 rounded-lg"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
                   priority
                 />
@@ -390,7 +431,7 @@ export default function ListingDetailPage() {
                             src={image} 
                             alt={`Thumbnail ${index + 1}`}
                             fill
-                            className="object-contain edge-fade-mask"
+                            className="object-contain edge-fade-mask rounded-lg"
                             sizes="80px"
                           />
                         ) : (
@@ -490,7 +531,7 @@ export default function ListingDetailPage() {
               width={1920}
               height={1080}
               className={cn(
-                "max-w-full max-h-full object-contain transition-transform duration-500 edge-fade-mask",
+                "max-w-full max-h-full object-contain transition-transform duration-500 edge-fade-mask rounded-2xl",
                 isZoomed ? "scale-150 sm:scale-200" : "scale-100"
               )}
               priority
@@ -637,10 +678,10 @@ export default function ListingDetailPage() {
             </Card>
           </div>
 
-          {/* Sidebar - Right Column */}
-          <div className="space-y-6">
+          {/* Sidebar - Right Column (on mobile/tablet shown first) */}
+          <div className="order-1 xl:order-2 space-y-6 md:max-w-[640px] md:mx-auto xl:max-w-none xl:mx-0 w-full">
             {/* Purchase Card */}
-            <Card className="sticky top-24 bg-gradient-to-br from-surface-2 to-surface-3 border-[var(--color-border-light)] shadow-xl">
+            <Card className="w-full xl:sticky xl:top-24 md:rounded-2xl bg-gradient-to-br from-surface-2 to-surface-3 border-[var(--color-border-light)] shadow-xl">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -771,32 +812,30 @@ export default function ListingDetailPage() {
                         ? Math.max(0, basePriceNum - discountAmountNum)
                         : basePriceNum;
                     })()}
-                    onConfirm={() => {
-                      // TODO: Integrate checkout action here
-                      // This dialog is reusable across app; individual pages decide action
+                    onConfirm={async () => {
+                      try {
+                        const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
+                        const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;
+                        const res = await createCheckout.mutateAsync({
+                          companyListingId: listing.id,
+                          successUrl,
+                          cancelUrl,
+                        });
+                        const stripe = await getStripe();
+                        if (stripe) {
+                          await stripe.redirectToCheckout({ sessionId: res.id });
+                        } else if (res.url) {
+                          window.location.href = res.url;
+                        }
+                      } catch (e) {
+                        console.error(e);
+                      }
                     }}
                     confirmLabel="Siirry kassalle"
                     cancelLabel="Sulje"
                   />
                   
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-[var(--color-border-light)] hover:bg-[var(--color-primary)]/10 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-                    >
-                      <Heart className="w-4 h-4 mr-1" />
-                      Tallenna
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-[var(--color-border-light)] hover:bg-[var(--color-secondary)]/10 hover:border-[var(--color-secondary)] hover:text-[var(--color-secondary)]"
-                    >
-                      <Share2 className="w-4 h-4 mr-1" />
-                      Jaa
-                    </Button>
-                  </div>
+
                 </div>
 
                 {/* Trust Indicators */}

@@ -1,7 +1,7 @@
 // Example model schema from the Drizzle docs
 // https://orm.drizzle.team/docs/sql-schema-declaration
 
-import { pgTableCreator, timestamp, varchar, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { pgTableCreator, timestamp, varchar, numeric, pgEnum, boolean } from "drizzle-orm/pg-core";
 import { relations, sql } from "drizzle-orm";
 
 /**
@@ -49,6 +49,7 @@ export const listings = createTable("listing", {
   title: varchar("title", { length: 255 }).notNull(),
   description: varchar("description", { length: 2048 }).notNull(),
   status: listingStatusEnum("status").default("DRAFT").notNull(),
+  isFeatured: boolean("is_featured").default(false).notNull(),
   cpu: varchar("cpu", { length: 255 }).notNull(),
   gpu: varchar("gpu", { length: 255 }).notNull(),
   ram: varchar("ram", { length: 255 }).notNull(),

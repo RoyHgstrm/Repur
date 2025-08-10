@@ -1,0 +1,1 @@
+ALTER TABLE "repur2_listing" ADD COLUMN "is_featured" boolean DEFAULT false NOT NULL;

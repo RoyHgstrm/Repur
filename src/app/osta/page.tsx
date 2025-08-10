@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -19,13 +19,36 @@ export default function OstaPage() {
   const [selectedListing, setSelectedListing] = useState<ActiveListing | null>(null);
   const [sortBy, setSortBy] = useState<'price-low' | 'price-high' | 'newest' | 'rating'>('newest');
   const [filterCondition, setFilterCondition] = useState<string>('all');
+  const [perfTier, setPerfTier] = useState<'all' | 'Huippusuoritus' | 'Erinomainen' | 'Hyvä' | 'Perus'>('all');
+  const [gpuTier, setGpuTier] = useState<
+    'all' |
+    'RTX50' | 'RTX40' | 'RTX30' | 'RTX20' | 'GTX' |
+    'RX9000' | 'RX8000' | 'RX7000' | 'RX6000' | 'RX5000' |
+    'ARC'
+  >('all');
+  const [cpuTier, setCpuTier] = useState<
+    'all' |
+    'IntelCore3' | 'IntelCore5' | 'IntelCore7' | 'IntelCore9' |
+    'IntelUltra5' | 'IntelUltra7' | 'IntelUltra9' |
+    'Ryzen3' | 'Ryzen5' | 'Ryzen7' | 'Ryzen9'
+  >('all');
+  const [priceMin, setPriceMin] = useState<string>('');
+  const [priceMax, setPriceMax] = useState<string>('');
+  const [featuredOnly, setFeaturedOnly] = useState<boolean>(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
   const [purchaseDetails, setPurchaseDetails] = useState({
     paymentMethod: '',
     shippingAddress: '',
   });
 
   // Fetch active listings
-  const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery();
+  const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery(undefined, {
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    placeholderData: (prev: RouterOutputs['listings']['getActiveCompanyListings'] | undefined) => prev,
+  });
 
   type ActiveListing = RouterOutputs['listings']['getActiveCompanyListings'][number];
 
@@ -68,33 +91,90 @@ export default function OstaPage() {
     }
   };
 
-  // Filter and sort listings
-  const filteredAndSortedListings = listings
-    ?.filter((listing: ActiveListing) => {
-      const matchesSearch =
-        (listing.title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (listing.cpu ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (listing.gpu ?? '').toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesFilter = filterCondition === 'all' || listing.condition === filterCondition;
-      
-      return matchesSearch && matchesFilter;
-    })
-    ?.sort((a: ActiveListing, b: ActiveListing) => {
-      switch (sortBy) {
-        case 'price-low':
-          return (Number(a.basePrice) ?? 0) - (Number(b.basePrice) ?? 0);
-        case 'price-high':
-          return (Number(b.basePrice) ?? 0) - (Number(a.basePrice) ?? 0);
-        case 'newest':
-          return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
-        case 'rating':
-          // Assuming rating logic exists, fallback to price for now
-          return (Number(b.basePrice) ?? 0) - (Number(a.basePrice) ?? 0);
-        default:
-          return 0;
-      }
-    });
+  // Helpers for performance tiers and series matching
+  const getPerformanceLabel = (gpu: string | null, cpu: string | null): 'Huippusuoritus' | 'Erinomainen' | 'Hyvä' | 'Perus' => {
+    const gpuLower = (gpu ?? '').toLowerCase();
+    const cpuLower = (cpu ?? '').toLowerCase();
+    if (/rtx\s*5|rtx\s*40|rx\s*9|ultra\s*9|\bi9\b|ryzen\s*9/.test(gpuLower + ' ' + cpuLower)) return 'Huippusuoritus';
+    if (/rtx\s*3|rx\s*7|ultra\s*7|\bi7\b|ryzen\s*7/.test(gpuLower + ' ' + cpuLower)) return 'Erinomainen';
+    if (/gtx|rx\s*6|rx\s*5|ultra\s*5|\bi5\b|ryzen\s*5/.test(gpuLower + ' ' + cpuLower)) return 'Hyvä';
+    return 'Perus';
+  };
+
+  const matchesGpuTier = (gpu: string | null): boolean => {
+    const g = (gpu ?? '').toLowerCase();
+    if (gpuTier === 'all') return true;
+    if (gpuTier === 'RTX50') return /rtx\s*5(?:0|\d{2,3})/.test(g);
+    if (gpuTier === 'RTX40') return /rtx\s*4(?:0|\d{2,3})/.test(g);
+    if (gpuTier === 'RTX30') return /rtx\s*3(?:0|\d{2,3})/.test(g);
+    if (gpuTier === 'RTX20') return /rtx\s*2(?:0|\d{2,3})/.test(g);
+    if (gpuTier === 'GTX') return /gtx/.test(g);
+    if (gpuTier === 'RX9000') return /rx\s*9\d{3}/.test(g);
+    if (gpuTier === 'RX8000') return /rx\s*8\d{3}/.test(g);
+    if (gpuTier === 'RX7000') return /rx\s*7\d{3}/.test(g) || /rx\s*79\d{2}/.test(g);
+    if (gpuTier === 'RX6000') return /rx\s*6\d{3}/.test(g) || /rx\s*69\d{2}/.test(g);
+    if (gpuTier === 'RX5000') return /rx\s*5\d{3}/.test(g);
+    if (gpuTier === 'ARC') return /\barc\b/.test(g);
+    return true;
+  };
+
+  const matchesCpuTier = (cpu: string | null): boolean => {
+    const c = (cpu ?? '').toLowerCase();
+    if (cpuTier === 'all') return true;
+    if (cpuTier === 'IntelCore9') return /\bi9\b|core\s*i9/.test(c);
+    if (cpuTier === 'IntelCore7') return /\bi7\b|core\s*i7/.test(c);
+    if (cpuTier === 'IntelCore5') return /\bi5\b|core\s*i5/.test(c);
+    if (cpuTier === 'IntelCore3') return /\bi3\b|core\s*i3/.test(c);
+    if (cpuTier === 'IntelUltra9') return /ultra\s*9/.test(c);
+    if (cpuTier === 'IntelUltra7') return /ultra\s*7/.test(c);
+    if (cpuTier === 'IntelUltra5') return /ultra\s*5/.test(c);
+    if (cpuTier === 'Ryzen9') return /ryzen\s*9/.test(c);
+    if (cpuTier === 'Ryzen7') return /ryzen\s*7/.test(c);
+    if (cpuTier === 'Ryzen5') return /ryzen\s*5/.test(c);
+    if (cpuTier === 'Ryzen3') return /ryzen\s*3/.test(c);
+    return true;
+  };
+
+  const filteredAndSortedListings = useMemo(() => {
+    const min = priceMin.trim() === '' ? undefined : Number(priceMin);
+    const max = priceMax.trim() === '' ? undefined : Number(priceMax);
+    const q = searchTerm.trim().toLowerCase();
+    const items = (listings ?? [])
+      .filter((listing: ActiveListing) => {
+        if (featuredOnly && (listing as any).isFeatured !== true) return false;
+        const price = Number(listing.basePrice) || 0;
+        if (min !== undefined && price < min) return false;
+        if (max !== undefined && price > max) return false;
+        const matchesSearch =
+          (listing.title ?? '').toLowerCase().includes(q) ||
+          (listing.cpu ?? '').toLowerCase().includes(q) ||
+          (listing.gpu ?? '').toLowerCase().includes(q);
+        if (!matchesSearch) return false;
+        if (!(filterCondition === 'all' || listing.condition === filterCondition)) return false;
+        if (!matchesGpuTier(listing.gpu)) return false;
+        if (!matchesCpuTier(listing.cpu)) return false;
+        if (perfTier !== 'all') {
+          const label = getPerformanceLabel(listing.gpu ?? null, listing.cpu ?? null);
+          if (label !== perfTier) return false;
+        }
+        return true;
+      })
+      .sort((a: ActiveListing, b: ActiveListing) => {
+        switch (sortBy) {
+          case 'price-low':
+            return (Number(a.basePrice) ?? 0) - (Number(b.basePrice) ?? 0);
+          case 'price-high':
+            return (Number(b.basePrice) ?? 0) - (Number(a.basePrice) ?? 0);
+          case 'newest':
+            return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
+          case 'rating':
+            return (Number(b.basePrice) ?? 0) - (Number(a.basePrice) ?? 0);
+          default:
+            return 0;
+        }
+      });
+    return items;
+  }, [listings, featuredOnly, priceMin, priceMax, searchTerm, filterCondition, gpuTier, cpuTier, perfTier, sortBy, matchesGpuTier, matchesCpuTier]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)]">
@@ -140,9 +220,176 @@ export default function OstaPage() {
       </div>
 
       <div className="w-full py-8 mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-        {/* Search and Filter Section */}
-        <div className="card-responsive mb-8 p-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
+        {/* Mobile: Filters dropdown trigger */}
+        <div className="sm:hidden mb-4 flex items-center justify-between">
+          <Button variant="outline" className="h-10" onClick={() => setMobileFiltersOpen(true)}>
+            Suodattimet
+          </Button>
+          <span className="text-secondary text-sm">
+            {isLoading ? 'Ladataan...' : `${filteredAndSortedListings?.length ?? 0} kpl`}
+          </span>
+        </div>
+
+        {/* Mobile: Filters dialog */}
+        <Dialog open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Suodata</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+              {/* Search */}
+              <div className="space-y-2">
+                <Label className="text-secondary font-medium">Haku</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-tertiary" />
+                  <Input
+                    placeholder="Prosessori, näytönohjain, malli..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 h-10 bg-surface-3 border-[var(--color-border-light)] text-primary placeholder:text-tertiary"
+                  />
+                </div>
+              </div>
+
+              {/* Condition */}
+              <div className="space-y-2">
+                <Label className="text-secondary font-medium">Kunto</Label>
+                <Select value={filterCondition} onValueChange={setFilterCondition}>
+                  <SelectTrigger className="h-10 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                    <SelectValue placeholder="Kaikki kunnot" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
+                    <SelectItem value="all">Kaikki kunnot</SelectItem>
+                    <SelectItem value="Uusi">Uusi</SelectItem>
+                    <SelectItem value="Kuin uusi">Kuin uusi</SelectItem>
+                    <SelectItem value="Hyvä">Hyvä</SelectItem>
+                    <SelectItem value="Tyydyttävä">Tyydyttävä</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort */}
+              <div className="space-y-2">
+                <Label className="text-secondary font-medium">Järjestä</Label>
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="h-10 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
+                    <SelectItem value="newest">Uusimmat ensin</SelectItem>
+                    <SelectItem value="price-low">Halvin ensin</SelectItem>
+                    <SelectItem value="price-high">Kallein ensin</SelectItem>
+                    <SelectItem value="rating">Parhaiten arvioitu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Featured + Price */}
+              <div className="space-y-2">
+                <Label className="text-secondary font-medium">Nostot & Hinta</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFeaturedOnly((v) => !v)}
+                    className={`h-10 rounded-md border px-3 text-sm ${featuredOnly ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-[var(--color-border-light)] text-primary'} bg-surface-3 transition-colors`}
+                    aria-pressed={featuredOnly}
+                  >
+                    {featuredOnly ? 'Vain nostetut' : 'Kaikki'}
+                  </button>
+                  <Input type="number" placeholder="Min €" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} className="h-10 bg-surface-3 border-[var(--color-border-light)] text-primary placeholder:text-tertiary" />
+                  <Input type="number" placeholder="Max €" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} className="h-10 bg-surface-3 border-[var(--color-border-light)] text-primary placeholder:text-tertiary" />
+                </div>
+              </div>
+
+              {/* Advanced */}
+              <div className="space-y-2">
+                <Label className="text-secondary font-medium">Suorituskyky</Label>
+                <Select value={perfTier} onValueChange={(v: any) => setPerfTier(v)}>
+                  <SelectTrigger className="h-10 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                    <SelectValue placeholder="Kaikki tasot" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
+                    <SelectItem value="all">Kaikki tasot</SelectItem>
+                    <SelectItem value="Huippusuoritus">Huippusuoritus</SelectItem>
+                    <SelectItem value="Erinomainen">Erinomainen</SelectItem>
+                    <SelectItem value="Hyvä">Hyvä</SelectItem>
+                    <SelectItem value="Perus">Perus</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-secondary font-medium">GPU-sarja</Label>
+                <Select value={gpuTier} onValueChange={(v: any) => setGpuTier(v)}>
+                  <SelectTrigger className="h-10 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                    <SelectValue placeholder="Kaikki" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-surface-2 border-[var(--color-border-light)] max-h-64 overflow-auto">
+                    <SelectItem value="all">Kaikki</SelectItem>
+                    <SelectItem value="RTX50">NVIDIA RTX 50</SelectItem>
+                    <SelectItem value="RTX40">NVIDIA RTX 40</SelectItem>
+                    <SelectItem value="RTX30">NVIDIA RTX 30</SelectItem>
+                    <SelectItem value="RTX20">NVIDIA RTX 20</SelectItem>
+                    <SelectItem value="GTX">NVIDIA GTX</SelectItem>
+                    <SelectItem value="RX9000">AMD RX 9000</SelectItem>
+                    <SelectItem value="RX8000">AMD RX 8000</SelectItem>
+                    <SelectItem value="RX7000">AMD RX 7000</SelectItem>
+                    <SelectItem value="RX6000">AMD RX 6000</SelectItem>
+                    <SelectItem value="RX5000">AMD RX 5000</SelectItem>
+                    <SelectItem value="ARC">Intel Arc</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-secondary font-medium">CPU-sarja</Label>
+                <Select value={cpuTier} onValueChange={(v: any) => setCpuTier(v)}>
+                  <SelectTrigger className="h-10 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                    <SelectValue placeholder="Kaikki" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
+                    <SelectItem value="all">Kaikki</SelectItem>
+                    <SelectItem value="IntelCore9">Intel Core i9</SelectItem>
+                    <SelectItem value="IntelCore7">Intel Core i7</SelectItem>
+                    <SelectItem value="IntelCore5">Intel Core i5</SelectItem>
+                    <SelectItem value="IntelCore3">Intel Core i3</SelectItem>
+                    <SelectItem value="IntelUltra9">Intel Core Ultra 9</SelectItem>
+                    <SelectItem value="IntelUltra7">Intel Core Ultra 7</SelectItem>
+                    <SelectItem value="IntelUltra5">Intel Core Ultra 5</SelectItem>
+                    <SelectItem value="Ryzen9">AMD Ryzen 9</SelectItem>
+                    <SelectItem value="Ryzen7">AMD Ryzen 7</SelectItem>
+                    <SelectItem value="Ryzen5">AMD Ryzen 5</SelectItem>
+                    <SelectItem value="Ryzen3">AMD Ryzen 3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setFilterCondition('all');
+                    setPerfTier('all');
+                    setGpuTier('all');
+                    setCpuTier('all');
+                    setPriceMin('');
+                    setPriceMax('');
+                    setFeaturedOnly(false);
+                    setSearchTerm('');
+                  }}
+                >
+                  Tyhjennä
+                </Button>
+                <Button className="flex-1" onClick={() => setMobileFiltersOpen(false)}>Valmis</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Desktop: Search and Filter Section */}
+        <div className="hidden sm:block card-responsive mb-8 p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end">
             {/* Search */}
             <div className="space-y-2">
               <Label className="text-secondary font-medium">Etsi tietokonetta</Label>
@@ -157,7 +404,7 @@ export default function OstaPage() {
               </div>
             </div>
 
-            {/* Filter */}
+            {/* Condition */}
             <div className="space-y-2">
               <Label className="text-secondary font-medium">Kunto</Label>
               <Select value={filterCondition} onValueChange={setFilterCondition}>
@@ -190,8 +437,89 @@ export default function OstaPage() {
                 <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
                   <SelectItem value="newest">Uusimmat ensin</SelectItem>
                   <SelectItem value="price-low">Halvin ensin</SelectItem>
-                  <SelectItem value="price-high">Kallin ensin</SelectItem>
+                  <SelectItem value="price-high">Kallein ensin</SelectItem>
                   <SelectItem value="rating">Parhaiten arvioitu</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Featured + Price */}
+            <div className="space-y-2">
+              <Label className="text-secondary font-medium">Nostot & Hinta</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFeaturedOnly((v) => !v)}
+                  className={`h-10 sm:h-12 rounded-md border px-3 text-sm lg:text-xs ${featuredOnly ? 'border-[var(--color-primary)] text-[var(--color-primary)]' : 'border-[var(--color-border-light)] text-primary'} bg-surface-3 transition-colors`}
+                  aria-pressed={featuredOnly}
+                >
+                  {featuredOnly ? 'Vain nostetut' : 'Kaikki listaukset'}
+                </button>
+                <Input type="number" placeholder="Min €" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} className="h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary placeholder:text-tertiary" />
+                <Input type="number" placeholder="Max €" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} className="h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary placeholder:text-tertiary" />
+              </div>
+            </div>
+          </div>
+
+          {/* Advanced filters row */}
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="text-secondary font-medium">Suorituskyky</Label>
+              <Select value={perfTier} onValueChange={(v: any) => setPerfTier(v)}>
+                <SelectTrigger className="h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                  <SelectValue placeholder="Kaikki tasot" />
+                </SelectTrigger>
+                <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
+                  <SelectItem value="all">Kaikki tasot</SelectItem>
+                  <SelectItem value="Huippusuoritus">Huippusuoritus</SelectItem>
+                  <SelectItem value="Erinomainen">Erinomainen</SelectItem>
+                  <SelectItem value="Hyvä">Hyvä</SelectItem>
+                  <SelectItem value="Perus">Perus</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-secondary font-medium">GPU-sarja</Label>
+              <Select value={gpuTier} onValueChange={(v: any) => setGpuTier(v)}>
+                <SelectTrigger className="h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                  <SelectValue placeholder="Kaikki" />
+                </SelectTrigger>
+                <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
+                    <SelectItem value="all">Kaikki</SelectItem>
+                    <SelectItem value="RTX50">NVIDIA RTX 50</SelectItem>
+                    <SelectItem value="RTX40">NVIDIA RTX 40</SelectItem>
+                    <SelectItem value="RTX30">NVIDIA RTX 30</SelectItem>
+                    <SelectItem value="RTX20">NVIDIA RTX 20</SelectItem>
+                    <SelectItem value="GTX">NVIDIA GTX</SelectItem>
+
+                    <SelectItem value="RX9000">AMD RX 9000</SelectItem>
+                    <SelectItem value="RX8000">AMD RX 8000</SelectItem>
+                    <SelectItem value="RX7000">AMD RX 7000</SelectItem>
+                    <SelectItem value="RX6000">AMD RX 6000</SelectItem>
+                    <SelectItem value="RX5000">AMD RX 5000</SelectItem>
+                    <SelectItem value="ARC">Intel Arc</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-secondary font-medium">CPU-sarja</Label>
+              <Select value={cpuTier} onValueChange={(v: any) => setCpuTier(v)}>
+                <SelectTrigger className="h-10 sm:h-12 bg-surface-3 border-[var(--color-border-light)] text-primary">
+                  <SelectValue placeholder="Kaikki" />
+                </SelectTrigger>
+                <SelectContent className="bg-surface-2 border-[var(--color-border-light)]">
+                  <SelectItem value="all">Kaikki</SelectItem>
+                  <SelectItem value="IntelCore9">Intel Core i9</SelectItem>
+                  <SelectItem value="IntelCore7">Intel Core i7</SelectItem>
+                  <SelectItem value="IntelCore5">Intel Core i5</SelectItem>
+                  <SelectItem value="IntelCore3">Intel Core i3</SelectItem>
+                  <SelectItem value="IntelUltra9">Intel Core Ultra 9</SelectItem>
+                  <SelectItem value="IntelUltra7">Intel Core Ultra 7</SelectItem>
+                  <SelectItem value="IntelUltra5">Intel Core Ultra 5</SelectItem>
+                  <SelectItem value="Ryzen9">AMD Ryzen 9</SelectItem>
+                  <SelectItem value="Ryzen7">AMD Ryzen 7</SelectItem>
+                  <SelectItem value="Ryzen5">AMD Ryzen 5</SelectItem>
+                  <SelectItem value="Ryzen3">AMD Ryzen 3</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -223,7 +551,7 @@ export default function OstaPage() {
           <>
             {/* Mobile list view */}
             <div className="sm:hidden space-y-3">
-              {filteredAndSortedListings?.map((listing: ActiveListing, index) => (
+              {filteredAndSortedListings?.map((listing: ActiveListing, index: number) => (
                 <ProductCard
                   key={listing.id ?? ''}
                   listing={listing}
@@ -236,7 +564,7 @@ export default function OstaPage() {
 
             {/* Tablet/Desktop grid */}
             <div className="hidden sm:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
-              {filteredAndSortedListings?.map((listing: ActiveListing, index) => (
+              {filteredAndSortedListings?.map((listing: ActiveListing, index: number) => (
                 <ProductCard
                   key={listing.id ?? ''}
                   listing={listing}

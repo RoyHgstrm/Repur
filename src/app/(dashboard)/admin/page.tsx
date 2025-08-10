@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -13,7 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { useRef, useMemo, useState as useReactState } from 'react';
-import { ShieldCheck, Truck, ListChecks, Layers } from "lucide-react";
+import { cn } from "~/lib/utils";
+import { ShieldCheck, Truck, ListChecks, Layers, Users2, Receipt, TrendingUp } from "lucide-react";
+import { api as trpc } from '~/trpc/react';
 
 // Define the Zod schema for company listings, matching the server-side schema
 const CompanyListingSchema = z.object({
@@ -53,18 +55,53 @@ type TradeInListing = {
 };
 
 export default function EmployeeDashboardPage() {
+  const { data: stats } = trpc.purchases.getStats.useQuery(undefined, { refetchOnWindowFocus: false });
+
+  // HOW: Sync Tabs with URL hash so sidebar links (#companyListings, #tradeIns, etc.) switch sections.
+  // WHY: Improves navigation, enables deep-linking and back/forward support.
+  const [tab, setTab] = useState<string>('companyListings');
+  useEffect(() => {
+    const applyHash = () => {
+      const raw = window.location.hash.replace(/^#/, '') || 'companyListings';
+      setTab(raw);
+    };
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
+    return () => window.removeEventListener('hashchange', applyHash);
+  }, []);
+
+  const sectionTitle = tab === 'companyListings' ? 'Yrityksen listaukset'
+    : tab === 'tradeIns' ? 'Trade-In pyynnöt'
+    : tab === 'purchases' ? 'Ostot'
+    : tab === 'analytics' ? 'Analytiikka'
+    : 'Hallintapaneeli';
+
   return (
     <div className="container mx-auto px-container py-section">
-      <h1 className="text-3xl-fluid sm:text-4xl-fluid lg:text-5xl-fluid font-bold mb-6 text-center text-[var(--color-neutral)]">
-        Ylläpitäjän Hallintapaneeli
-      </h1>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-3xl-fluid sm:text-4xl-fluid font-bold text-[var(--color-neutral)]">Hallintapaneeli</h1>
+        <div className="relative w-full sm:w-auto">
+          <Input placeholder="Haku (tilaukset, listaukset, asiakkaat)" className="w-full sm:min-w-[320px]" />
+        </div>
+      </div>
 
       <AdminStats />
 
-      <Tabs defaultValue="companyListings" className="space-y-6 mt-6">
-        <TabsList className="grid w-full grid-cols-2">
+      {/* Breadcrumbs */}
+      <div className="mt-4 text-sm text-[var(--color-text-tertiary)]">
+        <nav aria-label="murupolku" className="flex items-center gap-2">
+          <span>Hallintapaneeli</span>
+          <span aria-hidden>/</span>
+          <span className="text-[var(--color-text-secondary)]">{sectionTitle}</span>
+        </nav>
+      </div>
+
+      <Tabs value={tab} onValueChange={(v) => { setTab(v); window.location.hash = v; }} className="space-y-6 mt-6">
+        <TabsList className="sticky top-20 z-10 grid w-full grid-cols-4 bg-[var(--color-surface-2)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-2)]/60">
           <TabsTrigger value="companyListings">Yrityksen Listaukset</TabsTrigger>
           <TabsTrigger value="tradeIns">Trade-In Pyynnöt</TabsTrigger>
+          <TabsTrigger value="purchases">Ostot</TabsTrigger>
+          <TabsTrigger value="analytics">Analytiikka</TabsTrigger>
         </TabsList>
 
         <TabsContent value="companyListings">
@@ -76,6 +113,14 @@ export default function EmployeeDashboardPage() {
 
         <TabsContent value="tradeIns">
           <TradeInListingsTable />
+        </TabsContent>
+
+        <TabsContent value="purchases">
+          <PurchasesTable />
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <AdminAnalytics stats={stats} />
         </TabsContent>
       </Tabs>
     </div>
@@ -121,6 +166,111 @@ function AdminStats() {
         </Card>
       ))}
     </div>
+  );
+}
+
+function AdminAnalytics({ stats }: { stats: { last7: { count: number; revenue: number }, last30: { count: number; revenue: number }, daily: Array<{ day: string; count: number; revenue: number }> } | undefined }) {
+  return (
+    <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-neutral)]">
+      <CardHeader>
+        <CardTitle className="text-2xl-fluid font-semibold flex items-center gap-2"><TrendingUp className="w-5 h-5" /> Myyntianalytiikka</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card className="bg-[var(--color-surface-3)] border-[var(--color-border)]">
+            <CardContent className="p-4">
+              <div className="text-sm text-[var(--color-text-tertiary)]">7pv myynnit</div>
+              <div className="text-2xl-fluid font-bold">{stats?.last7.count ?? 0} kpl</div>
+              <div className="text-sm text-[var(--color-text-secondary)]">{stats?.last7.revenue ?? 0} €</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-[var(--color-surface-3)] border-[var(--color-border)]">
+            <CardContent className="p-4">
+              <div className="text-sm text-[var(--color-text-tertiary)]">30pv myynnit</div>
+              <div className="text-2xl-fluid font-bold">{stats?.last30.count ?? 0} kpl</div>
+              <div className="text-sm text-[var(--color-text-secondary)]">{stats?.last30.revenue ?? 0} €</div>
+            </CardContent>
+          </Card>
+        </div>
+        <div>
+          <div className="text-sm text-[var(--color-text-tertiary)] mb-2">Päivittäinen myynti (7pv)</div>
+          <div className="grid grid-cols-7 gap-2">
+            {stats?.daily.map((d) => (
+              <div key={d.day} className="p-3 rounded-lg bg-[var(--color-surface-3)] border border-[var(--color-border)]">
+                <div className="text-xs text-[var(--color-text-tertiary)]">{d.day.slice(5)}</div>
+                <div className="text-sm font-semibold">{d.count} kpl</div>
+                <div className="text-xs text-[var(--color-text-secondary)]">{d.revenue} €</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PurchasesTable() {
+  const [q, setQ] = useReactState("");
+  const { data, isLoading, refetch } = trpc.purchases.getAll.useQuery({ q }, { refetchOnWindowFocus: false });
+  const refundMutation = trpc.purchases.refund.useMutation({
+    onSuccess: () => {
+      toast({ title: 'Palautus aloitettu', description: 'Palautus luotu Stripeen.', variant: 'success' });
+      void refetch();
+    },
+    onError: (e) => toast({ title: 'Virhe', description: e.message, variant: 'destructive' })
+  });
+
+  return (
+    <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]">
+      <CardHeader>
+        <CardTitle className="text-2xl-fluid font-semibold flex items-center gap-2"><Receipt className="w-5 h-5" /> Ostot</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex gap-2">
+          <Input placeholder="Hae (otsikko, email, ID)" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Button variant="outline" onClick={() => void refetch()}>Päivitä</Button>
+        </div>
+        {isLoading ? (
+          <p className="text-[var(--color-text-secondary)] text-sm">Ladataan...</p>
+        ) : (data ?? []).length === 0 ? (
+          <p className="text-[var(--color-text-secondary)] text-sm">Ei ostotapahtumia.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]/50">
+                  <th className="py-2 pr-3">ID</th>
+                  <th className="py-2 pr-3">Ostaja</th>
+                  <th className="py-2 pr-3">Tuote</th>
+                  <th className="py-2 pr-3">Hinta (€)</th>
+                  <th className="py-2 pr-3">Tila</th>
+                  <th className="py-2 pr-3">Nosto</th>
+                  <th className="py-2 pr-3 w-40">Toiminnot</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data ?? []).map((p) => (
+                  <tr key={p.id} className="border-b border-[var(--color-border)]/50">
+                    <td className="py-2 pr-3 font-mono text-xs">{p.id}</td>
+                    <td className="py-2 pr-3">{p.buyer?.email ?? '—'}</td>
+                    <td className="py-2 pr-3">{p.companyListing?.title ?? '—'}</td>
+                    <td className="py-2 pr-3">{Number(p.purchasePrice)} €</td>
+                    <td className="py-2 pr-3">{p.status}</td>
+                    <td className="py-2 pr-3">—</td>
+                    <td className="py-2 pr-3">
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => window.open(`https://dashboard.stripe.com/test/payments?search=${p.id}`, '_blank')}>Näytä Stripe</Button>
+                        <Button size="sm" variant="destructive" disabled={refundMutation.status==='pending'} onClick={() => refundMutation.mutate({ purchaseId: p.id })}>Palauta</Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -874,6 +1024,7 @@ function CompanyListingsManage() {
                   <th className="py-2 pr-3">Hinta (€)</th>
                   <th className="py-2 pr-3">Alennus</th>
                   <th className="py-2 pr-3">Tila</th>
+                  <th className="py-2 pr-3">Nosto</th>
                   <th className="py-2 pr-3 w-40">Toiminnot</th>
                 </tr>
               </thead>
@@ -906,7 +1057,8 @@ function CompanyListingsManage() {
                       }
                       void refetch();
                     }} />
-                  </tr>
+
+                    </tr>
                 ))}
               </tbody>
             </table>
@@ -994,6 +1146,9 @@ function ManageRow({ listing, onSave }: ManageRowProps) {
           </SelectContent>
         </Select>
       </td>
+      <td className="py-1 px-2 align-middle">
+        <FeatureToggle id={listing.id} featured={(listing as any).isFeatured === true} onChanged={() => void 0} />
+      </td>
       <td className="py-6 px-2 align-middle">
         <div className="flex gap-1 flex-col xs:flex-row">
           <Button
@@ -1028,5 +1183,44 @@ function ManageRow({ listing, onSave }: ManageRowProps) {
         </div>
       </td>
     </>
+  );
+}
+
+function FeatureToggle({ id, featured, onChanged }: { id: string; featured: boolean; onChanged: () => void }) {
+  const [checked, setChecked] = useReactState<boolean>(featured);
+  const update = trpc.listings.updateCompanyListing.useMutation({
+    onError: (e) => {
+      setChecked((v) => !v); // revert
+      toast({ title: 'Virhe', description: e.message, variant: 'destructive' });
+    },
+    onSuccess: () => onChanged(),
+  });
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => {
+        const next = !checked;
+        setChecked(next);
+        update.mutate({ id, isFeatured: next } as any);
+      }}
+      className={
+        cn(
+          'inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40',
+          checked ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-border)]'
+        )
+      }
+    >
+      <span
+        className={
+          cn(
+            'inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200',
+            checked ? 'translate-x-5' : 'translate-x-1'
+          )
+        }
+      />
+      <span className="sr-only">Nosta etusivulle</span>
+    </button>
   );
 }

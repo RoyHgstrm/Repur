@@ -48,5 +48,10 @@ export default async function EmployeeDashboardLayout({
     redirect("/"); // Redirect non-employees/admins
   }
 
-  return <>{children}</>;
+  return (
+    <div className="container mx-auto px-container py-section">
+      {children}
+    </div>
+  );
 }
+ 

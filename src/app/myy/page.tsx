@@ -51,12 +51,12 @@ const PRICING_CONFIG = {
     GPU: 0.25,
   },
   CONDITION_MULTIPLIERS: {
-    "Uusi": 1.0,
-    "Kuin uusi": 0.9,
-    "Hyvä": 0.8,
-    "Tyydyttävä": 0.6,
-    "Huono": 0.3,
-    "En tiedä": 0.8,
+    "Uusi": 2.0,
+    "Kuin uusi": 1.8,
+    "Hyvä": 1.6,
+    "Tyydyttävä": 1.2,
+    "Huono": 0.6,
+    "En tiedä": 1.6,
   } as const,
   RAM: {
     BASE_VALUE_PER_GB: 2.5,
@@ -84,6 +84,14 @@ const PRICING_CONFIG = {
       en_tieda_psu_efficiency: 0.9,
     } as const,
     DEFAULT_WATTAGE: 650,
+  },
+  MOTHERBOARD: {
+    QUALITY_MULTIPLIER: {
+      brand_oem: 0.9,
+      standard: 1.0,
+      premium_custom: 1.07,
+      en_tieda_mb_quality: 0.98,
+    } as const,
   },
 };
 
@@ -157,7 +165,10 @@ const calculatePrice = (data: FormData): number | null => {
   const storageValue = calculateStorageValue(data);
   const psuValue = calculatePsuValue(data);
 
-  const totalMarketValue = cpuValue + gpuValue + ramValue + storageValue + psuValue;
+  const mbQualityKey = (data.motherboardQuality ?? 'en_tieda_mb_quality') as keyof typeof PRICING_CONFIG.MOTHERBOARD.QUALITY_MULTIPLIER;
+  const mbMultiplier = PRICING_CONFIG.MOTHERBOARD.QUALITY_MULTIPLIER[mbQualityKey] ?? 1.0;
+
+  const totalMarketValue = (cpuValue + gpuValue + ramValue + storageValue + psuValue) * mbMultiplier;
   const conditionKey = data.condition;
   const conditionMultiplier = PRICING_CONFIG.CONDITION_MULTIPLIERS[conditionKey] || PRICING_CONFIG.CONDITION_MULTIPLIERS["En tiedä"];
   const adjustedValue = totalMarketValue * conditionMultiplier;
@@ -237,6 +248,7 @@ type FormData = {
   storageSize: string;
   psuWattage: string;
   psuEfficiency: string;
+  motherboardQuality?: 'brand_oem' | 'standard' | 'premium_custom' | 'en_tieda_mb_quality';
   caseModel?: string;
   condition: "Uusi" | "Kuin uusi" | "Hyvä" | "Tyydyttävä" | "Huono" | "En tiedä";
   estimatedValue?: number;
@@ -256,6 +268,7 @@ const initialFormData: FormData = {
   storageSize: '',
   psuWattage: '', 
   psuEfficiency: '',
+  motherboardQuality: 'en_tieda_mb_quality',
   caseModel: '',
   condition: 'En tiedä',
   estimatedValue: undefined, 
@@ -264,11 +277,11 @@ const initialFormData: FormData = {
 };
 
 const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number, totalSteps: number }) => (
-  <div className="flex items-center justify-center space-x-2 mb-8">
+  <div className="flex items-center justify-center space-x-2 mb-6 sm:mb-8">
     {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
       <div key={step} className="flex items-center">
         <div className={cn(
-          "w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300",
+          "w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300",
           currentStep >= step 
             ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg" 
             : "bg-gray-200 text-gray-600"
@@ -277,7 +290,7 @@ const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number, total
         </div>
         {step < totalSteps && (
           <div className={cn(
-            "w-16 h-1 mx-2 rounded-full transition-all duration-300",
+            "w-10 sm:w-16 h-1 mx-2 rounded-full transition-all duration-300",
             currentStep > step ? "bg-gradient-to-r from-blue-500 to-purple-600" : "bg-gray-200"
           )} />
         )}
@@ -292,13 +305,13 @@ const FormStep = ({ title, description, children }: { title: string, description
     animate={{ opacity: 1, y: 0 }}
     exit={{ opacity: 0, y: -8 }}
     transition={{ duration: 0.32, ease: "easeOut" }}
-    className="space-y-6"
+    className="space-y-4 sm:space-y-6"
   >
-    <div className="text-center mb-6">
-      <h2 className="text-3xl font-bold text-gray-900 mb-2">{title}</h2>
-      <p className="text-gray-600 max-w-2xl mx-auto">{description}</p>
+    <div className="text-center mb-4 sm:mb-6">
+      <h2 className="text-2xl-fluid sm:text-3xl-fluid font-bold text-[var(--color-neutral)] mb-2">{title}</h2>
+      <p className="text-[var(--color-text-secondary)] max-w-2xl mx-auto text-sm sm:text-base">{description}</p>
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       {children}
     </div>
   </motion.section>
@@ -402,6 +415,13 @@ export default function MyyPage() {
     { id: 'titanium', value: 'titanium', label: '80+ Titanium' }, 
     { id: 'en_tieda_psu_efficiency', value: 'en_tieda_psu_efficiency', label: 'En tiedä / Muu' }
   ], []);
+
+  const MOTHERBOARD_QUALITY_OPTIONS = useMemo(() => [
+    { id: 'brand_oem', value: 'brand_oem', label: 'Brändiemolevy (HP, Dell, Lenovo...)' },
+    { id: 'standard', value: 'standard', label: 'Perusemolevy (ATX/mATX ilman erikoisominaisuuksia)' },
+    { id: 'premium_custom', value: 'premium_custom', label: 'Laadukas kustomoitu emolevy (esim. VRM/PCIe5/Wi‑Fi 6E)' },
+    { id: 'en_tieda_mb_quality', value: 'en_tieda_mb_quality', label: 'En tiedä' },
+  ], []);
   
   const CONDITION_OPTIONS = useMemo(() => [
     { id: 'uusi', value: 'Uusi', label: 'Uusi (sinetöity)' }, 
@@ -460,7 +480,7 @@ export default function MyyPage() {
   };
 
   const debouncedCalculatePrice = useCallback(() => {
-    const price = calculatePrice(formData); 
+    const price = calculatePrice(formData);
     setEstimatedPrice(price);
   }, [formData]);
 
@@ -503,7 +523,9 @@ export default function MyyPage() {
     try {
       const submissionData = {
         title: formData.title,
-        description: formData.description,
+        description: [formData.description, formData.motherboardQuality ? `Emolevy: ${formData.motherboardQuality}` : undefined]
+          .filter(Boolean)
+          .join('\n'),
         cpu: formData.cpu,
         gpu: formData.gpu,
         ram: `${formData.ramSize} ${formData.ramType} ${formData.ramSpeed}`.trim(),
@@ -581,25 +603,25 @@ export default function MyyPage() {
         </div>
       </div>
 
-        <div className="w-full py-8 mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        <div className="w-full py-6 sm:py-8 mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 sm:gap-8">
           {/* Main Form */}
             <div className="xl:col-span-3">
             <Card className="card-responsive bg-[var(--color-surface-2)] shadow-lg">
               {currentStep <= TOTAL_STEPS && (
-                <CardHeader className="bg-[var(--color-surface-3)] border-b border-[var(--color-border)]">
+                <CardHeader className="border-b border-[var(--color-border)]">
                   <StepIndicator currentStep={currentStep} totalSteps={TOTAL_STEPS} />
                 </CardHeader>
               )}
               
-               <CardContent className="p-6">
+               <CardContent className="p-4 sm:p-6">
                 <AnimatePresence mode="wait">
                   {currentStep === TOTAL_STEPS + 1 ? (
-                    <motion.div
+                     <motion.div
                       key="confirmation"
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="text-center py-2xl"
+                       className="text-center py-xl sm:py-2xl"
                     >
                       <div className="w-24 h-24 bg-[var(--color-success)]/20 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle2 className="w-12 h-12 text-[var(--color-success)]" />
@@ -620,8 +642,8 @@ export default function MyyPage() {
                       </Button>
                     </motion.div>
                   ) : (
-                     <form onSubmit={handleSubmit} className="space-y-8">
-              <div className="relative min-h-[280px] md:min-h-[420px]">
+                     <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+              <div className="relative min-h-[220px] sm:min-h-[280px] md:min-h-[420px]">
                         {/* Step 1: Core Components */}
                         {currentStep === 1 && (
                           <FormStep 
@@ -667,12 +689,12 @@ export default function MyyPage() {
                             description="Kerro meille koneesi muistin ja tallennustilan tiedot." 
                             
                           >
-                            <div className="bg-[var(--color-surface-3)]/50 p-6 rounded-xl border border-[var(--color-border)]">
+                            <div className="bg-[var(--color-surface-3)]/50 p-4 sm:p-6 rounded-xl border border-[var(--color-border)]">
                               <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
                                 <MemoryStick className="mr-2 text-[var(--color-primary)]" /> 
                                 Muisti (RAM)
                               </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                              <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Koko</Label>
                                   <Combobox 
@@ -712,12 +734,12 @@ export default function MyyPage() {
                               </div>
                             </div>
                             
-                            <div className="bg-[var(--color-surface-3)]/50 p-6 rounded-xl border border-[var(--color-border)]">
+                            <div className="bg-[var(--color-surface-3)]/50 p-4 sm:p-6 rounded-xl border border-[var(--color-border)]">
                               <h3 className="font-semibold text-xl-fluid text-[var(--color-neutral)] flex items-center mb-4">
                                 <HardDrive className="mr-2 text-[var(--color-primary)]" /> 
                                 Tallennustila
                               </h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                              <div className="space-y-2">
                                   <Label className="text-[var(--color-neutral)]">Tyyppi</Label>
                                   <Combobox 
@@ -809,8 +831,21 @@ export default function MyyPage() {
                                 className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/40" 
                               />
                             </div>
+
+                            <div className="space-y-4">
+                              <Label className="text-[var(--color-neutral)] font-semibold">Emolevyn laatu</Label>
+                              <Combobox
+                                options={MOTHERBOARD_QUALITY_OPTIONS}
+                                value={formData.motherboardQuality ?? 'en_tieda_mb_quality'}
+                                onValueChange={(v) => handleInputChange('motherboardQuality', v)}
+                                placeholder="Valitse emolevyn laatu..."
+                              />
+                              <p className="text-xs text-[var(--color-text-tertiary)]">
+                                Valitsemme varovaisen oletuksen, jos et ole varma. Laadukas kustomoitu emolevy voi nostaa hyvitystä hieman.
+                              </p>
+                            </div>
                             
-                            <div className="space-y-4 col-span-full">
+                            <div className="space-y-3 sm:space-y-4 col-span-full">
                               <Label className="text-[var(--color-neutral)] font-semibold">Kuvaus (Valinnainen)</Label>
                               <Textarea 
                                 placeholder="Tarkempi kuvaus koneesta, sen käytöstä ja kunnosta..." 
@@ -821,7 +856,7 @@ export default function MyyPage() {
                               />
                             </div>
                             
-                             <div className="space-y-4 col-span-full">
+                             <div className="space-y-3 sm:space-y-4 col-span-full">
                               <Label className="text-[var(--color-neutral)] font-semibold">Koneen yleiskunto</Label>
                               <Combobox 
                                 options={CONDITION_OPTIONS} 

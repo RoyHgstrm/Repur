@@ -18,7 +18,7 @@ export default function SupportPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-surface-1">
+    <main className="min-h-screen bg-surface-1 pt-12">
       <section className="mx-auto max-w-7xl px-container py-12">
         <header className="text-center space-y-4 mb-8">
           <h1 className="text-4xl-fluid font-extrabold text-primary">Asiakastuki</h1>

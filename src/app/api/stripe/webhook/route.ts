@@ -1,0 +1,98 @@
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import { env } from '~/env';
+import { db } from '~/server/db';
+import { listings, purchases } from '~/server/db/schema';
+import { eq } from 'drizzle-orm';
+import { limiter } from '~/lib/rate-limiter';
+import { redis } from '~/lib/redis';
+
+// HOW: Read raw body to verify Stripe signature.
+// WHY: Stripe requires exact raw payload for signature verification to prevent tampering.
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// Use the latest pinned version supported by installed stripe typings
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' });
+
+export async function POST(req: NextRequest) {
+  // Basic rate-limit per IP for webhooks to avoid floods
+  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  const { success } = await limiter.limit(`stripe:webhook:${ip}`);
+  if (!success) return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+
+  const sig = req.headers.get('stripe-signature');
+  if (!sig) return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+
+  // Next.js App Router provides req.arrayBuffer for raw body
+  const buf = Buffer.from(await req.arrayBuffer());
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(buf, sig, env.STRIPE_WEBHOOK_SECRET);
+  } catch (err: any) {
+    return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
+  }
+
+  // Use Redis to ensure idempotency
+  const eventId = event.id;
+  const isEventProcessed = await redis.get(`stripe_event:${eventId}`);
+
+  if (isEventProcessed) {
+    return NextResponse.json({ received: true, message: 'Event already processed' });
+  }
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const companyListingId = session.metadata?.companyListingId;
+        const buyerId = session.metadata?.buyerId;
+        const amountTotal = session.amount_total ?? 0; // in cents
+
+        if (companyListingId) {
+          // Mark listing as SOLD and insert purchase row if not already existing
+          const listing = await db.query.listings.findFirst({ where: eq(listings.id, companyListingId) });
+          if (listing) {
+            // Upsert purchase by session.id idempotency via unique (id) if we used session.id earlier, otherwise insert new
+            await db.insert(purchases).values({
+              id: session.id, // use Stripe session id as primary key to ensure idempotency
+              companyListingId,
+              userId: buyerId ?? null,
+              purchasePrice: ((amountTotal ?? 0) / 100).toString(),
+              paymentMethod: 'stripe',
+              shippingAddress: '-',
+              status: 'COMPLETED',
+            }).onConflictDoNothing();
+
+            await db.update(listings).set({ status: 'SOLD' }).where(eq(listings.id, companyListingId));
+
+            // Invalidate Redis cache
+            await redis.del('listings:active');
+            await redis.del(`listing:${companyListingId}`);
+          }
+        }
+        break;
+      }
+      case 'checkout.session.async_payment_failed':
+      case 'checkout.session.expired': {
+        // No-op for now
+        break;
+      }
+      default:
+        // Ignore other events
+        break;
+    }
+
+    // Mark event as processed in Redis
+    await redis.set(`stripe_event:${eventId}`, 'processed', { ex: 60 * 60 * 24 }); // Expire in 24 hours
+
+  } catch (e) {
+    console.error('Stripe webhook handling error:', e);
+    return NextResponse.json({ received: true, error: 'handler' }, { status: 500 });
+  }
+
+  return NextResponse.json({ received: true });
+}
+
+

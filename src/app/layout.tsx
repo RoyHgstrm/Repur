@@ -1,4 +1,5 @@
 import { ClerkProvider } from '@clerk/nextjs'
+import { fiFI } from '@clerk/localizations'
 import { Inter } from 'next/font/google'
 import Navbar from '~/components/layout/Navbar'
 import Footer from '~/components/layout/Footer'
@@ -36,11 +37,20 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: 'cover' as const,
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider
+      localization={fiFI}
       appearance={{
         baseTheme: dark,
         variables: {
@@ -83,11 +93,12 @@ export default function RootLayout({
       }}
     >
       <html lang="fi" className="dark">
-        <body className={`${inter.className} bg-[var(--color-surface-1)] text-[var(--color-neutral)] antialiased`}>
-          <div className=" min-h-screen">
+        <body className={`${inter.className} bg-[var(--color-surface-1)] text-[var(--color-neutral)] antialiased`}> 
+          <a href="#content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-[var(--color-surface-3)] focus:text-[var(--color-text-primary)] focus:ring-2 focus:ring-[var(--color-primary)] rounded py-2">Siirry sisältöön</a>
+          <div className="min-h-screen flex flex-col">
             <Navbar />
-            <div className="flex min-h-[calc(100vh-theme(spacing.16))] ">
-              <main className="flex-1">
+            <div className="flex-1">
+              <main id="content" className="flex-1 mt-12">
                 <Providers>
                   <React.Suspense fallback={<div className="text-center py-8">Ladataan...</div>}>
                     {children}

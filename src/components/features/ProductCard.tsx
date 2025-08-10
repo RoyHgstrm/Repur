@@ -6,9 +6,12 @@ import { Button } from "~/components/ui/button";
 import Image from "next/image";
 import { cn } from "~/lib/utils";
 import { type RouterOutputs } from "~/trpc/react";
-import { Heart, Eye, Zap, Shield, Truck } from "lucide-react";
+import { Heart, Eye, Zap, Shield, Truck, Share2, Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
+import { getStripe } from "~/lib/stripe";
+import { api } from "~/trpc/react";
+import { useAuth } from "@clerk/nextjs";
 import { Progress } from "~/components/ui/progress";
 
 type ListingWithSeller = RouterOutputs['listings']['getActiveCompanyListings'][number];
@@ -22,6 +25,13 @@ interface ProductCardProps {
 
 export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager = false }: ProductCardProps) => {
   // Remove palette/backdrop for simpler, faster rendering
+  const { isSignedIn } = useAuth();
+  const favToggle = api.favorites.toggle.useMutation();
+  const favState = api.favorites.isFavorited.useQuery(
+    { listingId: listing.id },
+    { refetchOnWindowFocus: false, enabled: Boolean(isSignedIn) }
+  );
+  const checkout = api.payments.createCheckoutSession.useMutation();
 
   const withAlpha = (rgb: string, alpha: number) => (
     rgb?.startsWith('rgb(')
@@ -227,10 +237,10 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
                 className="shrink-0 p-2 h-auto text-tertiary hover:text-accent-coral hover:bg-[var(--color-accent)]/10 transition-all rounded-full"
                 onClick={(e) => {
                   e.preventDefault();
-                  // Add to favorites logic here
+                  favToggle.mutate({ listingId: listing.id }, { onSuccess: () => favState.refetch() });
                 }}
               >
-                <Heart className="w-4 h-4" />
+                {favState.data?.favorited ? <Check className="w-4 h-4 text-[var(--color-success)]" /> : <Heart className="w-4 h-4" />}
               </Button>
             </div>
 
@@ -313,6 +323,22 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
                 <span className="hidden sm:inline">Katso</span>
                 <span className="sm:hidden">👁️</span>
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="px-2 border-[var(--color-border-light)]"
+                onClick={(e) => {
+                  e.preventDefault();
+                  if (navigator.share) {
+                    navigator.share({ url: `${window.location.origin}/osta/${listing.id}`, title: listing.title });
+                  } else {
+                    navigator.clipboard.writeText(`${window.location.origin}/osta/${listing.id}`);
+                  }
+                }}
+                title="Jaa"
+              >
+                <Share2 className="w-4 h-4" />
+              </Button>
               <Button 
                 className="flex-1 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-[var(--color-primary)]/25 transition-all duration-300 rounded-lg"
                 onClick={(e) => {
@@ -326,8 +352,24 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
                   trigger={<span className="hidden sm:inline">Osta Nyt</span>}
                   productTitle={listing.title}
                   priceEUR={finalPrice}
-                  onConfirm={() => {
-                    // navigate to checkout
+                  onConfirm={async () => {
+                    try {
+                      const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
+                      const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;
+                      const res = await checkout.mutateAsync({
+                        companyListingId: listing.id,
+                        successUrl,
+                        cancelUrl,
+                      });
+                      const stripe = await getStripe();
+                      if (stripe) {
+                        await stripe.redirectToCheckout({ sessionId: res.id });
+                      } else if (res.url) {
+                        window.location.href = res.url;
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
                   }}
                   confirmLabel="Siirry kassalle"
                   cancelLabel="Sulje"

@@ -15,6 +15,7 @@ import { db } from "~/server/db";
 import { users } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from 'nanoid';
+import { limiter } from "~/lib/rate-limiter";
 
 /**
  * 1. CONTEXT
@@ -116,6 +117,18 @@ const timingMiddleware = t.middleware(async ({ next, path, type, ctx, getRawInpu
   return result;
 });
 
+const rateLimitMiddleware = t.middleware(async ({ ctx, next }) => {
+  const ip = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  const { success } = await limiter.limit(ip);
+  if (!success) {
+    throw new TRPCError({
+      code: "TOO_MANY_REQUESTS",
+      message: "Too many requests. Please try again later.",
+    });
+  }
+  return next();
+});
+
 /**
  * Public (unauthenticated) procedure
  *
@@ -123,10 +136,11 @@ const timingMiddleware = t.middleware(async ({ next, path, type, ctx, getRawInpu
  * guarantee that a user querying is authorized, but you can still access user session data if they
  * are logged in.
  */
-export const publicProcedure = t.procedure.use(timingMiddleware);
+export const publicProcedure = t.procedure.use(timingMiddleware).use(rateLimitMiddleware);
 
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
+  .use(rateLimitMiddleware)
   .use(async ({ ctx, next }) => {
     if (!ctx.userId) {
       throw new TRPCError({

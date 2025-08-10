@@ -1,114 +1,300 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { useEffect, useRef, useState } from "react";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "~/components/ui/button";
 
 /**
- * Modern, responsive Navbar with sticky, blurred background and mobile menu.
- * Uses Clerk for auth controls. Matches site gradient accents and spacing.
+ * Modern, responsive Navbar following Repur.fi design guidelines.
+ * Mobile-first design with calm blue primary, fresh green success, energetic orange accents.
  */
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // Track scroll for enhanced backdrop blur
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = "";
+      };
+    }
+  }, [open]);
+
+  // Keyboard navigation and focus management
+  useEffect(() => {
+    if (!open) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
+    };
+    
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-border)]/70 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-1)]/80 bg-[var(--color-surface-1)]/90">
-      <nav className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12">
-        <div className="h-16 flex items-center justify-between">
-          {/* Brand */}
-          <Link
+    <>
+      <header 
+        className={`
+          fixed top-0 left-0 right-0 z-50 
+          transition-all duration-300 ease-out
+          border-b border-[var(--color-border)]
+          backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-1)]/80 bg-[var(--color-surface-1)]/90
+          ${scrolled ? 'shadow-sm' : ''}
+        `}
+      >
+        <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Brand with SVG icon */}
+            <Link
             href="/"
             className="inline-flex items-center gap-2 group"
             aria-label="Etusivu"
           >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] shadow-sm">
-              <span className="text-white font-black">R</span>
-            </span>
-            <span className="text-2xl-fluid font-extrabold tracking-tight text-primary group-hover:text-accent-primary transition-colors">
+              <img src="/icon.svg" alt="Repur.fi logo" className="h-10 w-10" />
+            <span className="text-4xl font-extrabold tracking-tight text-[var(--color-neutral)] group-hover:text-[var(--color-primary)] transition-colors">
               Repur.fi
             </span>
           </Link>
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/osta" className="text-secondary hover:text-primary transition-colors">Osta</Link>
-            <Link href="/myy" className="text-secondary hover:text-primary transition-colors">Myy</Link>
-            <Link href="/meista" className="text-secondary hover:text-primary transition-colors">Meistä</Link>
-
-            <SignedOut>
-              <Link href="/sign-in">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-[var(--color-border)] bg-[var(--color-surface-2)] text-[var(--color-neutral)] hover:bg-[var(--color-surface-3)]"
-                >
-                  Kirjaudu
-                </Button>
-              </Link>
-            </SignedOut>
-
-            <SignedIn>
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonAvatarBox: "w-8 h-8",
-                    userButtonPopoverCard:
-                      "bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-neutral)]",
-                    userButtonPopoverFooter: "bg-[var(--color-surface-3)]",
-                  },
-                }}
-                afterSignOutUrl="/"
-              />
-            </SignedIn>
-          </div>
-
-          {/* Mobile controls */}
-          <div className="md:hidden flex items-center gap-2">
-            <SignedIn>
-              <UserButton
-                appearance={{ elements: { userButtonAvatarBox: "w-8 h-8" } }}
-                afterSignOutUrl="/"
-              />
-            </SignedIn>
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label="Avaa valikko"
-              className="border-[var(--color-border)]"
-              onClick={() => setOpen((v) => !v)}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-5 w-5"
-                aria-hidden
+            {/* Desktop Navigation */}
+            <div className="hidden md:flex items-center gap-1">
+              <Link
+                href="/osta"
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
               >
-                <path d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
-            </Button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Mobile menu */}
-      {open && (
-        <div className="md:hidden border-t border-[var(--color-border)] bg-[var(--color-surface-1)]">
-          <div className="px-4 py-4 space-y-2">
-            <Link href="/osta" className="block px-2 py-2 rounded-lg text-primary hover:bg-[var(--color-surface-2)]">Osta</Link>
-            <Link href="/myy" className="block px-2 py-2 rounded-lg text-primary hover:bg-[var(--color-surface-2)]">Myy</Link>
-            <Link href="/meista" className="block px-2 py-2 rounded-lg text-primary hover:bg-[var(--color-surface-2)]">Meistä</Link>
-            <SignedOut>
-              <Link href="/sign-in" className="block">
-                <Button className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90">
-                  Kirjaudu
-                </Button>
+                Osta
               </Link>
-            </SignedOut>
+              <Link
+                href="/myy"
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+              >
+                Myy
+              </Link>
+              <Link
+                href="/meista"
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+              >
+                Meistä
+              </Link>
+              <Link
+                href="/yhteystiedot"
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+              >
+                Yhteystiedot
+              </Link>
+              <Link
+                href="/tuki"
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+              >
+                Tuki
+              </Link>
+
+              <div className="ml-6 pl-6 border-l border-[var(--color-border)] flex items-center gap-3">
+                <SignedOut>
+                  <Link href="/sign-in">
+                    <Button
+                      size="sm"
+                      className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200"
+                    >
+                      Kirjaudu
+                    </Button>
+                  </Link>
+                </SignedOut>
+
+                <SignedIn>
+                  <UserButton
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox: "w-8 h-8 hover:scale-105 transition-transform duration-200",
+                        userButtonPopoverCard: "bg-white border-slate-200 shadow-xl",
+                        userButtonPopoverFooter: "bg-slate-50",
+                      },
+                    }}
+                    afterSignOutUrl="/"
+                  />
+                </SignedIn>
+              </div>
+            </div>
+
+            {/* Mobile Controls */}
+            <div className="md:hidden flex items-center gap-3">
+              <SignedIn>
+                <UserButton
+                  appearance={{ 
+                    elements: { 
+                      userButtonAvatarBox: "w-8 h-8" 
+                    } 
+                  }}
+                  afterSignOutUrl="/"
+                />
+              </SignedIn>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10 border-[var(--color-border)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-primary)]/30"
+                onClick={() => setOpen(true)}
+                aria-label="Avaa valikko"
+                aria-expanded={open}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </Button>
+            </div>
+          </div>
+        </nav>
+      </header>
+
+      {/* Mobile Menu Overlay */}
+      {open && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/40 backdrop-blur-md"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          
+          {/* Menu Panel */}
+          <div
+            ref={panelRef}
+            className="fixed inset-y-0 right-0 w-full max-w-sm bg-[var(--color-surface-1)] border-l border-[var(--color-border)] shadow-2xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigointivalikko"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
+              <div className="flex items-center gap-3">
+                  <img
+                    src="/icon.svg"
+                    alt="Repur.fi logo"
+                    width={32}
+                    height={32}
+                    className="text-white w-8 h-8 md:w-10 md:h-10"
+                  />
+                <span className="text-lg font-extrabold text-[var(--color-neutral)]">Repur.fi</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                onClick={() => setOpen(false)}
+                aria-label="Sulje valikko"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </Button>
+            </div>
+
+            {/* Navigation Links */}
+            <nav className="flex-1 px-6 py-6">
+              <ul className="space-y-2">
+                <li>
+                  <Link 
+                    href="/osta"
+                    onClick={() => setOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+                  >
+                    Osta
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/myy"
+                    onClick={() => setOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+                  >
+                    Myy
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/meista"
+                    onClick={() => setOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+                  >
+                    Meistä
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/yhteystiedot"
+                    onClick={() => setOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+                  >
+                    Yhteystiedot
+                  </Link>
+                </li>
+                <li>
+                  <Link 
+                    href="/tuki"
+                    onClick={() => setOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-200 hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-2)]/60 rounded-lg transition-all duration-200"
+                  >
+                    Tuki
+                  </Link>
+                </li>
+              </ul>
+
+              <SignedOut>
+                <div className="mt-6 pt-6 border-t border-[var(--color-border)]">
+                  <Link href="/sign-in" onClick={() => setOpen(false)}>
+                    <Button className="w-full h-10 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200">
+                      Kirjaudu
+                    </Button>
+                  </Link>
+                </div>
+              </SignedOut>
+            </nav>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-2)]/60">
+              <div className="flex flex-wrap gap-4 text-sm text-gray-200">
+                <Link 
+                  href="/tietosuoja"
+                  onClick={() => setOpen(false)}
+                  className="hover:text-[var(--color-primary)] transition-colors duration-200"
+                >
+                  Tietosuoja
+                </Link>
+                <Link 
+                  href="/kayttoehdot"
+                  onClick={() => setOpen(false)}
+                  className="hover:text-[var(--color-primary)] transition-colors duration-200"
+                >
+                  Käyttöehdot
+                </Link>
+                <Link 
+                  href="/takuu"
+                  onClick={() => setOpen(false)}
+                  className="hover:text-[var(--color-primary)] transition-colors duration-200"
+                >
+                  Takuu
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

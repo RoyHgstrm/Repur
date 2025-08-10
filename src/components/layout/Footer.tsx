@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Facebook, Twitter, Instagram, Linkedin } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
 
 /**
  * Modern Footer with newsletter, social links and consistent spacing.
@@ -9,7 +9,18 @@ export default function Footer() {
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface-1)]">
       <div className="w-full mx-auto px-4 sm:px-6 md:px-8 lg:px-12 py-section">
-
+        {/* Top CTA */}
+        <div className="mb-10 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)] p-6 sm:p-8 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+          <div>
+            <h2 className="text-xl-fluid font-semibold text-[var(--color-neutral)]">Tarvitsetko apua oikean koneen valintaan?</h2>
+            <p className="text-[var(--color-text-secondary)]">Ota yhteyttä – autamme mielellämme.</p>
+          </div>
+          <Link href="/yhteystiedot" className="inline-flex">
+            <span className="inline-flex items-center gap-2 rounded-lg px-4 py-2 bg-[var(--color-primary)] text-white font-medium hover:bg-[var(--color-primary)]/90 transition-colors">
+              <Mail className="h-4 w-4" /> Ota yhteyttä
+            </span>
+          </Link>
+        </div>
 
         {/* Columns */}
         <div className="grid grid-cols-1 gap-10 md:grid-cols-4">

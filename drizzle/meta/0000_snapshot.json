@@ -1,5 +1,5 @@
 {
-  "id": "ad7e788a-0ffd-4dc5-9ba3-2c7c0292b088",
+  "id": "f571b4a5-15a9-4ca9-806e-7564735b9683",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -33,6 +33,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'DRAFT'"
+        },
+        "is_featured": {
+          "name": "is_featured",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "cpu": {
           "name": "cpu",
