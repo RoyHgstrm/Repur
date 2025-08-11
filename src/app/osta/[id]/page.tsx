@@ -407,23 +407,16 @@ export default function ListingDetailPage() {
                   priority
                 />
               ) : (
-                <div className="w-full h-full bg-surface-3 flex items-center justify-center">
-                  {/* Repur.fi logo SVG placeholder - replace with official SVG if available */}
-                  <svg
-                    width="96"
-                    height="96"
-                    viewBox="0 0 96 96"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="opacity-40"
-                    aria-label="Repur.fi logo"
-                  >
-                    <circle cx="48" cy="48" r="46" fill="#2563eb" stroke="#1e293b" strokeWidth="4"/>
-                    <path
-                      d="M32 68V28h20c8.837 0 16 7.163 16 16s-7.163 16-16 16H44v8h-8zm12-16h8a8 8 0 100-16h-8v16z"
-                      fill="#fff"
-                    />
-                  </svg>
+                <div className="w-full h-full min-h-[180px] flex items-center justify-center bg-gradient-to-br from-[var(--color-surface-3)] to-[var(--color-surface-2)] rounded-lg">
+                  <div className="flex flex-col items-center justify-center text-[var(--color-neutral)]/60">
+                    <div className="relative">
+                      <span className="text-5xl sm:text-6xl md:text-7xl font-extrabold italic bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
+                        R
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-accent)]/20 blur-xl scale-150" aria-hidden />
+                    </div>
+                    <span className="text-xs sm:text-sm mt-2 font-medium">Ei kuvaa</span>
+                  </div>
                 </div>
               )}
             </div>
@@ -453,7 +446,11 @@ export default function ListingDetailPage() {
                             sizes="80px"
                           />
                         ) : (
-                          <div className="w-full h-full bg-surface-3" />
+                          <div className="w-full h-full min-h-[64px] flex items-center justify-center bg-gradient-to-br from-[var(--color-surface-3)] to-[var(--color-surface-2)]">
+                            <span className="text-lg font-extrabold italic bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
+                              R
+                            </span>
+                          </div>
                         )}
                       </div>
                       {selectedImageIndex === index && (
