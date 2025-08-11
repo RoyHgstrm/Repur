@@ -73,6 +73,7 @@ export default function EmployeeDashboardPage() {
   const sectionTitle = tab === 'companyListings' ? 'Yrityksen listaukset'
     : tab === 'tradeIns' ? 'Trade-In pyynnöt'
     : tab === 'purchases' ? 'Ostot'
+    : tab === 'warranties' ? 'Takuut'
     : tab === 'analytics' ? 'Analytiikka'
     : 'Hallintapaneeli';
 
@@ -97,10 +98,11 @@ export default function EmployeeDashboardPage() {
       </div>
 
       <Tabs value={tab} onValueChange={(v) => { setTab(v); window.location.hash = v; }} className="space-y-6 mt-6">
-        <TabsList className="sticky top-20 z-10 grid w-full grid-cols-4 bg-[var(--color-surface-2)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-2)]/60">
+        <TabsList className="sticky top-20 z-10 grid w-full grid-cols-5 bg-[var(--color-surface-2)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-2)]/60">
           <TabsTrigger value="companyListings">Yrityksen Listaukset</TabsTrigger>
           <TabsTrigger value="tradeIns">Trade-In Pyynnöt</TabsTrigger>
           <TabsTrigger value="purchases">Ostot</TabsTrigger>
+          <TabsTrigger value="warranties">Takuut</TabsTrigger>
           <TabsTrigger value="analytics">Analytiikka</TabsTrigger>
         </TabsList>
 
@@ -117,6 +119,10 @@ export default function EmployeeDashboardPage() {
 
         <TabsContent value="purchases">
           <PurchasesTable />
+        </TabsContent>
+
+        <TabsContent value="warranties">
+          <WarrantiesTable />
         </TabsContent>
 
         <TabsContent value="analytics">
@@ -265,6 +271,74 @@ function PurchasesTable() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function WarrantiesTable() {
+  const [q, setQ] = useReactState("");
+  const { data, isLoading, refetch } = trpc.warranties.getAll.useQuery({ q }, { refetchOnWindowFocus: false });
+  const update = trpc.warranties.update.useMutation({
+    onSuccess: () => { toast({ title: 'Takuuta päivitetty', variant: 'success' }); void refetch(); },
+    onError: (e) => toast({ title: 'Virhe', description: e.message, variant: 'destructive' })
+  });
+
+  return (
+    <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]">
+      <CardHeader>
+        <CardTitle className="text-2xl-fluid font-semibold flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> Takuut</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex gap-2">
+          <Input placeholder="Hae (otsikko, email, ID)" value={q} onChange={(e) => setQ(e.target.value)} />
+          <Button variant="outline" onClick={() => void refetch()}>Päivitä</Button>
+        </div>
+        {isLoading ? (
+          <p className="text-[var(--color-text-secondary)] text-sm">Ladataan...</p>
+        ) : (data ?? []).length === 0 ? (
+          <p className="text-[var(--color-text-secondary)] text-sm">Ei takuutietoja.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]/50">
+                  <th className="py-2 pr-3">Warranty ID</th>
+                  <th className="py-2 pr-3">Osto</th>
+                  <th className="py-2 pr-3">Asiakas</th>
+                  <th className="py-2 pr-3">Tuote</th>
+                  <th className="py-2 pr-3">Voimassa</th>
+                  <th className="py-2 pr-3">Tila</th>
+                  <th className="py-2 pr-3 w-40">Toiminnot</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data ?? []).map((w) => {
+                  const start = new Date(w.startDate as any);
+                  const end = new Date(w.endDate as any);
+                  const valid = end > new Date();
+                  return (
+                    <tr key={w.id} className="border-b border-[var(--color-border)]/50">
+                      <td className="py-2 pr-3 font-mono text-xs">{w.id}</td>
+                      <td className="py-2 pr-3 font-mono text-xs">{w.purchaseId}</td>
+                      <td className="py-2 pr-3">{w.purchase?.buyer?.email ?? '—'}</td>
+                      <td className="py-2 pr-3">{w.purchase?.companyListing?.title ?? '—'}</td>
+                      <td className="py-2 pr-3">{start.toLocaleDateString('fi-FI')} – {end.toLocaleDateString('fi-FI')}</td>
+                      <td className="py-2 pr-3">{w.status}{!valid ? ' (päättynyt)' : ''}</td>
+                      <td className="py-2 pr-3">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => update.mutate({ id: w.id, status: 'ACTIVE' })}>Aktivoi</Button>
+                          <Button size="sm" variant="outline" onClick={() => update.mutate({ id: w.id, status: 'CLAIMED' })}>Merkitse käytetyksi</Button>
+                          <Button size="sm" variant="outline" onClick={() => update.mutate({ id: w.id, status: 'EXPIRED' })}>Päättynyt</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

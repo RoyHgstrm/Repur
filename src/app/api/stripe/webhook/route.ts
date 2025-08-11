@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { env } from '~/env';
 import { db } from '~/server/db';
-import { listings, purchases } from '~/server/db/schema';
+import { listings, purchases, warranties } from '~/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { limiter } from '~/lib/rate-limiter';
 import { redis } from '~/lib/redis';
@@ -66,6 +66,24 @@ export async function POST(req: NextRequest) {
             }).onConflictDoNothing();
 
             await db.update(listings).set({ status: 'SOLD' }).where(eq(listings.id, companyListingId));
+
+            // Create warranty for this purchase: 12 months default
+            try {
+              const start = new Date();
+              const end = new Date(start);
+              end.setMonth(end.getMonth() + 12);
+              await db.insert(warranties).values({
+                id: session.id + ':w',
+                purchaseId: session.id,
+                startDate: start,
+                endDate: end,
+                status: 'ACTIVE',
+                terms: '12 kuukauden takuu kaikille komponenteille',
+              }).onConflictDoNothing();
+            } catch (e) {
+              // Don't fail webhook if warranty insert races; it can be recomputed
+              console.error('Warranty creation failed', e);
+            }
 
             // Invalidate Redis cache
             await redis.del('listings:active');

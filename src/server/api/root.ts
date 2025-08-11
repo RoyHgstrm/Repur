@@ -5,6 +5,7 @@ import { paymentsRouter } from "~/server/api/routers/payments";
 import { purchasesRouter } from "~/server/api/routers/purchases";
 import { metricsRouter } from "~/server/api/routers/metrics";
 import { favoritesRouter } from "~/server/api/routers/favorites";
+import { warrantiesRouter } from "~/server/api/routers/warranties";
 
 export const appRouter = createTRPCRouter({
   // Public route example
@@ -20,6 +21,7 @@ export const appRouter = createTRPCRouter({
   purchases: purchasesRouter,
   favorites: favoritesRouter,
   metrics: metricsRouter,
+  warranties: warrantiesRouter,
 });
 
 export type AppRouter = typeof appRouter;
