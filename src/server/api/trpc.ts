@@ -160,32 +160,57 @@ export const protectedProcedure = t.procedure
 
     // Sync/Upsert Clerk user → DB on every protected call to keep DB up to date
     let user = await ctx.db.query.users.findFirst({ where: eq(users.clerkId, ctx.userId) });
-    const email = clerkUser.emailAddresses?.[0]?.emailAddress;
+    const email = clerkUser.emailAddresses?.[0]?.emailAddress!;
     const displayName = clerkUser.firstName || clerkUser.username || email;
 
     if (!user) {
-      // User not found in database, create a new entry
-      const newUserId = nanoid();
-      [user] = await ctx.db.insert(users).values({
-        id: newUserId,
-        clerkId: ctx.userId,
-        email: email!,
-        name: displayName || email!,
-        role: (clerkUser.publicMetadata as any)?.role === 'ADMIN' || (clerkUser.publicMetadata as any)?.role === 'EMPLOYEE' ? (clerkUser.publicMetadata as any).role : 'CUSTOMER',
-      }).returning();
-
+      // If not found by clerkId, try match by email (handles previous records without clerkId binding)
+      const existingByEmail = await ctx.db.query.users.findFirst({ where: eq(users.email, email) });
+      if (existingByEmail) {
+        await ctx.db
+          .update(users)
+          .set({
+            clerkId: ctx.userId,
+            name: displayName ?? existingByEmail.name,
+          })
+          .where(eq(users.id, existingByEmail.id));
+        user = await ctx.db.query.users.findFirst({ where: eq(users.id, existingByEmail.id) });
+      } else {
+        // Insert new row; guard with onConflict to avoid unique violations
+        try {
+          const newUserId = nanoid();
+          await ctx.db
+            .insert(users)
+            .values({
+              id: newUserId,
+              clerkId: ctx.userId,
+              email,
+              name: displayName || email,
+              role:
+                (clerkUser.publicMetadata as any)?.role === 'ADMIN' ||
+                (clerkUser.publicMetadata as any)?.role === 'EMPLOYEE'
+                  ? (clerkUser.publicMetadata as any).role
+                  : 'CUSTOMER',
+            })
+            .onConflictDoNothing({ target: users.email });
+        } catch {
+          // no-op; fetch below
+        }
+        // Fetch after insert/do-nothing to ensure we have the record; try by clerkId first
+        user =
+          (await ctx.db.query.users.findFirst({ where: eq(users.clerkId, ctx.userId) })) ??
+          (await ctx.db.query.users.findFirst({ where: eq(users.email, email) }));
+      }
       if (!user) {
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to create user in database'
-        });
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to ensure user in database' });
       }
     } else {
       // Update basic fields if changed (email/name/role)
       const newRole = (clerkUser.publicMetadata as any)?.role as string | undefined;
       const shouldUpdate = (email && email !== user.email) || (displayName && displayName !== user.name) || (newRole && newRole !== user.role);
       if (shouldUpdate) {
-        await ctx.db.update(users)
+        await ctx.db
+          .update(users)
           .set({
             email: email ?? user.email,
             name: displayName ?? user.name,
