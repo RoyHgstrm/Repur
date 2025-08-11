@@ -800,12 +800,12 @@ export default function ListingDetailPage() {
                             className="w-full h-12 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all"
                             size="lg"
                             onClick={(e) => {
-                              e.preventDefault();
                               // If not signed in, redirect to sign-in with return URL to this listing
                               try {
                                 // Clerk injects __clerk on window in client; fall back to fetch if needed
                                 const signedIn = (window as any)?.Clerk?.user?.id != null || (window as any)?.__clerk?.user?.id != null;
                                 if (!signedIn) {
+                                  e.preventDefault();
                                   const returnUrl = `${window.location.origin}/osta/${listing.id}`;
                                   window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
                                 }
