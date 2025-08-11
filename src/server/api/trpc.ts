@@ -160,7 +160,11 @@ export const protectedProcedure = t.procedure
 
     // Sync/Upsert Clerk user → DB on every protected call to keep DB up to date
     let user = await ctx.db.query.users.findFirst({ where: eq(users.clerkId, ctx.userId) });
-    const email = clerkUser.emailAddresses?.[0]?.emailAddress!;
+    const emailMaybe = clerkUser.emailAddresses?.[0]?.emailAddress;
+    if (!emailMaybe) {
+      throw new TRPCError({ code: 'UNAUTHORIZED', message: 'Clerk email missing' });
+    }
+    const email = emailMaybe;
     const displayName = clerkUser.firstName || clerkUser.username || email;
 
     if (!user) {
