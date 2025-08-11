@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
+import { Logo } from "~/components/ui/Logo";
 
 /**
  * Modern Footer with newsletter, social links and consistent spacing.
@@ -27,9 +28,7 @@ export default function Footer() {
           {/* Logo and Description */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]">
-                <span className="text-sm font-black text-white">R</span>
-              </div>
+              <Logo size={40} />
               <span className="text-xl font-bold text-primary">Repur.fi</span>
             </div>
             <p className="text-secondary">

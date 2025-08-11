@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "~/components/ui/button";
+import { Logo } from "~/components/ui/Logo";
 
 /**
  * Modern, responsive Navbar following Repur.fi design guidelines.
@@ -66,9 +67,7 @@ export default function Navbar() {
             className="inline-flex items-center gap-2 group"
             aria-label="Etusivu"
           >
-              <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-tertiary)] text-white text-2xl font-extrabold tracking-tight shadow-md ring-1 ring-black/10 group-hover:shadow-lg group-hover:ring-black/20 transition-all">
-                R
-              </span>
+              <Logo size={40} className="group-hover:shadow-lg group-hover:ring-black/20 transition-all" />
             <span className="text-4xl font-extrabold tracking-tight text-[var(--color-neutral)] group-hover:text-[var(--color-primary)] drop-shadow-sm transition-colors">
               Repur.fi
             </span>
@@ -185,9 +184,7 @@ export default function Navbar() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
               <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-tertiary)] text-white text-xl font-extrabold tracking-tight shadow-md ring-1 ring-black/10">
-                    R
-                  </span>
+                  <Logo size={40} />
                 <span className="text-lg font-extrabold text-[var(--color-neutral)]">Repur.fi</span>
               </div>
               <Button
