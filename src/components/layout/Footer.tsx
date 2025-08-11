@@ -71,10 +71,10 @@ export default function Footer() {
         <div className="mt-12 flex flex-col items-center justify-between border-t border-[var(--color-border)] pt-8 md:flex-row">
           <p className="text-sm text-secondary">© {new Date().getFullYear()} Repur.fi. Kaikki oikeudet pidätetään.</p>
           <div className="mt-4 flex gap-4 md:mt-0">
-            <Link href="#" className="text-tertiary hover:text-primary" aria-label="Facebook"><Facebook className="h-5 w-5" /></Link>
-            <Link href="#" className="text-tertiary hover:text-primary" aria-label="Twitter"><Twitter className="h-5 w-5" /></Link>
-            <Link href="#" className="text-tertiary hover:text-primary" aria-label="Instagram"><Instagram className="h-5 w-5" /></Link>
-            <Link href="#" className="text-tertiary hover:text-primary" aria-label="LinkedIn"><Linkedin className="h-5 w-5" /></Link>
+            <Link href="#" className="text-[var(--color-neutral)]/70 hover:text-[var(--color-neutral)] drop-shadow-sm" aria-label="Facebook"><Facebook className="h-5 w-5" /></Link>
+            <Link href="#" className="text-[var(--color-neutral)]/70 hover:text-[var(--color-neutral)] drop-shadow-sm" aria-label="Twitter"><Twitter className="h-5 w-5" /></Link>
+            <Link href="#" className="text-[var(--color-neutral)]/70 hover:text-[var(--color-neutral)] drop-shadow-sm" aria-label="Instagram"><Instagram className="h-5 w-5" /></Link>
+            <Link href="#" className="text-[var(--color-neutral)]/70 hover:text-[var(--color-neutral)] drop-shadow-sm" aria-label="LinkedIn"><Linkedin className="h-5 w-5" /></Link>
           </div>
         </div>
       </div>

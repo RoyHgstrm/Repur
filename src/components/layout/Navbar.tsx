@@ -66,10 +66,10 @@ export default function Navbar() {
             className="inline-flex items-center gap-2 group"
             aria-label="Etusivu"
           >
-              <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-purple-400 to-amber-600 text-white text-2xl font-extrabold tracking-tight shadow group-hover:bg-[var(--color-primary-dark)] transition-colors">
+              <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-tertiary)] text-white text-2xl font-extrabold tracking-tight shadow-md ring-1 ring-black/10 group-hover:shadow-lg group-hover:ring-black/20 transition-all">
                 R
               </span>
-            <span className="text-4xl font-extrabold tracking-tight text-[var(--color-neutral)] group-hover:text-[var(--color-primary)] transition-colors">
+            <span className="text-4xl font-extrabold tracking-tight text-[var(--color-neutral)] group-hover:text-[var(--color-primary)] drop-shadow-sm transition-colors">
               Repur.fi
             </span>
           </Link>
@@ -150,12 +150,12 @@ export default function Navbar() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 border-[var(--color-border)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-primary)]/30"
+                className="h-10 w-10 border-[var(--color-border)] text-[var(--color-neutral)] hover:text-[var(--color-primary-dark)] hover:bg-[var(--color-surface-2)] hover:border-[var(--color-primary)]/40"
                 onClick={() => setOpen(true)}
                 aria-label="Avaa valikko"
                 aria-expanded={open}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </Button>
@@ -185,13 +185,9 @@ export default function Navbar() {
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
               <div className="flex items-center gap-3">
-                  <img
-                    src="/icon.svg"
-                    alt="Repur.fi logo"
-                    width={32}
-                    height={32}
-                    className="text-white w-8 h-8 md:w-10 md:h-10"
-                  />
+                  <span className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-tertiary)] text-white text-xl font-extrabold tracking-tight shadow-md ring-1 ring-black/10">
+                    R
+                  </span>
                 <span className="text-lg font-extrabold text-[var(--color-neutral)]">Repur.fi</span>
               </div>
               <Button
@@ -201,7 +197,7 @@ export default function Navbar() {
                 onClick={() => setOpen(false)}
                 aria-label="Sulje valikko"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6 text-[var(--color-neutral)] drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </Button>
