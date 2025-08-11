@@ -224,10 +224,10 @@ export default function HomePage() {
   });
 
   return (
-    <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-22 lg:py-12">
+    <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-6 lg:py-0">
       {/* Hero Section - Enhanced */}
       <motion.section
-        className="relative min-h-[60vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden"
+        className="relative min-h-[60vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden py-12 lg:py-24"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
