@@ -20,7 +20,7 @@ const getQueryClient = (): QueryClient => {
 function getBaseUrl() {
   if (typeof window !== "undefined") return window.location.origin;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return `http://localhost:${process.env.PORT ?? 3000}`;
+  return `https://repur.fi`;
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
