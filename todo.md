@@ -13,6 +13,7 @@ Tehty tänään:
 - Lomakekontrollit: Pienennetty korkeudet mobiilissa (`h-10 sm:h-12`).
 - Suorituskyky: Kevennetty varjot ja siirtymäkestot mobiilissa, vältetään layout-shift.
  - Etusivu: Lyhennetty animaatiokestoja ja viiveitä, muutettu stagger-arvot, lisätty `transform-gpu`, piilotettu raskaat tausta-animaatiot mobiilissa, lisätty esittelytuotteille mobiilin listanäkymä (eager 3 kpl).
+ - Etusivu (hero): Muutettu "Ilmainen Toimitus" → "Nopea Toimitus" ja vaihdettu ikonin väriin `text-[var(--color-primary)]` ohjeiden mukaisesti (suomi-UI, selkeä viestintä).
 
 Stripe-maksut (uusi):
 - [x] tRPC `payments.createCheckoutSession` (server) — Stripe Checkout Session EUR, alennusikkuna huomioitu

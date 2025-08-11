@@ -322,7 +322,7 @@ export default function HomePage() {
               {/* Highlights */}
               <div className="mt-10 grid grid-cols-2 gap-4 max-w-xl mx-auto lg:mx-0">
                 <StatCard value="12 kk" label="Takuu" icon={<ShieldCheck className="w-6 h-6 text-[var(--color-tertiary)]" />} />
-                <StatCard value="Ilmainen" label="Toimitus" icon={<Truck className="w-6 h-6 text-[var(--color-accent)]" />} />
+                <StatCard value="Ilmainen" label="Toimitus" icon={<Truck className="w-6 h-6 text-[var(--color-primary)]" />} />
               </div>
             </motion.div>
 

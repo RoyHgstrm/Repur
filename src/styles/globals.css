@@ -23,12 +23,12 @@
   --color-secondary-light: oklch(96% 0.23 75); /* Brightest, most saturated amber */
   --color-secondary-dark: oklch(80% 0.32 75); /* Deeper, even more saturated amber */
   
-  --color-accent: oklch(72% 0.32 45); /* Deeper coral/orange */
-  --color-accent-light: oklch(82% 0.28 45); /* Light coral */
-  --color-accent-dark: oklch(62% 0.35 45); /* Even deeper coral */
+  --color-accent: oklch(62% 0.32 45); /* Darker coral/orange */
+  --color-accent-light: oklch(72% 0.28 45); /* Darker light coral */
+  --color-accent-dark: oklch(52% 0.35 45); /* Even deeper coral */
   
-  --color-tertiary: oklch(70% 0.25 310); /* Deeper magenta */
-  --color-quaternary: oklch(68% 0.22 200); /* Deeper cyan blue */
+  --color-tertiary: oklch(60% 0.25 310); /* Darker magenta */
+  --color-quaternary: oklch(58% 0.22 200); /* Darker cyan blue */
   
   /* Enhanced Surface Colors with Subtle Color Tints */
   --color-surface-1: oklch(10% 0.02 260); /* Primary surface (darkest) */

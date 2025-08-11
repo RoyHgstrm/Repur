@@ -163,7 +163,16 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
                   <Button
                     size="sm"
                     className="h-8 px-3 text-xs bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white"
-                    onClick={(e) => { e.preventDefault(); onPurchaseClick(listing); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isSignedIn) {
+                        const returnUrl = `${window.location.origin}/osta/${listing.id}`;
+                        window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
+                        return;
+                      }
+                      onPurchaseClick(listing);
+                    }}
                   >
                     Osta
                   </Button>
@@ -343,6 +352,12 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
                 className="flex-1 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-[var(--color-primary)]/25 transition-all duration-300 rounded-lg"
                 onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
+                  if (!isSignedIn) {
+                    const returnUrl = `${window.location.origin}/osta/${listing.id}`;
+                    window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
+                    return;
+                  }
                   onPurchaseClick(listing);
                 }}
               >
@@ -353,6 +368,11 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
                   productTitle={listing.title}
                   priceEUR={finalPrice}
                   onConfirm={async () => {
+                      if (!isSignedIn) {
+                        const returnUrl = `${window.location.origin}/osta/${listing.id}`;
+                        window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
+                        return;
+                      }
                     try {
                       const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
                       const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;

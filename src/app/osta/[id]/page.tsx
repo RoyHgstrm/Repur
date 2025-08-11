@@ -304,7 +304,7 @@ export default function ListingDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)]">
       {/* Navigation Header */}
-      <div className=" top-0 z-999 top-16  backdrop-blur-lg border-b border-[var(--color-border)]">
+      <div className=" top-0 z-999 top-16  backdrop-blur-lg border-b border-[var(--color-border)] pt-4">
         <div className="container-responsive py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -699,7 +699,7 @@ export default function ListingDetailPage() {
           {/* Sidebar - Right Column (on mobile/tablet shown first) */}
           <div className="order-1 xl:order-2 space-y-6 md:max-w-[640px] md:mx-auto xl:max-w-none xl:mx-0 w-full">
             {/* Purchase Card */}
-            <Card className="w-full xl:sticky xl:top-24 md:rounded-2xl bg-gradient-to-br from-surface-2 to-surface-3 border-[var(--color-border-light)] shadow-xl">
+            <Card className="w-full xl:sticky xl:top-24 md:rounded-lg bg-gradient-to-br from-surface-2 to-surface-3 border-[var(--color-border-light)] shadow-xl">
               <CardHeader className="pb-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -802,6 +802,18 @@ export default function ListingDetailPage() {
                           <Button 
                             className="w-full h-12 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-bold text-base shadow-lg hover:shadow-xl transition-all"
                             size="lg"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              // If not signed in, redirect to sign-in with return URL to this listing
+                              try {
+                                // Clerk injects __clerk on window in client; fall back to fetch if needed
+                                const signedIn = (window as any)?.Clerk?.user?.id != null || (window as any)?.__clerk?.user?.id != null;
+                                if (!signedIn) {
+                                  const returnUrl = `${window.location.origin}/osta/${listing.id}`;
+                                  window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
+                                }
+                              } catch { /* noop */ }
+                            }}
                           >
                             <Zap className="w-5 h-5 mr-2" />
                             {(() => {
@@ -835,6 +847,15 @@ export default function ListingDetailPage() {
                             : basePriceNum;
                         })()}
                         onConfirm={async () => {
+                          // Guard server call as well to avoid 401
+                          try {
+                            const signedIn = (window as any)?.Clerk?.user?.id != null || (window as any)?.__clerk?.user?.id != null;
+                            if (!signedIn) {
+                              const returnUrl = `${window.location.origin}/osta/${listing.id}`;
+                              window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
+                              return;
+                            }
+                          } catch { /* noop */ }
                           try {
                             const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
                             const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;
