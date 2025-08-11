@@ -227,7 +227,7 @@ export default function HomePage() {
     <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-6 lg:py-0">
       {/* Hero Section - Enhanced */}
       <motion.section
-        className="relative min-h-[60vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden py-12 lg:py-24"
+        className="relative min-h-[60vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden py-8 lg:py-20"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6 }}
@@ -244,7 +244,7 @@ export default function HomePage() {
               rotate: [0, 180, 360]
             }}
             transition={{
-              duration: 20,
+              duration: 24,
               repeat: Infinity,
               ease: "linear"
             }}
@@ -256,7 +256,7 @@ export default function HomePage() {
               rotate: [360, 180, 0]
             }}
             transition={{
-              duration: 25,
+              duration: 28,
               repeat: Infinity,
               ease: "linear"
             }}
@@ -278,7 +278,7 @@ export default function HomePage() {
         <div className="container mx-auto max-w-6xl px-6 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[60vh] md:min-h-[70vh]">
             <motion.div initial={{ y: 30, opacity: 0 }} whileInView={{ y: 0, opacity: 1 }} viewport={{ once: true, amount: 0.35 }} transition={{ duration: 0.5 }} className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-dark)]/50 to-[var(--color-tertiary)]/50 border border-[var(--color-primary)]/30 mb-8">
+            <div className="inline-flex items-center px-3.5 py-2 rounded-full bg-gradient-to-r from-[var(--color-primary-dark)]/50 to-[var(--color-tertiary)]/50 border border-[var(--color-primary)]/30 mb-6">
               <Sparkles className="w-4 h-4 text-[var(--color-primary-light)] mr-2" />
               <span className="text-sm text-gray-100 font-medium">
                 {heroStats
@@ -287,7 +287,7 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-4">
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-[var(--color-text-primary)] via-[var(--color-text-secondary)] to-[var(--color-text-primary)]">
                 Pelikoneet
               </span>
@@ -296,7 +296,7 @@ export default function HomePage() {
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto mb-6 leading-relaxed">
               Hanki premium-tason gaming-PC puoleen hintaan tai myy omasi
               <span className="text-gradient-primary font-semibold"> hetkessä</span> –
               12 kuukauden takuulla ja ympäristöä säästäen.
