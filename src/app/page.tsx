@@ -224,7 +224,7 @@ export default function HomePage() {
   });
 
   return (
-    <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-6 lg:py-0">
+    <div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-22 lg:py-12">
       {/* Hero Section - Enhanced */}
       <motion.section
         className="relative min-h-[60vh] md:min-h-[85vh] flex items-center justify-center overflow-hidden"

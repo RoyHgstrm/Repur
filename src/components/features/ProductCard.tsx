@@ -101,18 +101,18 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
   // List variant (compact, mobile-first)
   if (variant === "list") {
     return (
-      <div className="group relative w-full">
+      <div className="group relative w-full overflow-hidden">
         <Link href={`/osta/${listing.id}`} className="block w-full">
-          <Card className="h-full flex flex-row items-stretch bg-surface-2 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/40 shadow-sm hover:shadow-md transition-transform opacity-100 duration-200 ease-out transform-gpu overflow-hidden">
+          <Card className="h-full flex flex-row items-stretch bg-surface-2 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/40 shadow-sm hover:shadow-md transition-transform duration-200 ease-out transform-gpu overflow-hidden">
             {/* Image */}
-            <div className="relative shrink-0 w-28 h-28 sm:w-36 sm:h-28 md:w-40 md:h-32 border-r border-[var(--color-border)]/50">
+            <div className="relative shrink-0 w-28 h-28 sm:w-36 sm:h-28 md:w-40 md:h-32 border-r border-[var(--color-border)]/50 rounded-lg overflow-hidden">
               {listing.images && listing.images.length > 0 && listing.images[0] ? (
                 <Image
                   src={listing.images[0]}
                   alt={listing.title || 'Product image'}
                   fill
                   sizes="(max-width: 640px) 120px, 160px"
-                  className="object-cover"
+                  className="object-cover rounded-lg"
                   priority={eager}
                   loading={eager ? 'eager' : 'lazy'}
                   fetchPriority={eager ? 'high' : 'auto'}

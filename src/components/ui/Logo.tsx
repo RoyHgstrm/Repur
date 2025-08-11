@@ -26,7 +26,7 @@ export function Logo({ size = 40, className, ariaLabel = "Repur.fi", ring = true
     <span
       aria-label={ariaLabel}
       className={cn(
-        "flex items-center justify-center rounded-lg bg-gradient-to-r from-[var(--color-primary-dark)] to-[var(--color-tertiary)]",
+        "flex items-center justify-center rounded-lg bg-linear-to-r/increasing from-[var(--color-primary-dark)]  to-[var(--color-secondary)]",
         "text-white font-extrabold tracking-tight shadow-md",
         ring && "ring-1 ring-black/10",
         className,
@@ -34,7 +34,7 @@ export function Logo({ size = 40, className, ariaLabel = "Repur.fi", ring = true
       style={{ width: size, height: size }}
     >
       <span
-        className="leading-none select-none"
+        className="leading-none select-none font-extrabold"
         style={{ fontSize: `${fontSizePx}px`, lineHeight: 1 }}
       >
         R
