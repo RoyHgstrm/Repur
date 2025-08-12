@@ -14,6 +14,8 @@ Tehty tänään:
 - Suorituskyky: Kevennetty varjot ja siirtymäkestot mobiilissa, vältetään layout-shift.
  - Etusivu: Lyhennetty animaatiokestoja ja viiveitä, muutettu stagger-arvot, lisätty `transform-gpu`, piilotettu raskaat tausta-animaatiot mobiilissa, lisätty esittelytuotteille mobiilin listanäkymä (eager 3 kpl).
  - Etusivu (hero): Muutettu "Ilmainen Toimitus" → "Nopea Toimitus" ja vaihdettu ikonin väriin `text-[var(--color-primary)]` ohjeiden mukaisesti (suomi-UI, selkeä viestintä).
+ - Favikoni: Päivitetty `src/app/icon.svg` vastaamaan `src/components/ui/Logo.tsx` -komponentin visuaalia (violetti→meripihka gradientti, pyöristetty neliö, valkoinen "R").
+ - Etusivu (hero): Parannettu listausdatan välimuistia — clientillä SWR-tyyppinen revalidointi (focus/reconnect/60s interval), palvelimella lyhyempi TTL (featured 2min, active 5min) ja kattavampi invalidointi (myös `listings:featured`).
 
 Stripe-maksut (uusi):
 - [x] tRPC `payments.createCheckoutSession` (server) — Stripe Checkout Session EUR, alennusikkuna huomioitu

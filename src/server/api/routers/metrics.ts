@@ -19,7 +19,7 @@ const HeroStatsSchema = z.object({
 
 export const metricsRouter = createTRPCRouter({
   getHeroStats: publicProcedure.query(async () => {
-    const cacheKey = 'metrics:hero:v1';
+    const cacheKey = 'metrics:hero:v2';
     try {
       const cached = await redis.get(cacheKey);
       if (cached && typeof cached === 'object') {
@@ -35,7 +35,9 @@ export const metricsRouter = createTRPCRouter({
     const [activeRows] = await db
       .select({
         count: sql<number>`count(*)`,
-        avgPrice: sql<string>`coalesce(avg(${listings.basePrice}), '0')`,
+        // HOW: Average effective price considering active discounts (amount subtracted when within window)
+        // WHY: Hero should reflect real current prices customers pay.
+        avgPrice: sql<string>`coalesce(avg(( ${listings.basePrice} ) - CASE WHEN ${listings.discountAmount} IS NOT NULL AND ( ${listings.discountStart} IS NULL OR ${listings.discountStart} <= now() ) AND ( ${listings.discountEnd} IS NULL OR ${listings.discountEnd} >= now() ) THEN ${listings.discountAmount} ELSE 0 END), '0')`,
       })
       .from(listings)
       .where(eq(listings.status, 'ACTIVE'));
@@ -69,7 +71,8 @@ export const metricsRouter = createTRPCRouter({
       new30: Number(new30Row?.count ?? 0),
     };
 
-    await redis.set(cacheKey, result, { ex: 300 });
+    // Shorter TTL to keep discounted average fresh
+    await redis.set(cacheKey, result, { ex: 120 });
     return result;
   }),
 });

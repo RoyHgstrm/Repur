@@ -128,6 +128,9 @@ export const listingsRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const onlyFeatured = input?.featuredOnly === true;
       const cacheKey = onlyFeatured ? 'listings:featured' : 'listings:active';
+      // HOW: Use shorter TTLs to reduce staleness in hero section; featured updates are important for landing page.
+      // WHY: We want fast loads (cache) but also quick convergence to fresh data when items sell or change.
+      const ttlSeconds = onlyFeatured ? 120 : 300; // 2 min for featured, 5 min for general active
       const cachedListings = await redis.get(cacheKey);
 
       if (cachedListings) {
@@ -177,7 +180,7 @@ export const listingsRouter = createTRPCRouter({
           },
         });
 
-        await redis.set(cacheKey, listingsData, { ex: 3600 }); // Cache for 1 hour
+        await redis.set(cacheKey, listingsData, { ex: ttlSeconds });
 
         return listingsData;
       } catch (err) {
@@ -185,7 +188,7 @@ export const listingsRouter = createTRPCRouter({
         if (/is_featured/i.test(message) || /column\s+\"is_featured\"/i.test(message)) {
           // DB not migrated with is_featured yet
           if (onlyFeatured) {
-            await redis.set(cacheKey, [], { ex: 300 });
+            await redis.set(cacheKey, [], { ex: ttlSeconds });
             return [] as any[];
           }
           const listingsData = await ctx.db.query.listings.findMany({
@@ -216,7 +219,7 @@ export const listingsRouter = createTRPCRouter({
             },
             with: { seller: true },
           });
-          await redis.set(cacheKey, listingsData, { ex: 300 });
+          await redis.set(cacheKey, listingsData, { ex: ttlSeconds });
           return listingsData;
         }
         if (/discount_/i.test(message) || /column\s+"discount/i.test(message)) {
@@ -250,7 +253,7 @@ export const listingsRouter = createTRPCRouter({
             with: { seller: true },
           });
 
-          await redis.set(cacheKey, listingsData, { ex: 3600 }); // Cache for 1 hour
+          await redis.set(cacheKey, listingsData, { ex: ttlSeconds });
 
           return listingsData;
         }
@@ -290,8 +293,9 @@ export const listingsRouter = createTRPCRouter({
           updatedAt: listings.updatedAt,
         });
 
-      // Invalidate cache
+      // Invalidate caches for both active and featured sets to avoid stale hero
       await redis.del('listings:active');
+      await redis.del('listings:featured');
       await redis.del(`listing:${input.companyListingId}`);
 
       return updatedListing[0];
@@ -521,8 +525,9 @@ export const listingsRouter = createTRPCRouter({
         .set({ status: 'SOLD' })
         .where(eq(listings.id, input.companyListingId));
 
-      // Invalidate cache
+      // Invalidate caches for both active and featured sets to avoid stale hero
       await redis.del('listings:active');
+      await redis.del('listings:featured');
       await redis.del(`listing:${input.companyListingId}`);
 
       return purchase[0];

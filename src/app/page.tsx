@@ -68,6 +68,13 @@ const HeroFeaturedCarousel = ({ items }: { items: ListingWithSeller[] }) => {
   const product = items[current];
   const imageUrl = (product.images && product.images[0]) || undefined;
   const price = Number(product.basePrice);
+  const discountAmountNum = Number((product as any).discountAmount ?? 0);
+  const hasDiscount = Number.isFinite(discountAmountNum) && discountAmountNum > 0;
+  const nowTs = Date.now();
+  const startOk = !(product as any).discountStart || new Date(String((product as any).discountStart)).getTime() <= nowTs;
+  const endOk = !(product as any).discountEnd || new Date(String((product as any).discountEnd)).getTime() >= nowTs;
+  const discountActive = hasDiscount && startOk && endOk;
+  const discountedPrice = discountActive ? Math.max(0, price - discountAmountNum) : price;
 
   const aspectRatio = imgAspect ?? 16 / 9;
 
@@ -89,6 +96,13 @@ const HeroFeaturedCarousel = ({ items }: { items: ListingWithSeller[] }) => {
         whileTap={{ scale: 0.98 }}
         style={{ aspectRatio }}
       >
+        {discountActive && (
+          <div className="absolute top-3 left-3 z-10">
+            <span className="discount-badge badge-spotlight">
+              {`-${discountAmountNum} €`}
+            </span>
+          </div>
+        )}
         {/* Image fills container; aspect-ratio is controlled by style above */}
         {imageUrl ? (
           <Image
@@ -114,7 +128,14 @@ const HeroFeaturedCarousel = ({ items }: { items: ListingWithSeller[] }) => {
             <p className="mt-1 text-xs md:text-sm text-gray-200 line-clamp-2">{product.cpu} • {product.gpu}</p>
           </div>
           <div className="mt-3 flex items-center justify-between">
-            <div className="text-xl md:text-2xl font-black text-white">{price}€</div>
+            {discountActive ? (
+              <div className="flex items-baseline gap-2">
+                <span className="text-xs md:text-sm line-through text-white/70">{price}€</span>
+                <span className="text-xl md:text-2xl font-black text-white">{discountedPrice}€</span>
+              </div>
+            ) : (
+              <div className="text-xl md:text-2xl font-black text-white">{price}€</div>
+            )}
             {hasMany && (
               <div className="flex justify-center gap-2">
                 {items.map((it, i) => (
@@ -210,17 +231,24 @@ export default function HomePage() {
   const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery(
     { limit: 6, featuredOnly: true },
     {
-      staleTime: 5 * 60_000,
-      gcTime: 30 * 60_000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+      // HOW: SWR-ish policy for hero listings to avoid stale data while keeping UI snappy.
+      // WHY: Serve cached data immediately, then revalidate frequently so sold/new items reflect quickly.
+      staleTime: 15_000,          // treat data as fresh for 15s
+      gcTime: 5 * 60_000,         // keep in cache for 5 min
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchInterval: 60_000,    // background revalidate every 60s
+      refetchIntervalInBackground: true,
       placeholderData: (prev: ListingWithSeller[] | undefined) => prev,
     }
   );
   // Cache on client for snappy loads; server caches in Redis.
   const { data: heroStats } = api.metrics.getHeroStats.useQuery(undefined, {
-    staleTime: 5 * 60_000,
-    refetchOnWindowFocus: false,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: true,
   });
 
   return (

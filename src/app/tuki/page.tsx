@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Phone, Mail, MessageCircle, BookOpenText, ShieldCheck, Truck } from "lucide-react";
+import { Mail, MessageCircle, BookOpenText, ShieldCheck, Truck } from "lucide-react";
 
 export default function SupportPage() {
   const supportCards = [
     { Icon: MessageCircle, title: "UKK", desc: "Vastaukset yleisimpiin kysymyksiin", href: "/tuki/ukk" },
     { Icon: Mail, title: "Sähköpostituki", desc: "asiakaspalvelu@repur.fi", href: "mailto:asiakaspalvelu@repur.fi" },
-    { Icon: Phone, title: "Puhelintuki", desc: "Arkisin klo 9–17", href: "tel:+358123456789" },
     { Icon: BookOpenText, title: "Ohjeet", desc: "Käyttö- ja asennusohjeet", href: "/tuki/ohjeet" },
   ];
 

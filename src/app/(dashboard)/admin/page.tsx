@@ -764,7 +764,7 @@ function TradeInListingsTable() {
             <Button variant="outline" size="sm" onClick={() => void refetch()}>Päivitä</Button>
           </div>
           <Input
-            placeholder="Hae (otsikko, email, puhelin)"
+            placeholder="Hae (otsikko, email)"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="sm:max-w-xs"
@@ -792,7 +792,7 @@ function TradeInListingsTable() {
                 <h3 className="text-lg-fluid font-semibold text-[var(--color-neutral)]">{listing.title}</h3>
                 <p className="text-[var(--color-neutral)]/80 text-sm">Käyttäjä: {listing.user?.name ?? 'Tuntematon'}</p>
                 <p className="text-[var(--color-neutral)]/80 text-sm">Sähköposti: {listing.contactEmail}</p>
-                {listing.contactPhone && <p className="text-[var(--color-neutral)]/80 text-sm">Puhelin: {listing.contactPhone}</p>}
+                {/* Puhelinnumero poistettu UI:sta */}
                 <p className="text-[var(--color-neutral)]/80 text-sm">Prosessori: {listing.cpu}</p>
                 <p className="text-[var(--color-neutral)]/80 text-sm">Näytönohjain: {listing.gpu}</p>
                 <p className="text-[var(--color-neutral)]/80 text-sm">RAM: {listing.ram}</p>

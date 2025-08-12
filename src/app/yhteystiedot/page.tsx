@@ -26,9 +26,7 @@ export default function YhteystiedotPage() {
                 <MessageSquare className="h-4 w-4" /> Lähetä sähköpostia
               </span>
             </a>
-            <a href="tel:+358123456789" className="hidden sm:inline-flex items-center gap-2 rounded-lg px-4 py-2 border border-[var(--color-border)] hover:bg-[var(--color-surface-2)] transition-colors">
-              <Phone className="h-4 w-4" /> Soita meille
-            </a>
+            {/* Puhelinnumero poistettu käytöstä toistaiseksi vanhentuneen tiedon välttämiseksi */}
           </div>
         </header>
 
@@ -42,14 +40,7 @@ export default function YhteystiedotPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-surface-2 border-[var(--color-border-light)]">
-            <CardContent className="p-6 text-center space-y-2">
-              <Phone className="w-6 h-6 text-[var(--color-primary)] mx-auto" />
-              <CardTitle className="text-base">Puhelin</CardTitle>
-              <p className="text-sm text-secondary">Arkisin klo 9–17</p>
-              <a href="tel:+358403254972" className="text-sm text-[var(--color-primary)] hover:underline">+358 12 345 6789</a>
-            </CardContent>
-          </Card>
+          {/* Puhelin-kortti poistettu toistaiseksi */}
 
           <Card className="bg-surface-2 border-[var(--color-border-light)]">
             <CardContent className="p-6 text-center space-y-2">

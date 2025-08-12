@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: '%s | Repur.fi',
   },
   description: 'Kunnostetut, testatut pelikoneet 12 kk takuulla. Reilu hinnoittelu ja ilmainen toimitus Suomessa.',
-  keywords: ['kunnostetut tietokoneet', 'pelikone', 'refurbished pc', 'gaming pc', 'Repur.fi', 'takuu', 'ilmainen toimitus'],
+  keywords: ['kunnostetut tietokoneet', 'pelikone', 'refurbished pc', 'gaming pc', 'Repur.fi', 'takuu', 'ilmainen toimitus', 'käytetty pelikone', 'edullinen pelikone', 'kunnostettu pc'],
   icons: {
     icon: '/icon.svg',
   },
@@ -34,6 +34,9 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Repur.fi – Kunnostetut pelikoneet',
     description: 'Premium-tason pelikoneet kunnostettuna. 12 kk takuu ja ilmainen toimitus.',
+  },
+  alternates: {
+    canonical: 'https://repur.fi',
   },
 }
 
