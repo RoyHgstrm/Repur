@@ -12,8 +12,7 @@ import {
   HardDrive, 
   Power, 
   Server, 
-  Package, 
-  Image as ImageIcon,
+  Package,
   ArrowLeft,
   Share2,
   Heart,
@@ -27,19 +26,17 @@ import {
   Zap,
   Gamepad2,
   ShieldCheck,
-  Maximize2,
-  X,
   ChevronLeft,
   ChevronRight,
   ZoomIn,
-  ZoomOut,
-  Download
+    ZoomOut,
+  Download,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import Image from 'next/image';
 import Link from 'next/link';
-import { nanoid } from 'nanoid';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
@@ -52,7 +49,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { api as trpc } from '~/trpc/react';
 import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
 import { getStripe } from "~/lib/stripe";
-import { useMemo } from 'react';
 
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };

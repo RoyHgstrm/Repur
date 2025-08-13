@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import { createTRPCRouter, protectedProcedure, publicProcedure } from '../trpc';
 import { TRPCError } from '@trpc/server';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or, ilike, gte, lte, asc, desc, type SQL } from 'drizzle-orm';
 import { listings, users, tradeInListings, purchases, listingStatusEnum, tradeInStatusEnum } from '~/server/db/schema';
 import { nanoid } from 'nanoid';
 import { redis } from '~/lib/redis';
+import { sanitizeHtml } from '~/lib/utils';
 
 // Validation schemas
 const CompanyListingSchema = z.object({
@@ -69,6 +70,18 @@ const TradeInSubmissionSchema = z.object({
   contactPhone: z.string().optional(),
 });
 
+const SearchCompanyListingsSchema = z.object({
+  searchTerm: z.string().optional(),
+  sortBy: z.enum(['price-low', 'price-high', 'newest', 'rating']).optional().default('newest'),
+  filterCondition: z.string().optional().default('all'),
+  perfTier: z.enum(['all', 'Huippusuoritus', 'Erinomainen', 'Hyvä', 'Perus']).optional().default('all'),
+  gpuTier: z.enum(['all', 'RTX50', 'RTX40', 'RTX30', 'RTX20', 'GTX', 'RX9000', 'RX8000', 'RX7000', 'RX6000', 'RX5000', 'ARC']).optional().default('all'),
+  cpuTier: z.enum(['all', 'IntelCore3', 'IntelCore5', 'IntelCore7', 'IntelCore9', 'IntelUltra5', 'IntelUltra7', 'IntelUltra9', 'Ryzen3', 'Ryzen5', 'Ryzen7', 'Ryzen9']).optional().default('all'),
+  priceMin: z.number().optional(),
+  priceMax: z.number().optional(),
+  featuredOnly: z.boolean().optional(),
+});
+
 // Zod enum wrappers for Drizzle enums (required by tRPC input parsing)
 const ListingStatusSchema = z.enum(listingStatusEnum.enumValues);
 const TradeInStatusSchema = z.enum(tradeInStatusEnum.enumValues);
@@ -120,6 +133,106 @@ export const listingsRouter = createTRPCRouter({
       await redis.del('listings:active');
 
       return listing[0];
+    }),
+
+  searchCompanyListings: publicProcedure
+    .input(SearchCompanyListingsSchema)
+    .query(async ({ ctx, input }) => {
+      const {
+        searchTerm,
+        sortBy,
+        filterCondition,
+        _perfTier,
+        _gpuTier,
+        _cpuTier,
+        priceMin,
+        priceMax,
+        featuredOnly,
+      } = input;
+
+      const whereClauses: (SQL<unknown> | undefined)[] = [eq(listings.status, 'ACTIVE')];
+
+      if (featuredOnly) {
+        whereClauses.push(eq(listings.isFeatured as any, true as any));
+      }
+
+      if (searchTerm) {
+        whereClauses.push(
+          or(
+            ilike(listings.title, `%${searchTerm}%`),
+            ilike(listings.cpu, `%${searchTerm}%`),
+            ilike(listings.gpu, `%${searchTerm}%`)
+          )
+        );
+      }
+
+      if (filterCondition && filterCondition !== 'all') {
+        whereClauses.push(eq(listings.condition, filterCondition as "Uusi" | "Kuin uusi" | "Hyvä" | "Tyydyttävä" | "Huono"));
+      }
+
+      if (priceMin) {
+        whereClauses.push(gte(listings.basePrice, priceMin.toString()));
+      }
+
+      if (priceMax) {
+        whereClauses.push(lte(listings.basePrice, priceMax.toString()));
+      }
+
+      // TODO: Implement advanced filtering for performance, GPU and CPU tiers.
+
+      const orderByClauses = [];
+      switch (sortBy) {
+        case 'price-low':
+          orderByClauses.push(asc(listings.basePrice));
+          break;
+        case 'price-high':
+          orderByClauses.push(desc(listings.basePrice));
+          break;
+        case 'newest':
+          orderByClauses.push(desc(listings.createdAt));
+          break;
+        case 'rating':
+          // TODO: Implement rating sorting
+          orderByClauses.push(desc(listings.createdAt));
+          break;
+        default:
+          orderByClauses.push(desc(listings.createdAt));
+          break;
+      }
+
+      const listingsData = await ctx.db.query.listings.findMany({
+        where: and(...whereClauses.filter((c): c is SQL<unknown> => !!c)),
+        orderBy: orderByClauses,
+        columns: {
+          id: true,
+          title: true,
+          description: true,
+          status: true,
+          isFeatured: true,
+          cpu: true,
+          gpu: true,
+          ram: true,
+          storage: true,
+          motherboard: true,
+          powerSupply: true,
+          caseModel: true,
+          basePrice: true,
+          discountAmount: true,
+          discountStart: true,
+          discountEnd: true,
+          condition: true,
+          images: true,
+          sellerId: true,
+          evaluatedById: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        with: {
+          seller: true,
+        },
+      });
+
+      return listingsData;
     }),
 
   // Get all active company listings
@@ -416,11 +529,13 @@ export const listingsRouter = createTRPCRouter({
   createTradeInSubmission: protectedProcedure
     .input(TradeInSubmissionSchema)
     .mutation(async ({ ctx, input }) => {
+      const sanitizedDescription = input.description ? sanitizeHtml(input.description) : undefined;
+
       const tradeIn = await ctx.db.insert(tradeInListings).values({
         id: nanoid(),
         userId: ctx.userId,
         title: input.title,
-        description: input.description,
+        description: sanitizedDescription,
         cpu: input.cpu,
         gpu: input.gpu,
         ram: input.ram,

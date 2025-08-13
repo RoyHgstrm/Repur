@@ -14,8 +14,10 @@ import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { useRef, useMemo, useState as useReactState } from 'react';
 import { cn } from "~/lib/utils";
-import { ShieldCheck, Truck, ListChecks, Layers, Users2, Receipt, TrendingUp } from "lucide-react";
+import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
+import Image from 'next/image';
+
 
 // Define the Zod schema for company listings, matching the server-side schema
 const CompanyListingSchema = z.object({
@@ -584,9 +586,11 @@ function CompanyListingForm() {
                   {selectedImage.map((file, idx) => (
                     <div key={idx} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
                       {/* preview */}
-                      <img
+                      <Image
                         src={objectUrls[idx]}
                         alt={file.name}
+                        width={128}
+                        height={128}
                         className="w-full h-32 object-cover"
                       />
                       <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/80">
@@ -907,7 +911,7 @@ function CompanyListingsManage() {
   const [bulkDiscountAmount, setBulkDiscountAmount] = useReactState<string>("");
   const [bulkPresetDays, setBulkPresetDays] = useReactState<"1"|"3"|"7"|"14"|"30">("7");
 
-  const sourceRaw = onlyMine ? (myListings ?? []) : (allListings ?? myListings ?? []);
+  const sourceRaw = useMemo(() => onlyMine ? (myListings ?? []) : (allListings ?? myListings ?? []), [onlyMine, myListings, allListings]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -1183,11 +1187,6 @@ function ManageRow({ listing, onSave }: ManageRowProps) {
         <span
           className="block text-xs text-[var(--color-text-primary)] whitespace-pre-line"
           title={listing.title ?? ''}
-          style={{
-            wordBreak: 'break-word',
-            whiteSpace: 'pre-line',
-            lineHeight: '1.2',
-          }}
         >
           {listing.title}
         </span>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Separator } from "~/components/ui/separator";
-import { CheckCircle2, Package, ShieldCheck, Truck, Wrench, FileText, Search } from "lucide-react";
+import { Package, ShieldCheck, Truck, Wrench, FileText, Search } from "lucide-react";
 import type { ReactNode } from "react";
 
 type Guide = {

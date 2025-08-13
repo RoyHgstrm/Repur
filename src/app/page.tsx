@@ -6,7 +6,6 @@ import Image from "next/image"; // Import Image component
 import {
   ArrowRight,
   CheckCircle2,
-  Cpu,
   Recycle,
   ShieldCheck,
   ShoppingCart,
@@ -16,8 +15,6 @@ import {
   Award,
   TrendingUp,
   Sparkles,
-  Monitor,
-  Gauge,
   Truck
 } from "lucide-react";
 import { api } from "~/trpc/react";
@@ -44,6 +41,8 @@ const itemVariants = {
 };
 
 // Hero featured listing carousel (uses listings from the page query)
+// HOW: This component displays a rotating carousel of featured product listings.
+// WHY: It captures user attention with visually appealing products and drives engagement with key listings.
 const HeroFeaturedCarousel = ({ items }: { items: ListingWithSeller[] }) => {
   const [current, setCurrent] = React.useState(0);
   const [imgAspect, setImgAspect] = React.useState<number | null>(null);
@@ -154,6 +153,8 @@ const HeroFeaturedCarousel = ({ items }: { items: ListingWithSeller[] }) => {
   );
 };
 
+// HOW: This component renders a card with an icon, title, and description to highlight a specific feature or value proposition.
+// WHY: It breaks down complex information into easily digestible visual blocks, making it easier for users to understand the company's benefits.
 const FeatureCard = ({ icon, title, description, highlight }: {
   icon: React.ReactNode,
   title: string,
@@ -210,6 +211,8 @@ const FeatureCard = ({ icon, title, description, highlight }: {
 
 // Use reusable ProductCard component for consistency and performance rating
 
+// HOW: This component displays a single statistic with a label and an icon.
+// WHY: It provides a quick, visually appealing way to present key metrics and data points to the user.
 const StatCard = ({ value, label, icon }: { value: string, label: string, icon: React.ReactNode }) => (
   <motion.div
     variants={itemVariants}
@@ -227,6 +230,8 @@ const StatCard = ({ value, label, icon }: { value: string, label: string, icon: 
   </motion.div>
 );
 
+// HOW: This component renders the main landing page of the application.
+// WHY: It serves as the primary entry point for users, showcasing featured products and company values.
 export default function HomePage() {
   const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery(
     { limit: 6, featuredOnly: true },
@@ -395,7 +400,7 @@ export default function HomePage() {
 
           {isLoading ? (
             <div className="product-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(3)].map((_, i) => (
                 <div key={i} className="bg-[var(--color-surface-2)]/50 rounded-2xl p-6 h-64 animate-pulse">
                   <div className="h-4 bg-[var(--color-surface-3)] rounded mb-4"></div>
                   <div className="h-3 bg-[var(--color-surface-3)] rounded mb-2"></div>

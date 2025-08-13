@@ -3,7 +3,7 @@ import Stripe from 'stripe';
 import { env } from '~/env';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 import { db } from '~/server/db';
-import { purchases, listings, users } from '~/server/db/schema';
+import { purchases } from '~/server/db/schema';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' });

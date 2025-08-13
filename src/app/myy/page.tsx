@@ -148,6 +148,8 @@ const calculatePsuValue = (data: FormData): number => {
   return wattage * PRICING_CONFIG.PSU.BASE_VALUE_PER_WATT * multiplier;
 };
 
+// HOW: This function calculates the estimated trade-in value of a computer based on its components and condition.
+// WHY: It provides an instant, transparent price estimate to the user, which is a key feature of the trade-in process.
 const calculatePrice = (data: FormData): number | null => {
   const selectedCpu = cpusData.find((c) => c.name === data.cpu);
   const selectedGpu = gpusData.find((g) => g.chipset === data.gpu);
@@ -276,6 +278,8 @@ const initialFormData: FormData = {
   contactPhone: '',
 };
 
+// HOW: This component displays the current step in a multi-step form.
+// WHY: It provides a clear visual indicator of the user's progress, improving the user experience for long forms.
 const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number, totalSteps: number }) => (
   <div className="flex items-center justify-center space-x-2 mb-6 sm:mb-8">
     {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
@@ -299,6 +303,8 @@ const StepIndicator = ({ currentStep, totalSteps }: { currentStep: number, total
   </div>
 );
 
+// HOW: This component wraps a single step in the multi-step form, providing a consistent layout and animations.
+// WHY: It improves the user experience by breaking down a complex form into smaller, more manageable steps.
 const FormStep = ({ title, description, children }: { title: string, description: string, children: React.ReactNode }) => (
   <motion.section
     initial={{ opacity: 0, y: 12 }}
@@ -317,6 +323,8 @@ const FormStep = ({ title, description, children }: { title: string, description
   </motion.section>
 );
 
+// HOW: This component provides a multi-step form for users to submit their computer for a trade-in evaluation.
+// WHY: It captures detailed information about the user's computer in a structured way, calculates a preliminary price estimate, and submits the information to the backend for processing.
 export default function MyyPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [estimatedPrice, setEstimatedPrice] = useState<number | null>(null);
@@ -520,6 +528,10 @@ export default function MyyPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // HOW: This function handles the form submission.
+    // WHY: It validates the user's input using a Zod schema and sends the data to the backend via a tRPC mutation.
+    // SECURITY: It's crucial that the same Zod schema (TradeInSubmissionSchema) is used for validation on the server-side tRPC router to prevent malicious submissions.
+    // SECURITY: The 'description' field should be sanitized on the server-side before being stored or displayed to prevent XSS attacks.
     try {
       const submissionData = {
         title: formData.title,

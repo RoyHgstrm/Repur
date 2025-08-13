@@ -1,22 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '~/components/ui/button';
 import { Input } from '~/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
-import { toast } from '~/components/ui/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '~/components/ui/dialog';
 import { Label } from '~/components/ui/label';
-// import { cn } from '~/lib/utils';
 import { type RouterOutputs } from '~/trpc/react';
-import { Search, Zap, Shield, Truck, Star, Filter, SortAsc } from 'lucide-react';
+import { Search, Zap, Shield, Truck, Filter, SortAsc } from 'lucide-react';
 import { ProductCard } from "~/components/features/ProductCard";
 import { api } from '~/trpc/react';
-import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
 
+// HOW: This component renders the main product listing page, allowing users to browse, search, filter, and sort computer listings.
+// WHY: It provides the core shopping experience for users to find and select products that meet their specific needs and budget.
 export default function OstaPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedListing, setSelectedListing] = useState<ActiveListing | null>(null);
   const [sortBy, setSortBy] = useState<'price-low' | 'price-high' | 'newest' | 'rating'>('newest');
   const [filterCondition, setFilterCondition] = useState<string>('all');
   const [perfTier, setPerfTier] = useState<'all' | 'Huippusuoritus' | 'Erinomainen' | 'Hyvä' | 'Perus'>('all');
@@ -36,145 +34,37 @@ export default function OstaPage() {
   const [priceMax, setPriceMax] = useState<string>('');
   const [featuredOnly, setFeaturedOnly] = useState<boolean>(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState<boolean>(false);
-  const [purchaseDetails, setPurchaseDetails] = useState({
-    paymentMethod: '',
-    shippingAddress: '',
-  });
 
-  // Fetch active listings
-  const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery(undefined, {
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm]);
+
+  const { data: filteredAndSortedListings, isLoading } = api.listings.searchCompanyListings.useQuery({
+    searchTerm: debouncedSearchTerm,
+    sortBy,
+    filterCondition,
+    perfTier,
+    gpuTier,
+    cpuTier,
+    priceMin: priceMin ? Number(priceMin) : undefined,
+    priceMax: priceMax ? Number(priceMax) : undefined,
+    featuredOnly,
+  }, {
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    placeholderData: (prev: RouterOutputs['listings']['getActiveCompanyListings'] | undefined) => prev,
   });
 
-  type ActiveListing = RouterOutputs['listings']['getActiveCompanyListings'][number];
-
-  // Purchase mutation
-  const purchaseMutation = api.listings.createPurchase.useMutation({
-    onSuccess: (purchase) => {
-      toast({
-        title: "🎉 Osto onnistui!",
-        description: `Tietokone on ostettu hintaan ${parseFloat(purchase.purchasePrice) ?? 0} €`,
-        variant: "success"
-      });
-      setSelectedListing(null);
-      setPurchaseDetails({
-        paymentMethod: '',
-        shippingAddress: '',
-      });
-    },
-    onError: (error: { message: string }) => {
-      toast({
-        title: "❌ Virhe",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  const handlePurchase = () => {
-    if (selectedListing && purchaseDetails.paymentMethod && purchaseDetails.shippingAddress) {
-      purchaseMutation.mutate({
-        companyListingId: selectedListing.id,
-        paymentMethod: purchaseDetails.paymentMethod,
-        shippingAddress: purchaseDetails.shippingAddress,
-      });
-    } else {
-      toast({
-        title: "⚠️ Puutteelliset tiedot",
-        description: "Täytä kaikki ostotiedot",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Helpers for performance tiers and series matching
-  const getPerformanceLabel = (gpu: string | null, cpu: string | null): 'Huippusuoritus' | 'Erinomainen' | 'Hyvä' | 'Perus' => {
-    const gpuLower = (gpu ?? '').toLowerCase();
-    const cpuLower = (cpu ?? '').toLowerCase();
-    if (/rtx\s*5|rtx\s*40|rx\s*9|ultra\s*9|\bi9\b|ryzen\s*9/.test(gpuLower + ' ' + cpuLower)) return 'Huippusuoritus';
-    if (/rtx\s*3|rx\s*7|ultra\s*7|\bi7\b|ryzen\s*7/.test(gpuLower + ' ' + cpuLower)) return 'Erinomainen';
-    if (/gtx|rx\s*6|rx\s*5|ultra\s*5|\bi5\b|ryzen\s*5/.test(gpuLower + ' ' + cpuLower)) return 'Hyvä';
-    return 'Perus';
-  };
-
-  const matchesGpuTier = (gpu: string | null): boolean => {
-    const g = (gpu ?? '').toLowerCase();
-    if (gpuTier === 'all') return true;
-    if (gpuTier === 'RTX50') return /rtx\s*5(?:0|\d{2,3})/.test(g);
-    if (gpuTier === 'RTX40') return /rtx\s*4(?:0|\d{2,3})/.test(g);
-    if (gpuTier === 'RTX30') return /rtx\s*3(?:0|\d{2,3})/.test(g);
-    if (gpuTier === 'RTX20') return /rtx\s*2(?:0|\d{2,3})/.test(g);
-    if (gpuTier === 'GTX') return /gtx/.test(g);
-    if (gpuTier === 'RX9000') return /rx\s*9\d{3}/.test(g);
-    if (gpuTier === 'RX8000') return /rx\s*8\d{3}/.test(g);
-    if (gpuTier === 'RX7000') return /rx\s*7\d{3}/.test(g) || /rx\s*79\d{2}/.test(g);
-    if (gpuTier === 'RX6000') return /rx\s*6\d{3}/.test(g) || /rx\s*69\d{2}/.test(g);
-    if (gpuTier === 'RX5000') return /rx\s*5\d{3}/.test(g);
-    if (gpuTier === 'ARC') return /\barc\b/.test(g);
-    return true;
-  };
-
-  const matchesCpuTier = (cpu: string | null): boolean => {
-    const c = (cpu ?? '').toLowerCase();
-    if (cpuTier === 'all') return true;
-    if (cpuTier === 'IntelCore9') return /\bi9\b|core\s*i9/.test(c);
-    if (cpuTier === 'IntelCore7') return /\bi7\b|core\s*i7/.test(c);
-    if (cpuTier === 'IntelCore5') return /\bi5\b|core\s*i5/.test(c);
-    if (cpuTier === 'IntelCore3') return /\bi3\b|core\s*i3/.test(c);
-    if (cpuTier === 'IntelUltra9') return /ultra\s*9/.test(c);
-    if (cpuTier === 'IntelUltra7') return /ultra\s*7/.test(c);
-    if (cpuTier === 'IntelUltra5') return /ultra\s*5/.test(c);
-    if (cpuTier === 'Ryzen9') return /ryzen\s*9/.test(c);
-    if (cpuTier === 'Ryzen7') return /ryzen\s*7/.test(c);
-    if (cpuTier === 'Ryzen5') return /ryzen\s*5/.test(c);
-    if (cpuTier === 'Ryzen3') return /ryzen\s*3/.test(c);
-    return true;
-  };
-
-  const filteredAndSortedListings = useMemo(() => {
-    const min = priceMin.trim() === '' ? undefined : Number(priceMin);
-    const max = priceMax.trim() === '' ? undefined : Number(priceMax);
-    const q = searchTerm.trim().toLowerCase();
-    const items = (listings ?? [])
-      .filter((listing: ActiveListing) => {
-        if (featuredOnly && (listing as any).isFeatured !== true) return false;
-        const price = Number(listing.basePrice) || 0;
-        if (min !== undefined && price < min) return false;
-        if (max !== undefined && price > max) return false;
-        const matchesSearch =
-          (listing.title ?? '').toLowerCase().includes(q) ||
-          (listing.cpu ?? '').toLowerCase().includes(q) ||
-          (listing.gpu ?? '').toLowerCase().includes(q);
-        if (!matchesSearch) return false;
-        if (!(filterCondition === 'all' || listing.condition === filterCondition)) return false;
-        if (!matchesGpuTier(listing.gpu)) return false;
-        if (!matchesCpuTier(listing.cpu)) return false;
-        if (perfTier !== 'all') {
-          const label = getPerformanceLabel(listing.gpu ?? null, listing.cpu ?? null);
-          if (label !== perfTier) return false;
-        }
-        return true;
-      })
-      .sort((a: ActiveListing, b: ActiveListing) => {
-        switch (sortBy) {
-          case 'price-low':
-            return (Number(a.basePrice) ?? 0) - (Number(b.basePrice) ?? 0);
-          case 'price-high':
-            return (Number(b.basePrice) ?? 0) - (Number(a.basePrice) ?? 0);
-          case 'newest':
-            return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime();
-          case 'rating':
-            return (Number(b.basePrice) ?? 0) - (Number(a.basePrice) ?? 0);
-          default:
-            return 0;
-        }
-      });
-    return items;
-  }, [listings, featuredOnly, priceMin, priceMax, searchTerm, filterCondition, gpuTier, cpuTier, perfTier, sortBy, matchesGpuTier, matchesCpuTier]);
+  type ActiveListing = RouterOutputs['listings']['searchCompanyListings'][number];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)]">
@@ -210,10 +100,7 @@ export default function OstaPage() {
                 <Truck className="w-5 h-5" />
                 <span className="text-sm font-medium">Ilmainen Toimitus</span>
               </div>
-              <div className="flex items-center gap-2 text-accent-coral">
-                <Star className="w-5 h-5 fill-current" />
-                <span className="text-sm font-medium">4.8/5 Tähteä</span>
-              </div>
+              
             </div>
           </div>
         </div>
@@ -555,7 +442,18 @@ export default function OstaPage() {
                 <ProductCard
                   key={listing.id ?? ''}
                   listing={listing}
-                  onPurchaseClick={setSelectedListing}
+                  onPurchaseClick={() => {
+                    // setSelectedListing(listing); // This line was removed as per the new_code
+                    // setPurchaseDetails({ // This line was removed as per the new_code
+                    //   paymentMethod: '', // This line was removed as per the new_code
+                    //   shippingAddress: '', // This line was removed as per the new_code
+                    // }); // This line was removed as per the new_code
+                    // purchaseMutation.mutate({ // This line was removed as per the new_code
+                    //   listingId: listing.id, // This line was removed as per the new_code
+                    //   paymentMethod: purchaseDetails?.paymentMethod, // This line was removed as per the new_code
+                    //   shippingAddress: purchaseDetails?.shippingAddress, // This line was removed as per the new_code
+                    // }); // This line was removed as per the new_code
+                  }}
                   variant="list"
                   eager={index < 3}
                 />
@@ -568,7 +466,18 @@ export default function OstaPage() {
                 <ProductCard
                   key={listing.id ?? ''}
                   listing={listing}
-                  onPurchaseClick={setSelectedListing}
+                  onPurchaseClick={() => {
+                    // setSelectedListing(listing); // This line was removed as per the new_code
+                    // setPurchaseDetails({ // This line was removed as per the new_code
+                    //   paymentMethod: '', // This line was removed as per the new_code
+                    //   shippingAddress: '', // This line was removed as per the new_code
+                    // }); // This line was removed as per the new_code
+                    // purchaseMutation.mutate({ // This line was removed as per the new_code
+                    //   listingId: listing.id, // This line was removed as per the new_code
+                    //   paymentMethod: purchaseDetails?.paymentMethod, // This line was removed as per the new_code
+                    //   shippingAddress: purchaseDetails?.shippingAddress, // This line was removed as per the new_code
+                    // }); // This line was removed as per the new_code
+                  }}
                   variant="grid"
                   eager={index < 4}
                 />

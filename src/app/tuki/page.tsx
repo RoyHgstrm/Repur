@@ -11,9 +11,9 @@ export default function SupportPage() {
   ];
 
   const faqs = [
-    { q: "Mikä takuu koneilla on?", a: "Kaikilla koneilla 12 kuukauden takuu. Katso tarkemmin /takuu." },
-    { q: "Miten teen takuupyynnön?", a: "Täytä tukipyyntö /tuki tai ota yhteyttä /yhteystiedot – autamme ohjein ja palautuksissa." },
-    { q: "Milloin tilaus lähetetään?", a: "Lähetämme viimeistään seuraavana arkipäivänä. Toimitus on ilmainen." },
+    { q: "Mikä takuu koneilla on?", a: "Kaikilla koneilla on 12 kuukauden takuu. Katso tarkemmat takuu- ja palautusehdot: <Link href=\"/takuu\" className=\"text-[var(--color-primary)] hover:underline\">/takuu</Link>." },
+    { q: "Miten teen takuupyynnön?", a: "Täytä tukipyyntö <Link href=\"/tuki\" className=\"text-[var(--color-primary)] hover:underline\">/tuki</Link> tai ota yhteyttä <Link href=\"/yhteystiedot\" className=\"text-[var(--color-primary)] hover:underline\">/yhteystiedot</Link> – autamme ohjein ja palautuksissa." },
+    { q: "Milloin tilaus lähetetään?", a: "Lähetämme viimeistään seuraavana arkipäivänä. Toimitus on ilmainen." }
   ];
 
   return (
@@ -25,7 +25,7 @@ export default function SupportPage() {
         </header>
 
         {/* Entry points */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
           {supportCards.map(({ Icon, title, desc, href }) => (
             <Link key={title} href={href} className="group">
               <Card className="bg-surface-2 border-[var(--color-border-light)] group-hover:border-[var(--color-primary)]/40 transition-colors">

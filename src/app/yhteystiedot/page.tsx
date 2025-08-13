@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
-import { Mail, Phone, MapPin, Clock, User, MessageSquare, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { Mail, MapPin, Clock, User, MessageSquare, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Yhteystiedot - Repur.fi',
@@ -30,7 +30,7 @@ export default function YhteystiedotPage() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
           <Card className="bg-surface-2 border-[var(--color-border-light)]">
             <CardContent className="p-6 text-center space-y-2">
               <Mail className="w-6 h-6 text-[var(--color-primary)] mx-auto" />

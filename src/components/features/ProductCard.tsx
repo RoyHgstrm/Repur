@@ -23,6 +23,9 @@ interface ProductCardProps {
   eager?: boolean;
 }
 
+// HOW: This component renders a product card with two variants: a compact list view for mobile and a detailed grid view for larger screens.
+// WHY: It provides a consistent and reusable way to display product information across the application, adapting to different layouts and screen sizes.
+// TODO: This component is quite large and could be split into smaller components for each variant to improve maintainability.
 export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager = false }: ProductCardProps) => {
   // Remove palette/backdrop for simpler, faster rendering
   const { isSignedIn } = useAuth();
@@ -32,12 +35,6 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
     { refetchOnWindowFocus: false, enabled: Boolean(isSignedIn) }
   );
   const checkout = api.payments.createCheckoutSession.useMutation();
-
-  const withAlpha = (rgb: string, alpha: number) => (
-    rgb?.startsWith('rgb(')
-      ? rgb.replace('rgb(', 'rgba(').replace(')', `, ${alpha})`)
-      : `rgba(100, 100, 100, ${alpha})`
-  );
 
   const getConditionColor = (condition: string | null) => {
     switch (condition) {
@@ -54,15 +51,8 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
     }
   };
 
-  const getPerformanceIcon = (gpu: string | null) => {
-    const gpuLower = (gpu ?? '').toLowerCase();
-    if (gpuLower.includes('rtx 40') || gpuLower.includes('rx 7')) return '🚀';
-    if (gpuLower.includes('rtx 30') || gpuLower.includes('rx 6')) return '⚡';
-    if (gpuLower.includes('gtx') || gpuLower.includes('rx 5')) return '💪';
-    return '🎮';
-  };
-
-  // Simple performance score heuristic based on GPU/CPU strings (0-100)
+  // HOW: This function calculates a performance score (0-100) for a computer based on its CPU and GPU.
+  // WHY: It provides a simple, at-a-glance metric for users to compare the relative performance of different computers without needing to understand the technical details of each component.
   const computePerformanceScore = (gpu: string | null, cpu: string | null): number => {
     const g = (gpu ?? '').toLowerCase();
     const c = (cpu ?? '').toLowerCase();

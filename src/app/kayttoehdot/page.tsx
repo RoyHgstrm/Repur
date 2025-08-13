@@ -31,7 +31,7 @@ export default function KayttoehdotPage() {
 
             <h2>4. Toimitus ja takuu</h2>
             <p>
-              Toimitus tapahtuu Tuotteet-sivuilla kuvatuilla tavoilla. Kaikilla koneilla on 12 kuukauden takuu. Lisätiedot: <Link href="/takuu" className="text-[var(--color-primary)] hover:underline">/takuu</Link>.
+              Toimitus tapahtuu Tuotteet-sivuilla kuvatuilla tavoilla. Kaikilla koneilla on 12 kuukauden takuu. Katso tarkemmat ehdot: <Link href="/takuu" className="text-[var(--color-primary)] hover:underline">Takuu- ja palautusehdot</Link>.
             </p>
 
             <h2>5. Palautukset</h2>
