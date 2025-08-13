@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Button } from "~/components/ui/button";
+import { UploadDropzone } from "~/utils/uploadthing";
 import { Label } from "~/components/ui/label";
 import { toast } from "~/components/ui/use-toast";
 
@@ -59,9 +60,7 @@ export default function EditListingPage() {
     images: [] as string[],
   });
 
-  // Kuvien hallinta (esikatselu, lisääminen, järjestäminen, poisto)
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  // object URLs eivät tarpeen, koska API palauttaa valmiit URL:t
+  // Kuvien hallinta: käytetään UploadThing-palvelua (URL:t talteen)
 
   useEffect(() => {
     if (!listing) return;
@@ -134,39 +133,18 @@ export default function EditListingPage() {
               {/* Tuotekuvat */}
               <div className="space-y-2 md:col-span-2">
                 <Label className="font-semibold">Tuotekuvat (max 10)</Label>
-                <Input
-                  ref={fileInputRef}
-                  id="images"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const files = e.target.files ? Array.from(e.target.files) : [];
-                    if (files.length === 0) return;
-                    const remaining = 10 - (form.images?.length ?? 0);
-                    if (files.length > remaining) {
-                      toast({ title: "Liian monta kuvaa", description: `Voit lisätä vielä ${remaining} kuvaa (yhteensä 10).`, variant: "destructive" });
-                      return;
-                    }
-                    try {
-                      const fd = new FormData();
-                      files.forEach((f) => fd.append('images', f));
-                      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                      if (!res.ok) {
-                        const err = await res.json().catch(() => ({}));
-                        throw new Error((err as any)?.error ?? 'Kuvien lähetys epäonnistui');
-                      }
-                      const data = await res.json() as { imageUrls: string[] };
-                      setForm((p) => ({ ...p, images: [...(p.images ?? []), ...data.imageUrls] }));
-                      // Päivitä esikatselu: käytä verkko-osoitteita eikä objectURL:ia (nämä ovat valmiita URL:eja)
-                      // Tyhjennä input
-                      if (fileInputRef.current) fileInputRef.current.value = '';
-                    } catch (err: any) {
-                      toast({ title: 'Virhe', description: String(err?.message ?? err), variant: 'destructive' });
-                    }
-                  }}
-                  className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] file:text-[var(--color-primary)] file:font-semibold"
-                />
+                <div className="bg-[var(--color-surface-3)] border-[var(--color-border)] rounded-md p-3">
+                  <UploadDropzone
+                    endpoint="imageUploader"
+                    onClientUploadComplete={(res) => {
+                      const urls = (res ?? []).map((r: any) => r?.serverData?.url ?? r?.url ?? r?.ufsUrl).filter(Boolean) as string[];
+                      if (!urls.length) return;
+                      setForm((p) => ({ ...p, images: [...(p.images ?? []), ...urls] }));
+                      toast({ title: 'Kuvat ladattu', description: `${urls.length} kuvaa lisätty`, variant: 'success' });
+                    }}
+                    onUploadError={(e) => { toast({ title: 'Virhe', description: e.message, variant: 'destructive' }); }}
+                  />
+                </div>
 
                 {(form.images?.length ?? 0) > 0 && (
                   <div className="mt-3 space-y-2">
@@ -184,11 +162,7 @@ export default function EditListingPage() {
                               className="h-7 px-2 text-xs"
                               onClick={() => {
                                 if (idx === 0) return;
-                                setForm((p) => {
-                                  const next = [...(p.images ?? [])];
-                                  [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                                  return { ...p, images: next };
-                                });
+                                setForm((p) => { const next = [...(p.images ?? [])]; [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]; return { ...p, images: next }; });
                               }}
                               aria-label="Siirrä ylös"
                             >
@@ -201,11 +175,7 @@ export default function EditListingPage() {
                               className="h-7 px-2 text-xs"
                               onClick={() => {
                                 if (idx === (form.images?.length ?? 1) - 1) return;
-                                setForm((p) => {
-                                  const next = [...(p.images ?? [])];
-                                  [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-                                  return { ...p, images: next };
-                                });
+                                setForm((p) => { const next = [...(p.images ?? [])]; [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]]; return { ...p, images: next }; });
                               }}
                               aria-label="Siirrä alas"
                             >
@@ -234,7 +204,6 @@ export default function EditListingPage() {
                         className="mt-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                         onClick={() => {
                           setForm((p) => ({ ...p, images: [] }));
-                          if (fileInputRef.current) fileInputRef.current.value = '';
                         }}
                       >
                         Poista kaikki kuvat
