@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import { z } from "zod";
@@ -9,7 +9,6 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select";
 import { Button } from "~/components/ui/button";
-import { UploadDropzone } from "~/utils/uploadthing";
 import { Label } from "~/components/ui/label";
 import { toast } from "~/components/ui/use-toast";
 
@@ -60,7 +59,9 @@ export default function EditListingPage() {
     images: [] as string[],
   });
 
-  // Kuvien hallinta: käytetään UploadThing-palvelua (URL:t talteen)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImage, setSelectedImage] = useState<File[]>([]); // New state for selected image files (array)
+  const [objectUrls, setObjectUrls] = useState<string[]>([]); // Object URLs for local previews
 
   useEffect(() => {
     if (!listing) return;
@@ -104,14 +105,54 @@ export default function EditListingPage() {
     pushIfChanged("caseModel");
     pushIfChanged("basePrice", (v) => Number(v));
     pushIfChanged("condition");
-    if (form.images && form.images.length) payload.images = form.images;
 
-    const parsed = UpdateSchema.safeParse(payload);
-    if (!parsed.success) {
-      toast({ title: "Virheellinen syöte", description: parsed.error.issues[0]?.message ?? "Tarkista kentät", variant: "destructive" });
-      return;
+    // Handle image uploads only if new images are selected
+    let uploadedImageUrls: string[] = [...(form.images ?? [])]; // Start with existing images
+
+    if (selectedImage.length > 0) {
+      const uploadFormData = new FormData();
+      selectedImage.forEach((file) => {
+        uploadFormData.append('images', file);
+      });
+
+      // Send files to the local upload API route
+      fetch('/api/upload', {
+        method: 'POST',
+        body: uploadFormData,
+      })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorData = await response.json() as { error?: string };
+          throw new Error(errorData.error || 'Failed to upload new images.');
+        }
+        return response.json() as Promise<{ imageUrls: string[] }>;
+      })
+      .then((result) => {
+        uploadedImageUrls = [...uploadedImageUrls, ...result.imageUrls];
+        payload.images = uploadedImageUrls; // Update payload with new images
+        const parsed = UpdateSchema.safeParse(payload);
+        if (!parsed.success) {
+          toast({ title: "Virheellinen syöte", description: parsed.error.issues[0]?.message ?? "Tarkista kentät", variant: "destructive" });
+          return;
+        }
+        updateMutation.mutate(parsed.data);
+        setSelectedImage([]); // Clear selected images after upload
+        setObjectUrls([]); // Clear object URLs after upload
+      })
+      .catch((error) => {
+        toast({ title: 'Virhe', description: error.message, variant: 'destructive' });
+      });
+    } else {
+      // If no new images are selected, just use existing form.images
+      payload.images = form.images;
+      const parsed = UpdateSchema.safeParse(payload);
+      if (!parsed.success) {
+        toast({ title: "Virheellinen syöte", description: parsed.error.issues[0]?.message ?? "Tarkista kentät", variant: "destructive" });
+        return;
+      }
+      updateMutation.mutate(parsed.data);
     }
-    updateMutation.mutate(parsed.data);
+
   };
 
   return (
@@ -134,24 +175,35 @@ export default function EditListingPage() {
               <div className="space-y-2 md:col-span-2">
                 <Label className="font-semibold">Tuotekuvat (max 10)</Label>
                 <div className="bg-[var(--color-surface-3)] border-[var(--color-border)] rounded-md p-3">
-                  <UploadDropzone
-                    endpoint="imageUploader"
-                    onClientUploadComplete={(res) => {
-                      const urls = (res ?? []).map((r: any) => r?.serverData?.url ?? r?.url ?? r?.ufsUrl).filter(Boolean) as string[];
-                      if (!urls.length) return;
-                      setForm((p) => ({ ...p, images: [...(p.images ?? []), ...urls] }));
-                      toast({ title: 'Kuvat ladattu', description: `${urls.length} kuvaa lisätty`, variant: 'success' });
+                  <Input 
+                    ref={fileInputRef}
+                    id="images"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const files = e.target.files ? Array.from(e.target.files) : [];
+                      if (files.length + (form.images?.length ?? 0) + selectedImage.length > 10) {
+                        toast({
+                          title: "Liian monta kuvaa",
+                          description: "Voit ladata enintään 10 kuvaa.",
+                          variant: "destructive"
+                        });
+                        return; 
+                      }
+                      const newObjectUrls = files.map(file => URL.createObjectURL(file));
+                      setObjectUrls(prev => [...prev, ...newObjectUrls]);
+                      setSelectedImage(prev => [...prev, ...files]);
                     }}
-                    onUploadError={(e) => { toast({ title: 'Virhe', description: e.message, variant: 'destructive' }); }}
                   />
                 </div>
 
-                {(form.images?.length ?? 0) > 0 && (
+                {(objectUrls.length > 0 || (form.images && form.images.length > 0)) && (
                   <div className="mt-3 space-y-2">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {/* Existing images from form.images (already uploaded) */}
                       {(form.images ?? []).map((url, idx) => (
-                        <div key={`${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
-                          {/* preview */}
+                        <div key={`existing-${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={url} alt={`kuva-${idx + 1}`} className="w-full h-64 object-contain" />
                           <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/85">
@@ -196,6 +248,28 @@ export default function EditListingPage() {
                           </div>
                         </div>
                       ))}
+                      {/* Newly selected images (previews from objectUrls) */}
+                      {objectUrls.map((url, idx) => (
+                        <div key={`new-${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt={`esikatselu-${idx + 1}`} className="w-full h-64 object-contain" />
+                          <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/85">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="h-7 px-2 text-xs ml-auto"
+                              onClick={() => {
+                                setObjectUrls((prev) => prev.filter((_, i) => i !== idx));
+                                setSelectedImage((prev) => prev.filter((_, i) => i !== idx));
+                              }}
+                              aria-label="Poista esikatselu"
+                            >
+                              Poista esikatselu
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                     <div>
                       <Button
@@ -203,12 +277,15 @@ export default function EditListingPage() {
                         size="sm"
                         className="mt-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                         onClick={() => {
-                          setForm((p) => ({ ...p, images: [] }));
+                          setObjectUrls([]);
+                          setSelectedImage([]);
+                          setForm((p) => ({ ...p, images: [] })); // Clear all images if 'Poista kaikki kuvat' is clicked
                         }}
                       >
                         Poista kaikki kuvat
                       </Button>
                     </div>
+                    <p className="text-xs text-[var(--color-text-tertiary)]">Ensimmäinen kuva näytetään listauksessa ensimmäisenä. Uudet kuvat lisätään listan loppuun.</p>
                   </div>
                 )}
                 <p className="text-xs text-[var(--color-text-tertiary)]">Ensimmäinen kuva näytetään listauksessa ensimmäisenä.</p>

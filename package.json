@@ -39,7 +39,6 @@
     "@trpc/client": "^11.4.4",
     "@trpc/react-query": "^11.4.4",
     "@trpc/server": "^11.4.4",
-    "@uploadthing/react": "^7.3.2",
     "@upstash/ratelimit": "^2.0.6",
     "@upstash/redis": "^1.35.3",
     "class-variance-authority": "^0.7.1",
@@ -59,8 +58,7 @@
     "stripe": "^18.4.0",
     "superjson": "^2.2.2",
     "svix": "^1.71.0",
-    "tailwind-merge": "^3.3.1",
-    "uploadthing": "^7.7.3"
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",

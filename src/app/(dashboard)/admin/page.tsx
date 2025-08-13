@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -12,12 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
-import { useMemo, useState as useReactState } from 'react';
+import { useMemo, useState as useReactState, useRef } from 'react';
 import { cn } from "~/lib/utils";
 import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
 import Image from 'next/image';
-import { UploadDropzone } from '~/utils/uploadthing';
 
 
 // Define the Zod schema for company listings, matching the server-side schema
@@ -367,7 +366,9 @@ function CompanyListingForm() {
     images: [], // Initialize images as an empty array
   });
 
-  // UploadThing handles file selection; no local file input needed
+  const [selectedImage, setSelectedImage] = useReactState<File[]>([]); // New state for selected image files (array)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [objectUrls, setObjectUrls] = useReactState<string[]>([]);
 
   // HOW: Auto-generate a marketing-friendly title prefix and description based on a performance tier
   //      computed from CPU/GPU strings. The generated content is in Finnish per localization rules.
@@ -563,7 +564,8 @@ function CompanyListingForm() {
         condition: 'Hyvä',
         images: [], // Reset images on success
       });
-      // Images are stored as remote URLs via UploadThing; nothing to reset here
+      setSelectedImage([]); // Reset selected images on success
+      setObjectUrls([]); // Clear object URLs for previews
     },
     onError: (error: { message: string }) => {
       toast({
@@ -590,8 +592,32 @@ function CompanyListingForm() {
         basePrice: parseFloat(formData.basePrice.toString()),
       });
 
-      // Images are already hosted (UploadThing) and collected in formData.images
-      createCompanyListingMutation.mutate(validatedData);
+      let uploadedImageUrls: string[] = [];
+      if (selectedImage.length > 0) {
+        const uploadFormData = new FormData();
+        selectedImage.forEach((file) => {
+          uploadFormData.append('images', file);
+        });
+
+        // Send files to the local upload API route
+        const uploadResponse = await fetch('/api/upload', {
+          method: 'POST',
+          body: uploadFormData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json() as { error?: string };
+          throw new Error(errorData.error || 'Failed to upload images.');
+        }
+
+        const result = await uploadResponse.json() as { imageUrls: string[] };
+        uploadedImageUrls = result.imageUrls;
+      }
+
+      createCompanyListingMutation.mutate({
+        ...validatedData,
+        images: uploadedImageUrls,
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         error.issues.forEach(issue => {
@@ -686,39 +712,39 @@ function CompanyListingForm() {
 
           <div className="space-y-2">
             <Label htmlFor="image-upload" className="text-[var(--color-neutral)] font-semibold">Tuotekuvat (max 10)</Label>
-            {/* UploadThing Dropzone for images */}
-            <div className="bg-[var(--color-surface-3)] border-[var(--color-border)] rounded-md p-3">
-              <UploadDropzone
-                endpoint="imageUploader"
-                onClientUploadComplete={(res) => {
-                  const urls = (res ?? []).map((r) => (r as any).serverData?.url ?? r.url ?? r.ufsUrl).filter(Boolean) as string[];
-                  if (urls.length === 0) return;
-                  setFormData((prev) => ({ ...prev, images: [...(prev.images ?? []), ...urls] }));
-                  toast({ title: 'Kuvat ladattu', description: `${urls.length} kuvaa lisätty`, variant: 'success' });
-                }}
-                onUploadError={(e) => {
-                  toast({ title: 'Virhe', description: e.message, variant: 'destructive' });
-                }}
-                appearance={{
-                  button: "bg-[var(--color-primary)] text-white",
-                  container: "ut-container",
-                }}
-              />
-            </div>
-            {Array.isArray(formData.images) && formData.images.length > 0 && (
-              <div className="mt-3">
+            <Input 
+              id="images"
+              type="file"
+              multiple
+              ref={fileInputRef}
+              onChange={(e) => {
+                if (e.target.files) {
+                  const files = Array.from(e.target.files);
+                  if (files.length + (formData.images?.length ?? 0) > 10) {
+                    toast({
+                      title: "Liian monta kuvaa",
+                      description: "Voit ladata enintään 10 kuvaa.",
+                      variant: "destructive"
+                    });
+                    return; 
+                  }
+                  // create object URLs for previews
+                  const newUrls = files.map((f) => URL.createObjectURL(f));
+                  setObjectUrls((prev) => [...prev, ...newUrls]);
+                  setSelectedImage((prev) => [...prev, ...files]);
+                }
+              }}
+              className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
+            />
+            {(objectUrls.length > 0 || (formData.images && formData.images.length > 0)) && (
+              <div className="mt-3 space-y-2">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {/* Existing images from formData.images (already uploaded) */}
                   {(formData.images ?? []).map((url, idx) => (
-                    <div key={idx} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
-                      {/* preview */}
-                      <Image
-                        src={url}
-                        alt={`kuva ${idx+1}`}
-                        width={128}
-                        height={128}
-                        className="w-full h-32 object-cover"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/80">
+                    <div key={`existing-${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`kuva-${idx + 1}`} className="w-full h-64 object-contain" />
+                      <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/85">
                         <Button
                           type="button"
                           variant="outline"
@@ -726,12 +752,9 @@ function CompanyListingForm() {
                           className="h-7 px-2 text-xs"
                           onClick={() => {
                             if (idx === 0) return;
-                            setFormData((prev) => {
-                              const next = [...(prev.images ?? [])];
-                              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                              return { ...prev, images: next };
-                            });
+                            setFormData((p) => { const next = [...(p.images ?? [])]; [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]]; return { ...p, images: next }; });
                           }}
+                          aria-label="Siirrä ylös"
                         >
                           Ylös
                         </Button>
@@ -741,14 +764,10 @@ function CompanyListingForm() {
                           size="sm"
                           className="h-7 px-2 text-xs"
                           onClick={() => {
-                            const total = (formData.images ?? []).length;
-                            if (idx === total - 1) return;
-                            setFormData((prev) => {
-                              const next = [...(prev.images ?? [])];
-                              [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-                              return { ...prev, images: next };
-                            });
+                            if (idx === (formData.images?.length ?? 1) - 1) return;
+                            setFormData((p) => { const next = [...(p.images ?? [])]; [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]]; return { ...p, images: next }; });
                           }}
+                          aria-label="Siirrä alas"
                         >
                           Alas
                         </Button>
@@ -758,30 +777,53 @@ function CompanyListingForm() {
                           size="sm"
                           className="h-7 px-2 text-xs ml-auto"
                           onClick={() => {
-                            setFormData((prev) => ({ ...prev, images: (prev.images ?? []).filter((_, i) => i !== idx) }));
+                            setFormData((p) => ({ ...p, images: (p.images ?? []).filter((_, i) => i !== idx) }));
                           }}
+                          aria-label="Poista kuva"
                         >
                           Poista
                         </Button>
                       </div>
                     </div>
                   ))}
+                  {/* Newly selected images (previews from objectUrls) */}
+                  {objectUrls.map((url, idx) => (
+                    <div key={`new-${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`esikatselu-${idx + 1}`} className="w-full h-64 object-contain" />
+                      <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/85">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="h-7 px-2 text-xs ml-auto"
+                          onClick={() => {
+                            setObjectUrls((prev) => prev.filter((_, i) => i !== idx));
+                            setSelectedImage((prev) => prev.filter((_, i) => i !== idx));
+                          }}
+                          aria-label="Poista esikatselu"
+                        >
+                          Poista esikatselu
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="mt-2 text-xs text-[var(--color-neutral)]/70">
-                  Voit järjestää kuvat (ylös/alas), ensimmäinen kuva näytetään listauksessa ensimmäisenä.
-                </div>
-                <div className="mt-2">
+                <div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      setFormData((prev) => ({ ...prev, images: [] }));
-                    }}
                     className="mt-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
+                    onClick={() => {
+                      setObjectUrls([]);
+                      setSelectedImage([]);
+                      setFormData((p) => ({ ...p, images: [] })); // Clear all images if 'Poista kaikki kuvat' is clicked
+                    }}
                   >
                     Poista kaikki kuvat
                   </Button>
                 </div>
+                <p className="text-xs text-[var(--color-text-tertiary)]">Ensimmäinen kuva näytetään listauksessa ensimmäisenä. Uudet kuvat lisätään listan loppuun.</p>
               </div>
             )}
           </div>

@@ -8,9 +8,6 @@ import '~/styles/globals.css'
 import Providers from '~/components/layout/Providers'
 import React from 'react'
 import type { Metadata } from 'next'
-import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin'
-import { extractRouterConfig } from 'uploadthing/server'
-import { ourFileRouter } from '~/app/api/uploadthing/core'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -105,7 +102,6 @@ export default function RootLayout({
             <Navbar />
             <div className="flex-1">
               <main id="content" className="flex-1 mt-12">
-                <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
                 <Providers>
                   <React.Suspense fallback={<div className="text-center py-8">Ladataan...</div>}>
                     {children}
