@@ -14,6 +14,7 @@ import { redis } from '~/lib/redis';
 // WHY: Stripe requires exact raw payload for signature verification to prevent tampering.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
 
 // Use the latest pinned version supported by installed stripe typings
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' });

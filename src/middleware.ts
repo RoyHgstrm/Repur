@@ -14,6 +14,8 @@ const isPublicRoute = createRouteMatcher([
   '/yhteystiedot',
   '/kayttoehdot',
   '/tietosuoja',
+  // Webhooks must be public to allow Stripe to reach them
+  '/api/stripe/webhook',
   '/api/trpc/(.*)',
   '/api/upload',
   '/sign-in(.*)',
