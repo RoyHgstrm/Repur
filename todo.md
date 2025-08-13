@@ -29,3 +29,11 @@ Seuraavat askeleet:
 - [ ] Testaa Checkout testikorteilla (4242 4242 4242 4242)
 - [ ] Näytä onnistumis-/peruutusviesti URL-parametrien perusteella `osta/[id]`
 - [ ] Lisää tilausnäkymä asiakkaalle (ostohistoria) ja henkilöstölle (tilaukset)
+
+Uudet muutokset (2025-08-13):
+- [x] Dev-ympäristö: poistettu Turbopack käytöstä (`package.json` → `dev: next dev`) lucide-react HMR -virheen välttämiseksi.
+- [x] Fix: `src/server/api/routers/listings.ts` — poistettu väärät `_perfTier/_gpuTier/_cpuTier` destrukturoinnit (TS-virhe).
+- [x] Clerk v6 middleware: vaihdettu `publicRoutes`-asetuksesta `createRouteMatcher`-pohjaiseen suojaan (`auth.protect()`), poistettu virheellinen `ignoredRoutes`-optio.
+- [x] Ajetut komennot: `npm run typecheck`, `npm run lint`, `npm run build` — kaikki vihreänä.
+
+Huom: Luettu ja noudatettu `rules.mdc` (pääkohdat: suomi-UI, Zero-Trust, suorituskykybudjetti, saavutettavuus, kommenttien selkeys).

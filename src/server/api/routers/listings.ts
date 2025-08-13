@@ -142,9 +142,10 @@ export const listingsRouter = createTRPCRouter({
         searchTerm,
         sortBy,
         filterCondition,
-        _perfTier,
-        _gpuTier,
-        _cpuTier,
+        // Placeholders for future advanced filters; intentionally unused for now
+        // perfTier,
+        // gpuTier,
+        // cpuTier,
         priceMin,
         priceMax,
         featuredOnly,
