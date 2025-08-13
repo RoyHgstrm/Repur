@@ -8,7 +8,13 @@ import "./src/env.js";
 const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
-    domains: ["utfs.io"],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'utfs.io',
+        pathname: '/**', // Allow all paths on utfs.io
+      },
+    ],
   },
   experimental: {
     // Reduce bundle size by optimizing icon library imports
