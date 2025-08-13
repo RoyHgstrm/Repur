@@ -716,26 +716,36 @@ function CompanyListingForm() {
               type="file"
               multiple
               ref={fileInputRef}
-              onChange={(e) => {
-                if (e.target.files) {
-                  const files = Array.from(e.target.files);
-                  if (files.length + (formData.images?.length ?? 0) > 10) {
-                    toast({
-                      title: "Liian monta kuvaa",
-                      description: "Voit ladata enintään 10 kuvaa.",
-                      variant: "destructive"
-                    });
-                    return; 
+              onChange={async (e) => {
+                const files = e.target.files ? Array.from(e.target.files) : [];
+                if (files.length === 0) return;
+                if (files.length + (formData.images?.length ?? 0) > 10) {
+                  toast({ title: 'Liian monta kuvaa', description: 'Voit ladata enintään 10 kuvaa.', variant: 'destructive' });
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                  return;
+                }
+                const fd = new FormData();
+                files.forEach((f) => fd.append('images', f));
+                try {
+                  const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                  if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err?.error || 'Kuvien lataus epäonnistui');
                   }
-                  // create object URLs for previews
-                  const newUrls = files.map((f) => URL.createObjectURL(f));
-                  setObjectUrls((prev) => [...prev, ...newUrls]);
-                  setSelectedImage((prev) => [...prev, ...files]);
+                  const data = await res.json() as { imageUrls: string[] };
+                  setFormData((p) => ({ ...p, images: [...(p.images ?? []), ...data.imageUrls] }));
+                  toast({ title: 'Kuvat ladattu', description: `${files.length} kuva(a) lisätty`, variant: 'success' });
+                } catch (err: any) {
+                  toast({ title: 'Virhe', description: err?.message ?? 'Kuvien lataus epäonnistui', variant: 'destructive' });
+                } finally {
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                  setObjectUrls([]);
+                  setSelectedImage([]);
                 }
               }}
               className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)]"
             />
-            {(objectUrls.length > 0 || (formData.images && formData.images.length > 0)) && (
+            {(formData.images && formData.images.length > 0) && (
               <div className="mt-3 space-y-2">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {/* Existing images from formData.images (already uploaded) */}
@@ -781,28 +791,6 @@ function CompanyListingForm() {
                           aria-label="Poista kuva"
                         >
                           Poista
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {/* Newly selected images (previews from objectUrls) */}
-                  {objectUrls.map((url, idx) => (
-                    <div key={`new-${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`esikatselu-${idx + 1}`} className="w-full h-64 object-contain" />
-                      <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/85">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          className="h-7 px-2 text-xs ml-auto"
-                          onClick={() => {
-                            setObjectUrls((prev) => prev.filter((_, i) => i !== idx));
-                            setSelectedImage((prev) => prev.filter((_, i) => i !== idx));
-                          }}
-                          aria-label="Poista esikatselu"
-                        >
-                          Poista esikatselu
                         </Button>
                       </div>
                     </div>

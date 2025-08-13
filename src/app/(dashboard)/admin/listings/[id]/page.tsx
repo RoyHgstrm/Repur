@@ -183,22 +183,33 @@ export default function EditListingPage() {
                     accept="image/*"
                     onChange={async (e) => {
                       const files = e.target.files ? Array.from(e.target.files) : [];
-                      if (files.length + (form.images?.length ?? 0) + selectedImage.length > 10) {
-                        toast({
-                          title: "Liian monta kuvaa",
-                          description: "Voit ladata enintään 10 kuvaa.",
-                          variant: "destructive"
-                        });
-                        return; 
+                      if (files.length === 0) return;
+                      if (files.length + (form.images?.length ?? 0) > 10) {
+                        toast({ title: 'Liian monta kuvaa', description: 'Voit ladata enintään 10 kuvaa.', variant: 'destructive' });
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                        return;
                       }
-                      const newObjectUrls = files.map(file => URL.createObjectURL(file));
-                      setObjectUrls(prev => [...prev, ...newObjectUrls]);
-                      setSelectedImage(prev => [...prev, ...files]);
+                      const fd = new FormData();
+                      files.forEach((f) => fd.append('images', f));
+                      try {
+                        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                        if (!res.ok) {
+                          const err = await res.json().catch(() => ({}));
+                          throw new Error(err?.error || 'Kuvien lataus epäonnistui');
+                        }
+                        const data = await res.json() as { imageUrls: string[] };
+                        setForm((p) => ({ ...p, images: [...(p.images ?? []), ...data.imageUrls] }));
+                        toast({ title: 'Kuvat ladattu', description: `${files.length} kuva(a) lisätty`, variant: 'success' });
+                      } catch (err: any) {
+                        toast({ title: 'Virhe', description: err?.message ?? 'Kuvien lataus epäonnistui', variant: 'destructive' });
+                      } finally {
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }
                     }}
                   />
                 </div>
 
-                {(objectUrls.length > 0 || (form.images && form.images.length > 0)) && (
+                {(form.images && form.images.length > 0) && (
                   <div className="mt-3 space-y-2">
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {/* Existing images from form.images (already uploaded) */}
@@ -248,28 +259,6 @@ export default function EditListingPage() {
                           </div>
                         </div>
                       ))}
-                      {/* Newly selected images (previews from objectUrls) */}
-                      {objectUrls.map((url, idx) => (
-                        <div key={`new-${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt={`esikatselu-${idx + 1}`} className="w-full h-64 object-contain" />
-                          <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/85">
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              className="h-7 px-2 text-xs ml-auto"
-                              onClick={() => {
-                                setObjectUrls((prev) => prev.filter((_, i) => i !== idx));
-                                setSelectedImage((prev) => prev.filter((_, i) => i !== idx));
-                              }}
-                              aria-label="Poista esikatselu"
-                            >
-                              Poista esikatselu
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
                     </div>
                     <div>
                       <Button
@@ -279,7 +268,7 @@ export default function EditListingPage() {
                         onClick={() => {
                           setObjectUrls([]);
                           setSelectedImage([]);
-                          setForm((p) => ({ ...p, images: [] })); // Clear all images if 'Poista kaikki kuvat' is clicked
+                          setForm((p) => ({ ...p, images: [] })); // Clear all images
                         }}
                       >
                         Poista kaikki kuvat
