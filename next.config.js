@@ -8,6 +8,7 @@ import "./src/env.js";
 const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
+    domains: ["utfs.io"],
   },
   experimental: {
     // Reduce bundle size by optimizing icon library imports

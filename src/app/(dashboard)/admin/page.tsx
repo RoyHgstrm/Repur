@@ -17,6 +17,7 @@ import { cn } from "~/lib/utils";
 import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
 import Image from 'next/image';
+import { UploadDropzone } from '~/utils/uploadthing';
 
 
 // Define the Zod schema for company listings, matching the server-side schema
@@ -711,38 +712,25 @@ function CompanyListingForm() {
 
           <div className="space-y-2">
             <Label htmlFor="image-upload" className="text-[var(--color-neutral)] font-semibold">Tuotekuvat (max 10)</Label>
-            <Input
-              id="images"
-              type="file"
-              multiple
-              ref={fileInputRef}
-              onChange={(e) => {
-                if (e.target.files) {
-                  const files = Array.from(e.target.files);
-                  if (files.length + selectedImage.length > 10) {
-                    toast({
-                      title: "Liian monta kuvaa",
-                      description: "Voit ladata enintään 10 kuvaa.",
-                      variant: "destructive"
-                    });
-                    return; 
-                  }
-                  // create object URLs for previews
-                  const newUrls = files.map((f) => URL.createObjectURL(f));
-                  setObjectUrls((prev) => [...prev, ...newUrls]);
-                  setSelectedImage((prev) => [...prev, ...files]);
-                } else {
-                  // clear
-                  objectUrls.forEach((u) => URL.revokeObjectURL(u));
-                  setObjectUrls([]);
-                  setSelectedImage([]);
-                  if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                  }
-                }
-              }}
-              className="bg-[var(--color-surface-3)] border-[var(--color-border)] text-[var(--color-neutral)] placeholder-[var(--color-neutral)]/50 focus:ring-[var(--color-primary)] focus:border-[var(--color-primary)] file:text-[var(--color-primary)] file:font-semibold"
-            />
+            {/* UploadThing Dropzone for images */}
+            <div className="bg-[var(--color-surface-3)] border-[var(--color-border)] rounded-md p-3">
+              <UploadDropzone
+                endpoint="imageUploader"
+                onClientUploadComplete={(res) => {
+                  const urls = (res ?? []).map((r) => (r as any).serverData?.url ?? r.url ?? r.ufsUrl).filter(Boolean) as string[];
+                  if (urls.length === 0) return;
+                  setFormData((prev) => ({ ...prev, images: [...(prev.images ?? []), ...urls] }));
+                  toast({ title: 'Kuvat ladattu', description: `${urls.length} kuvaa lisätty`, variant: 'success' });
+                }}
+                onUploadError={(e) => {
+                  toast({ title: 'Virhe', description: e.message, variant: 'destructive' });
+                }}
+                appearance={{
+                  button: "bg-[var(--color-primary)] text-white",
+                  container: "ut-container",
+                }}
+              />
+            </div>
             {selectedImage.length > 0 && (
               <div className="mt-3">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
