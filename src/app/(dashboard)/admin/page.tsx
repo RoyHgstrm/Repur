@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
-import { useRef, useMemo, useState as useReactState } from 'react';
+import { useMemo, useState as useReactState } from 'react';
 import { cn } from "~/lib/utils";
 import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
@@ -367,9 +367,7 @@ function CompanyListingForm() {
     images: [], // Initialize images as an empty array
   });
 
-  const [selectedImage, setSelectedImage] = useState<File[]>([]); // New state for selected image files (array)
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [objectUrls, setObjectUrls] = useState<string[]>([]);
+  // UploadThing handles file selection; no local file input needed
 
   // HOW: Auto-generate a marketing-friendly title prefix and description based on a performance tier
   //      computed from CPU/GPU strings. The generated content is in Finnish per localization rules.
@@ -565,7 +563,7 @@ function CompanyListingForm() {
         condition: 'Hyvä',
         images: [], // Reset images on success
       });
-      setSelectedImage([]); // Reset selected images on success
+      // Images are stored as remote URLs via UploadThing; nothing to reset here
     },
     onError: (error: { message: string }) => {
       toast({
@@ -592,32 +590,8 @@ function CompanyListingForm() {
         basePrice: parseFloat(formData.basePrice.toString()),
       });
 
-      let uploadedImageUrls: string[] = [];
-      if (selectedImage.length > 0) {
-        const uploadFormData = new FormData();
-        selectedImage.forEach((file) => {
-          uploadFormData.append('images', file);
-        });
-
-        // Send files to the local upload API route
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          body: uploadFormData,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json() as { error?: string };
-          throw new Error(errorData.error || 'Failed to upload images.');
-        }
-
-        const result = await uploadResponse.json() as { imageUrls: string[] };
-        uploadedImageUrls = result.imageUrls;
-      }
-
-      createCompanyListingMutation.mutate({
-        ...validatedData,
-        images: uploadedImageUrls,
-      });
+      // Images are already hosted (UploadThing) and collected in formData.images
+      createCompanyListingMutation.mutate(validatedData);
     } catch (error) {
       if (error instanceof z.ZodError) {
         error.issues.forEach(issue => {
@@ -731,15 +705,15 @@ function CompanyListingForm() {
                 }}
               />
             </div>
-            {selectedImage.length > 0 && (
+            {Array.isArray(formData.images) && formData.images.length > 0 && (
               <div className="mt-3">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {selectedImage.map((file, idx) => (
+                  {(formData.images ?? []).map((url, idx) => (
                     <div key={idx} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
                       {/* preview */}
                       <Image
-                        src={objectUrls[idx]}
-                        alt={file.name}
+                        src={url}
+                        alt={`kuva ${idx+1}`}
                         width={128}
                         height={128}
                         className="w-full h-32 object-cover"
@@ -752,15 +726,10 @@ function CompanyListingForm() {
                           className="h-7 px-2 text-xs"
                           onClick={() => {
                             if (idx === 0) return;
-                            setSelectedImage((prev) => {
-                              const next = [...prev];
+                            setFormData((prev) => {
+                              const next = [...(prev.images ?? [])];
                               [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                              return next;
-                            });
-                            setObjectUrls((prev) => {
-                              const next = [...prev];
-                              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-                              return next;
+                              return { ...prev, images: next };
                             });
                           }}
                         >
@@ -772,16 +741,12 @@ function CompanyListingForm() {
                           size="sm"
                           className="h-7 px-2 text-xs"
                           onClick={() => {
-                            if (idx === selectedImage.length - 1) return;
-                            setSelectedImage((prev) => {
-                              const next = [...prev];
+                            const total = (formData.images ?? []).length;
+                            if (idx === total - 1) return;
+                            setFormData((prev) => {
+                              const next = [...(prev.images ?? [])];
                               [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-                              return next;
-                            });
-                            setObjectUrls((prev) => {
-                              const next = [...prev];
-                              [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
-                              return next;
+                              return { ...prev, images: next };
                             });
                           }}
                         >
@@ -793,11 +758,7 @@ function CompanyListingForm() {
                           size="sm"
                           className="h-7 px-2 text-xs ml-auto"
                           onClick={() => {
-                            setSelectedImage((prev) => prev.filter((_, i) => i !== idx));
-                            setObjectUrls((prev) => {
-                              URL.revokeObjectURL(prev[idx]);
-                              return prev.filter((_, i) => i !== idx);
-                            });
+                            setFormData((prev) => ({ ...prev, images: (prev.images ?? []).filter((_, i) => i !== idx) }));
                           }}
                         >
                           Poista
@@ -814,12 +775,7 @@ function CompanyListingForm() {
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      objectUrls.forEach((u) => URL.revokeObjectURL(u));
-                      setObjectUrls([]);
-                      setSelectedImage([]);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = '';
-                      }
+                      setFormData((prev) => ({ ...prev, images: [] }));
                     }}
                     className="mt-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                   >
