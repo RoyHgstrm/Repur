@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState as useReactState } from 'react';
 import { Input } from '~/components/ui/input';
 import { Textarea } from '~/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select';
@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
-import { useMemo, useState as useReactState, useRef } from 'react';
 import { cn } from "~/lib/utils";
 import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
@@ -61,7 +60,7 @@ export default function EmployeeDashboardPage() {
 
   // HOW: Sync Tabs with URL hash so sidebar links (#companyListings, #tradeIns, etc.) switch sections.
   // WHY: Improves navigation, enables deep-linking and back/forward support.
-  const [tab, setTab] = useState<string>('companyListings');
+  const [tab, setTab] = useReactState<string>('companyListings');
   useEffect(() => {
     const applyHash = () => {
       const raw = window.location.hash.replace(/^#/, '') || 'companyListings';
@@ -351,7 +350,7 @@ function WarrantiesTable() {
 }
 
 function CompanyListingForm() {
-  const [formData, setFormData] = useState<CompanyListingFormData>({
+  const [formData, setFormData] = useReactState<CompanyListingFormData>({
     title: '',
     description: '',
     cpu: '',
