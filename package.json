@@ -54,6 +54,7 @@
     "react-window": "^1.8.11",
     "server-only": "^0.0.1",
     "shadcn-ui": "^0.9.5",
+    "sharp": "^0.33.4",
     "stripe": "^18.4.0",
     "superjson": "^2.2.2",
     "svix": "^1.71.0",
