@@ -192,7 +192,7 @@ export default function ListingDetailPage() {
     allFpsData.forEach(({ game, resolution, quality, multiplier }) => {
       const perfBase = FPS_DATA.BASE_FPS + (rating - 3) * FPS_DATA.RATING_ADJUST;
       const tuning = Math.min(1.5, Math.max(0.75, getGpuTierMultiplier(gpu) * getCpuTierMultiplier(cpu)));
-      const calculatedFps = Math.round(perfBase * multiplier * tuning);
+      const calculatedFps = Math.round(perfBase * multiplier * tuning * 1.5);
       const fps = Math.max(1, calculatedFps);
 
       if (!estimatedFpsMap.has(game)) {

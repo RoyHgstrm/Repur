@@ -370,6 +370,169 @@ function CompanyListingForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [objectUrls, setObjectUrls] = useState<string[]>([]);
 
+  // HOW: Auto-generate a marketing-friendly title prefix and description based on a performance tier
+  //      computed from CPU/GPU strings. The generated content is in Finnish per localization rules.
+  // WHY: Ensures consistent quality and reduces manual work when creating listings.
+  const computePerformanceScore = (gpu: string | null, cpu: string | null): number => {
+    const g = (gpu ?? '').toLowerCase();
+    const c = (cpu ?? '').toLowerCase();
+
+    // HOW: Define granular performance scores for various CPU models.
+    // WHY: Provides a more accurate representation of CPU performance compared to broad categories.
+    // TODO: This data could be moved to a centralized configuration or fetched from an external API for better maintainability and up-to-dateness.
+    const cpuScores: Record<string, number> = {
+      // Intel Core i9
+      'i9-14900k': 100, 'i9-13900k': 98, 'i9-12900k': 95, 'i9-11900k': 90, 'i9-10900k': 85,
+      // Intel Core i7
+      'i7-14700k': 92, 'i7-13700k': 90, 'i7-12700k': 88, 'i7-11700k': 82, 'i7-10700k': 78,
+      // Intel Core i5
+      'i5-14600k': 85, 'i5-13600k': 82, 'i5-12600k': 80, 'i5-11600k': 75, 'i5-10600k': 70,
+      // Intel Core i3
+      'i3-12100f': 50, 'i3-10100f': 45, 'i3-9100f': 40,
+      // AMD Ryzen 9
+      'ryzen 9 7950x3d': 100, 'ryzen 9 7900x3d': 98, 'ryzen 9 5950x': 95, 'ryzen 9 5900x': 92,
+      // AMD Ryzen 7
+      'ryzen 7 7800x3d': 95, 'ryzen 7 7700x': 90, 'ryzen 7 5800x3d': 88, 'ryzen 7 5700x': 85,
+      // AMD Ryzen 5
+      'ryzen 5 7600x': 80, 'ryzen 5 5600x': 78, 'ryzen 5 3600': 70,
+      // AMD Ryzen 3
+      'ryzen 3 3100': 48, 'ryzen 3 2200g': 42,
+      // Older generations / budget options (example scores)
+      'i7-9700k': 65, 'i5-9600k': 60, 'ryzen 5 2600': 55,
+      'i3': 40, 'ryzen 3': 40, 'pentium': 30, 'celeron': 20,
+    };
+
+    // HOW: Define granular performance scores for various GPU models.
+    // WHY: Provides a more accurate representation of GPU performance, which is crucial for gaming PCs.
+    // TODO: This data could be moved to a centralized configuration or fetched from an external API for better maintainability and up-to-dateness.
+    const gpuScores: Record<string, number> = {
+      // NVIDIA GeForce RTX 40 Series
+      'rtx 4090': 100, 'rtx 4080 super': 98, 'rtx 4080': 95, 'rtx 4070 ti super': 92, 'rtx 4070 super': 90, 'rtx 4070': 88, 'rtx 4060 ti': 80, 'rtx 4060': 75,
+      // NVIDIA GeForce RTX 30 Series
+      'rtx 3090 ti': 87, 'rtx 3090': 85, 'rtx 3080 ti': 82, 'rtx 3080': 80, 'rtx 3070 ti': 78, 'rtx 3070': 75, 'rtx 3060 ti': 70, 'rtx 3060': 65, 'rtx 3050': 55,
+      // NVIDIA GeForce RTX 20 Series
+      'rtx 2080 ti': 60, 'rtx 2080 super': 58, 'rtx 2080': 55, 'rtx 2070 super': 52, 'rtx 2070': 50, 'rtx 2060 super': 48, 'rtx 2060': 45,
+      // NVIDIA GeForce GTX 16 Series
+      'gtx 1660 super': 40, 'gtx 1660 ti': 38, 'gtx 1660': 35,
+      // AMD Radeon RX 7000 Series
+      'rx 7900 xtx': 97, 'rx 7900 xt': 94, 'rx 7800 xt': 89, 'rx 7700 xt': 84, 'rx 7600': 72,
+      // AMD Radeon RX 6000 Series
+      'rx 6900 xt': 80, 'rx 6800 xt': 78, 'rx 6700 xt': 74, 'rx 6600 xt': 68, 'rx 6600': 60,
+      // Older generations / budget options (example scores)
+      'gtx 1080 ti': 50, 'gtx 1070': 40, 'rx 580': 35, 'gtx 1060': 30, 'rx 570': 25,
+    };
+
+    let cpuScore = 0;
+    let gpuScore = 0;
+
+    // Find CPU score by matching against known models
+    for (const key in cpuScores) {
+      if (c.includes(key)) {
+        cpuScore = cpuScores[key];
+        break;
+      }
+    }
+
+    // Find GPU score by matching against known models
+    for (const key in gpuScores) {
+      if (g.includes(key)) {
+        gpuScore = gpuScores[key];
+        break;
+      }
+    }
+
+    // HOW: Calculate a combined score with a weighted average, prioritizing GPU for gaming PCs.
+    // WHY: GPU performance is generally more critical for gaming than CPU performance.
+    // TODO: These weights could be configurable or dynamically adjusted based on the specific use case (e.g., workstation vs. gaming PC).
+    const gpuWeight = 0.7; // 70% importance for GPU
+    const cpuWeight = 0.3; // 30% importance for CPU
+
+    let combinedScore = (cpuScore * cpuWeight) + (gpuScore * gpuWeight);
+
+    // If no specific CPU or GPU is found, assign a default score to avoid zero impact on overall score.
+    // This ensures even unidentifiable components contribute somewhat to a baseline tier.
+    if (cpuScore === 0 && gpuScore === 0) {
+      combinedScore = 20; // A low base score if neither is recognized
+    } else if (cpuScore === 0) {
+      // If only CPU is unknown, give GPU more weight and assign a reasonable default for CPU's portion
+      combinedScore = (gpuScore * 0.8) + (50 * 0.2); // Assume average CPU (score 50) if not specified
+    } else if (gpuScore === 0) {
+      // If only GPU is unknown, give CPU more weight and assign a reasonable default for GPU's portion
+      combinedScore = (cpuScore * 0.5) + (30 * 0.5); // Assume low-average GPU (score 30) if not specified
+    }
+
+    // Ensure score is within 0-100 range
+    return Math.max(0, Math.min(100, combinedScore));
+  };
+
+  const AUTO_DESCRIPTIONS: Record<'PLATINUM'|'GOLD'|'SILVER'|'BRONZE', string> = {
+    PLATINUM: `Repur Platinum – Huippuluokan tehoa ilman kompromisseja\\n\\nRepur Platinum -sarjan koneet on varustettu markkinoiden tehokkaimmilla komponenteilla, jotka takaavat sulavan ja viiveettömän pelikokemuksen kaikissa peleissä. Jokainen kone on tarkasti testattu, huollettu ja perusteellisesti puhdistettu, jotta se olisi käytännössä uudenveroisessa kunnossa ja valmis intensiiviseen pelaamiseen.\\n\\nKaikki myymämme tietokoneet toimitetaan täysin käyttövalmiina, esiasennettuina ja virtajohdon kanssa, joten voit aloittaa pelaamisen heti.\\n\\nVoit ostaa huoletta – tarjoamme kaikille pelikoneillemme 14 päivän palautusoikeuden sekä 12 kuukauden kattavan takuun.`,
+    GOLD: `Repur Gold – Tehoa vaativalle pelaajalle\\n\\nRepur Gold -tason koneet on suunniteltu pelaajille, jotka tarvitsevat enemmän suorituskykyä ja luotettavuutta. Ne sisältävät korkealaatuisia komponentteja, jotka varmistavat tasaisen ja häiriöttömän pelikokemuksen myös raskaammissa peleissä ja moniajo-tilanteissa.\\n\\nKuten kaikki tuotteemme, myös Gold-koneet toimitetaan täysin käyttövalmiina ja esiasennettuina virtajohdon kera.\\n\\nMukana tulee aina 14 päivän palautusoikeus ja 12 kuukauden takuu, jotta voit pelata turvallisin mielin.`,
+    SILVER: `Repur Silver – Erinomainen hinta-laatu-suhde\\n\\nRepur Silver -sarja yhdistää laadukkaat komponentit ja kilpailukykyisen hinnan. Nämä koneet pyörittävät suosittuja pelejä, kuten Fortnite ja Counter-Strike 2, korkeilla asetuksilla tarjoten loistavaa suorituskykyä ilman suurta investointia.\\n\\nKaikki koneemme toimitetaan käyttövalmiina, esiasennettuina ja virtajohdon kanssa, jotta pääset pelaamaan heti.\\n\\nTarjoamme aina 14 päivän palautusoikeuden ja 12 kuukauden takuun, jotta hankintasi on huoleton.`,
+    BRONZE: `Repur Bronze – Edullinen mutta tehokas\\n\\nRepur Bronze -tason koneet ovat erinomainen vaihtoehto budjettitietoiselle pelaajalle. Vaikka hinta on edullinen, koneissa käytetyt komponentit tarjoavat miellyttävän käyttökokemuksen ja hyvän suorituskyvyn kevyempään pelaamiseen ja peruskäyttöön.\\n\\nKaikki koneemme toimitetaan käyttövalmiina ja esiasennettuina virtajohdon kanssa – liitä vain virta ja aloita pelaaminen.\\n\\nKuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukauden takuu.`,
+  };
+
+  const getTierInfo = (score: number): { key: 'PLATINUM'|'GOLD'|'SILVER'|'BRONZE'; label: string } => {
+    if (score >= 85) return { key: 'PLATINUM', label: 'PLATINUM' };
+    if (score >= 70) return { key: 'GOLD', label: 'GOLD' };
+    if (score >= 55) return { key: 'SILVER', label: 'SILVER' };
+    return { key: 'BRONZE', label: 'BRONZE' };
+  };
+
+  useEffect(() => {
+    // Compute tier whenever CPU/GPU change
+    const score = computePerformanceScore(formData.gpu, formData.cpu);
+    const { key, label } = getTierInfo(score);
+
+    // Title: add tier prefix by default if not present
+    const currentTitle = formData.title?.trim() ?? '';
+    let nextTitle = '';
+    
+    // HOW: Clean CPU and GPU names for a cleaner title format.
+    // WHY: Removes verbose manufacturer/series prefixes to make the title more concise and readable.
+    const cleanCpu = formData.cpu ? formData.cpu.toUpperCase().replace(/(INTEL\\s*CORE\\s*|AMD\\s*RYZEN\\s*)/g, '').trim() : 'Ei tietoa';
+    const cleanGpu = formData.gpu ? formData.gpu.toUpperCase().replace(/(NVIDIA\\s*GEFORCE\\s*RTX\\s*|AMD\\s*RADEON\\s*RX\\s*)/g, '').trim() : 'Ei tietoa';
+    
+    const defaultGeneratedTitle = `${label} | ${cleanCpu} | ${cleanGpu}`;
+
+    // Check if the current title already has a tier prefix in the expected format (e.g., "PLATINUM | ...")
+    const tierRegex = /^(PLATINUM|GOLD|SILVER|BRONZE)\\s*\\|/i;
+
+    if (tierRegex.test(currentTitle)) {
+      // If it has a tier, try to update it with the new tier and clean CPU/GPU.
+      // This handles cases where the user might have slightly modified the auto-generated title.
+      const parts = currentTitle.split('|').map(s => s.trim());
+      const existingCpuPart = parts[1] || 'Ei tietoa';
+      const existingGpuPart = parts[2] || 'Ei tietoa';
+
+      // Preserve existing CPU/GPU if they are meaningful, otherwise use the cleaned form data
+      const finalCpuForTitle = (existingCpuPart !== 'Ei tietoa' && existingCpuPart !== '') ? existingCpuPart : cleanCpu;
+      const finalGpuForTitle = (existingGpuPart !== 'Ei tietoa' && existingGpuPart !== '') ? existingGpuPart : cleanGpu;
+
+      nextTitle = `${label} | ${finalCpuForTitle} | ${finalGpuForTitle}`;
+    } else if (currentTitle) {
+      // If there's a custom title but no tier prefix, prepend the tier and base info
+      nextTitle = `${label} | ${currentTitle}`;
+    } else {
+      // If title is empty, use the fully auto-generated title
+      nextTitle = defaultGeneratedTitle;
+    }
+
+    // Description: set or replace only if empty or previously auto-generated
+    const currentDesc = formData.description?.trim() ?? '';
+    // HOW: Improved check for auto-generated description to prevent overwriting user's custom content.
+    // WHY: Ensures that only truly auto-generated descriptions are replaced, preserving user edits.
+    const isAutoDesc = Object.values(AUTO_DESCRIPTIONS).some((d) => currentDesc.startsWith(d.substring(0, 50)) && currentDesc.length >= d.length * 0.8 && currentDesc.length <= d.length * 1.2); // Check start of string and length
+    const nextDesc = AUTO_DESCRIPTIONS[key];
+
+    setFormData((prev) => ({
+      ...prev,
+      ...(nextTitle !== prev.title ? { title: nextTitle } : {}), // Only update if changed
+      ...((currentDesc.length === 0 || isAutoDesc) ? { description: nextDesc } : {}),
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.cpu, formData.gpu]);
+
   // No longer need fileToBase64 as we'll send FormData directly
   // const fileToBase64 = (file: File): Promise<string> => {
   //   return new Promise((resolve, reject) => {
