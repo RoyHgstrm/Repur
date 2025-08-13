@@ -17,7 +17,9 @@ export async function POST(request: NextRequest) {
 
 	const uploadedImageUrls: string[] = [];
 
-	const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+	// HOW: Use a writable runtime directory outside of Next public assets.
+	// WHY: In production/standalone, writing to public/ won't be served or persisted.
+	const uploadDir = path.join(process.cwd(), 'uploads');
 
 	try {
 		await mkdir(uploadDir, { recursive: true });

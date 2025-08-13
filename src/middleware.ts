@@ -7,6 +7,8 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/osta',
   '/osta/(.*)',
+  // Serve uploaded images directly
+  '/uploads/(.*)',
   '/meista',
   '/takuu',
   '/tuki',

@@ -752,7 +752,7 @@ function CompanyListingForm() {
                   {(formData.images ?? []).map((url, idx) => (
                     <div key={`existing-${url}-${idx}`} className="relative group rounded-lg overflow-hidden border border-[var(--color-border)] bg-[var(--color-surface-3)]">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`kuva-${idx + 1}`} className="w-full h-64 object-contain" />
+                      <img src={url.startsWith('/uploads/') ? url : `/uploads/${url.replace(/^\/+/, '')}`} alt={`kuva-${idx + 1}`} className="w-full h-64 object-contain" />
                       <div className="absolute inset-x-0 bottom-0 flex gap-1 p-1 bg-[var(--color-surface-2)]/85">
                         <Button
                           type="button"
