@@ -12,3 +12,6 @@ export function cn(...inputs: ClassValue[]) {
 export function sanitizeHtml(html: string): string {
   return html.replace(/<[^>]*>?/gm, '');
 }
+
+export { computePerformanceScore, getPerformanceTier } from '~/lib/performanceScoring'; // HOW: Re-export the new performance scoring functions.
+                                                                                     // WHY: Centralizes performance logic in one module, ensuring consistency and easier maintenance.

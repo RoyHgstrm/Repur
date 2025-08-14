@@ -16,6 +16,7 @@ import { cn } from "~/lib/utils";
 import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
 import Image from 'next/image';
+import { computePerformanceScore, getPerformanceTier } from '~/lib/performanceScoring'; // HOW: Import the new, comprehensive performance scoring utility.
 
 
 // Define the Zod schema for company listings, matching the server-side schema
@@ -465,10 +466,26 @@ function CompanyListingForm() {
   };
 
   const AUTO_DESCRIPTIONS: Record<'PLATINUM'|'GOLD'|'SILVER'|'BRONZE', string> = {
-    PLATINUM: `Repur Platinum – Huippuluokan tehoa ilman kompromisseja\\n\\nRepur Platinum -sarjan koneet on varustettu markkinoiden tehokkaimmilla komponenteilla, jotka takaavat sulavan ja viiveettömän pelikokemuksen kaikissa peleissä. Jokainen kone on tarkasti testattu, huollettu ja perusteellisesti puhdistettu, jotta se olisi käytännössä uudenveroisessa kunnossa ja valmis intensiiviseen pelaamiseen.\\n\\nKaikki myymämme tietokoneet toimitetaan täysin käyttövalmiina, esiasennettuina ja virtajohdon kanssa, joten voit aloittaa pelaamisen heti.\\n\\nVoit ostaa huoletta – tarjoamme kaikille pelikoneillemme 14 päivän palautusoikeuden sekä 12 kuukauden kattavan takuun.`,
-    GOLD: `Repur Gold – Tehoa vaativalle pelaajalle\\n\\nRepur Gold -tason koneet on suunniteltu pelaajille, jotka tarvitsevat enemmän suorituskykyä ja luotettavuutta. Ne sisältävät korkealaatuisia komponentteja, jotka varmistavat tasaisen ja häiriöttömän pelikokemuksen myös raskaammissa peleissä ja moniajo-tilanteissa.\\n\\nKuten kaikki tuotteemme, myös Gold-koneet toimitetaan täysin käyttövalmiina ja esiasennettuina virtajohdon kera.\\n\\nMukana tulee aina 14 päivän palautusoikeus ja 12 kuukauden takuu, jotta voit pelata turvallisin mielin.`,
-    SILVER: `Repur Silver – Erinomainen hinta-laatu-suhde\\n\\nRepur Silver -sarja yhdistää laadukkaat komponentit ja kilpailukykyisen hinnan. Nämä koneet pyörittävät suosittuja pelejä, kuten Fortnite ja Counter-Strike 2, korkeilla asetuksilla tarjoten loistavaa suorituskykyä ilman suurta investointia.\\n\\nKaikki koneemme toimitetaan käyttövalmiina, esiasennettuina ja virtajohdon kanssa, jotta pääset pelaamaan heti.\\n\\nTarjoamme aina 14 päivän palautusoikeuden ja 12 kuukauden takuun, jotta hankintasi on huoleton.`,
-    BRONZE: `Repur Bronze – Edullinen mutta tehokas\\n\\nRepur Bronze -tason koneet ovat erinomainen vaihtoehto budjettitietoiselle pelaajalle. Vaikka hinta on edullinen, koneissa käytetyt komponentit tarjoavat miellyttävän käyttökokemuksen ja hyvän suorituskyvyn kevyempään pelaamiseen ja peruskäyttöön.\\n\\nKaikki koneemme toimitetaan käyttövalmiina ja esiasennettuina virtajohdon kanssa – liitä vain virta ja aloita pelaaminen.\\n\\nKuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukauden takuu.`,
+    PLATINUM: `Repur Platinum – Huippuluokan tehoa ilman kompromisseja
+    
+Repur Platinum -sarjan koneet on varustettu markkinoiden tehokkaimmilla komponenteilla, jotka takaavat sulavan ja viiveettömän pelikokemuksen kaikissa peleissä. Jokainen kone on tarkasti testattu, huollettu ja perusteellisesti puhdistettu, jotta se olisi käytännössä uudenveroisessa kunnossa ja valmis intensiiviseen pelaamiseen.
+Kaikki myymämme tietokoneet toimitetaan täysin käyttövalmiina, esiasennettuina ja virtajohdon kanssa, joten voit aloittaa pelaamisen heti.
+Voit ostaa huoletta – tarjoamme kaikille pelikoneillemme 14 päivän palautusoikeuden sekä 12 kuukauden kattavan takuun.`,
+    GOLD: `Repur Gold – Tehoa vaativalle pelaajalle
+
+Repur Gold -tason koneet on suunniteltu pelaajille, jotka tarvitsevat enemmän suorituskykyä ja luotettavuutta. Ne sisältävät korkealaatuisia komponentteja, jotka varmistavat tasaisen ja häiriöttömän pelikokemuksen myös raskaammissa peleissä ja moniajo-tilanteissa.
+Kuten kaikki tuotteemme, myös Gold-koneet toimitetaan täysin käyttövalmiina ja esiasennettuina virtajohdon kera.
+Mukana tulee aina 14 päivän palautusoikeus ja 12 kuukauden takuu, jotta voit pelata turvallisin mielin.`,
+    SILVER: `Repur Silver – Erinomainen hinta-laatu-suhde
+
+Repur Silver -sarja yhdistää laadukkaat komponentit ja kilpailukykyisen hinnan. Nämä koneet pyörittävät suosittuja pelejä, kuten Fortnite ja Counter-Strike 2, korkeilla asetuksilla tarjoten loistavaa suorituskykyä ilman suurta investointia.
+Kaikki koneemme toimitetaan käyttövalmiina, esiasennettuina ja virtajohdon kanssa, jotta pääset pelaamaan heti.
+Tarjoamme aina 14 päivän palautusoikeuden ja 12 kuukauden takuun, jotta hankintasi on huoleton.`,
+    BRONZE: `Repur Bronze – Edullinen mutta tehokas
+
+Repur Bronze -tason koneet ovat erinomainen vaihtoehto budjettitietoiselle pelaajalle. Vaikka hinta on edullinen, koneissa käytetyt komponentit tarjoavat miellyttävän käyttökokemuksen ja hyvän suorituskyvyn kevyempään pelaamiseen ja peruskäyttöön.
+Kaikki koneemme toimitetaan käyttövalmiina ja esiasennettuina virtajohdon kanssa – liitä vain virta ja aloita pelaaminen.
+Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukauden takuu.`,
   };
 
   const getTierInfo = (score: number): { key: 'PLATINUM'|'GOLD'|'SILVER'|'BRONZE'; label: string } => {

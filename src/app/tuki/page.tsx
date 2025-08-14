@@ -11,8 +11,8 @@ export default function SupportPage() {
   ];
 
   const faqs = [
-    { q: "Mikä takuu koneilla on?", a: "Kaikilla koneilla on 12 kuukauden takuu. Katso tarkemmat takuu- ja palautusehdot: <Link href=\"/takuu\" className=\"text-[var(--color-primary)] hover:underline\">/takuu</Link>." },
-    { q: "Miten teen takuupyynnön?", a: "Täytä tukipyyntö <Link href=\"/tuki\" className=\"text-[var(--color-primary)] hover:underline\">/tuki</Link> tai ota yhteyttä <Link href=\"/yhteystiedot\" className=\"text-[var(--color-primary)] hover:underline\">/yhteystiedot</Link> – autamme ohjein ja palautuksissa." },
+    { q: "Mikä takuu koneilla on?", a: "Kaikilla koneilla on 12 kuukauden takuu. Katso tarkemmat takuu- ja palautusehdot sivulta /takuu." },
+    { q: "Miten teen takuupyynnön?", a: "Täytä tukipyyntö sivulla /tuki tai ota yhteyttä sivun /yhteystiedot kautta – autamme ohjein ja palautuksissa." },
     { q: "Milloin tilaus lähetetään?", a: "Lähetämme viimeistään seuraavana arkipäivänä. Toimitus on ilmainen." }
   ];
 

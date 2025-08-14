@@ -13,6 +13,7 @@ import { getStripe } from "~/lib/stripe";
 import { api } from "~/trpc/react";
 import { useAuth } from "@clerk/nextjs";
 import { Progress } from "~/components/ui/progress";
+import { computePerformanceScore } from '~/lib/performanceScoring'; // HOW: Use the canonical scoring util with object input.
 
 type ListingWithSeller = RouterOutputs['listings']['getActiveCompanyListings'][number];
 
@@ -51,25 +52,12 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
     }
   };
 
-  // HOW: This function calculates a performance score (0-100) for a computer based on its CPU and GPU.
-  // WHY: It provides a simple, at-a-glance metric for users to compare the relative performance of different computers without needing to understand the technical details of each component.
-  const computePerformanceScore = (gpu: string | null, cpu: string | null): number => {
-    const g = (gpu ?? '').toLowerCase();
-    const c = (cpu ?? '').toLowerCase();
-    let score = 40; // base
-    if (/rtx\s*4090|rtx\s*4080|rx\s*7900/.test(g)) score += 45;
-    else if (/rtx\s*4070|rtx\s*3090|rx\s*6800/.test(g)) score += 35;
-    else if (/rtx\s*3060|rtx\s*2080|rx\s*6700|gtx\s*1080/.test(g)) score += 25;
-    else if (/gtx\s*1660|rx\s*580/.test(g)) score += 15;
-
-    if (/i9|ryzen\s*9/.test(c)) score += 15;
-    else if (/i7|ryzen\s*7/.test(c)) score += 10;
-    else if (/i5|ryzen\s*5/.test(c)) score += 6;
-
-    return Math.max(0, Math.min(100, score));
-  };
-
-  const perfScore = computePerformanceScore(listing.gpu ?? null, listing.cpu ?? null);
+  const perfScore = computePerformanceScore({
+    gpu: listing.gpu ?? null,
+    cpu: listing.cpu ?? null,
+    ram: listing.ram ?? null,
+    storage: listing.storage ?? null,
+  });
 
   // Discount logic: compute active discounted price if within window
   const now = new Date();
@@ -278,7 +266,7 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
             <div className="flex items-center gap-3">
               <div className="min-w-[100px] text-xs text-tertiary">Suorituskyky</div>
               <Progress value={perfScore} className="h-2 flex-1" />
-              <div className="text-xs font-semibold text-primary w-10 text-right">{perfScore}</div>
+              <div className="text-xs font-semibold text-primary w-10 text-right">{Math.round(perfScore)}</div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2 p-2.5 sm:p-3 bg-surface-1 rounded-xl transition-colors hover:bg-surface-1/80">

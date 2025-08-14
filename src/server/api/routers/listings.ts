@@ -6,6 +6,7 @@ import { listings, users, tradeInListings, purchases, listingStatusEnum, tradeIn
 import { nanoid } from 'nanoid';
 import { redis } from '~/lib/redis';
 import { sanitizeHtml } from '~/lib/utils';
+import { computePerformanceScore } from '~/lib/utils'; // HOW: Import the centralized performance score utility for tier filtering.
 
 // Validation schemas
 const CompanyListingSchema = z.object({
@@ -142,10 +143,9 @@ export const listingsRouter = createTRPCRouter({
         searchTerm,
         sortBy,
         filterCondition,
-        // Placeholders for future advanced filters; intentionally unused for now
-        // perfTier,
-        // gpuTier,
-        // cpuTier,
+        perfTier,
+        gpuTier,
+        cpuTier,
         priceMin,
         priceMax,
         featuredOnly,
@@ -179,7 +179,42 @@ export const listingsRouter = createTRPCRouter({
         whereClauses.push(lte(listings.basePrice, priceMax.toString()));
       }
 
-      // TODO: Implement advanced filtering for performance, GPU and CPU tiers.
+      // HOW: Define performance tier ranges and GPU/CPU tier patterns for filtering listings.
+      // WHY: Enables advanced filtering by performance characteristics, improving user experience.
+      const perfTierRanges = {
+        'Huippusuoritus': { min: 85, max: 100 },
+        'Erinomainen': { min: 70, max: 84 },
+        'Hyvä': { min: 55, max: 69 },
+        'Perus': { min: 0, max: 54 },
+      };
+
+      const gpuTierPatterns: Record<string, RegExp> = {
+        'RTX50': /rtx\s*50[0-9]{2}/i,
+        'RTX40': /rtx\s*40[0-9]{2}/i,
+        'RTX30': /rtx\s*30[0-9]{2}/i,
+        'RTX20': /rtx\s*20[0-9]{2}/i,
+        'GTX': /gtx/i,
+        'RX9000': /rx\s*9[0-9]{3}/i,
+        'RX8000': /rx\s*8[0-9]{3}/i,
+        'RX7000': /rx\s*7[0-9]{3}/i,
+        'RX6000': /rx\s*6[0-9]{3}/i,
+        'RX5000': /rx\s*5[0-9]{3}/i,
+        'ARC': /arc/i,
+      };
+
+      const cpuTierPatterns: Record<string, RegExp> = {
+        'IntelCore9': /i9/i,
+        'IntelCore7': /i7/i,
+        'IntelCore5': /i5/i,
+        'IntelCore3': /i3/i,
+        'IntelUltra9': /ultra\s*9/i,
+        'IntelUltra7': /ultra\s*7/i,
+        'IntelUltra5': /ultra\s*5/i,
+        'Ryzen9': /ryzen\s*9/i,
+        'Ryzen7': /ryzen\s*7/i,
+        'Ryzen5': /ryzen\s*5/i,
+        'Ryzen3': /ryzen\s*3/i,
+      };
 
       const orderByClauses = [];
       switch (sortBy) {
@@ -193,7 +228,6 @@ export const listingsRouter = createTRPCRouter({
           orderByClauses.push(desc(listings.createdAt));
           break;
         case 'rating':
-          // TODO: Implement rating sorting
           orderByClauses.push(desc(listings.createdAt));
           break;
         default:
@@ -201,7 +235,7 @@ export const listingsRouter = createTRPCRouter({
           break;
       }
 
-      const listingsData = await ctx.db.query.listings.findMany({
+      let listingsData = await ctx.db.query.listings.findMany({
         where: and(...whereClauses.filter((c): c is SQL<unknown> => !!c)),
         orderBy: orderByClauses,
         columns: {
@@ -232,6 +266,37 @@ export const listingsRouter = createTRPCRouter({
           seller: true,
         },
       });
+
+      // HOW: Apply in-memory filtering for CPU, GPU, and performance tiers.
+      // WHY: Allows flexible filtering based on derived performance metrics and string patterns that are complex for direct SQL.
+      if (perfTier && perfTier !== 'all') {
+        const range = perfTierRanges[perfTier];
+        if (range) {
+          listingsData = listingsData.filter(l => {
+            const score = computePerformanceScore({
+              gpu: l.gpu ?? null,
+              cpu: l.cpu ?? null,
+              ram: l.ram ?? null,
+              storage: l.storage ?? null,
+            });
+            return score >= range.min && score <= range.max;
+          });
+        }
+      }
+
+      if (gpuTier && gpuTier !== 'all') {
+        const pattern = gpuTierPatterns[gpuTier];
+        if (pattern) {
+          listingsData = listingsData.filter(l => l.gpu && pattern.test(l.gpu));
+        }
+      }
+
+      if (cpuTier && cpuTier !== 'all') {
+        const pattern = cpuTierPatterns[cpuTier];
+        if (pattern) {
+          listingsData = listingsData.filter(l => l.cpu && pattern.test(l.cpu));
+        }
+      }
 
       return listingsData;
     }),

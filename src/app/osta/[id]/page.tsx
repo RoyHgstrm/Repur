@@ -1,5 +1,6 @@
 "use client"
 import { api } from '~/trpc/react';
+import { computePerformanceScore, getPerformanceTier } from '../../../lib/performanceScoring';
 // import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
@@ -108,31 +109,24 @@ export default function ListingDetailPage() {
     } catch {}
   };
 
-  // Performance rating based on components
-  const performance = listing ? getPerformanceRating(listing.gpu, listing.cpu) : { rating: 3, label: 'Perus' } as const;
+  // Performance scoring using shared utility
+  const performanceScore = listing ? computePerformanceScore({
+    gpu: listing.gpu ?? null,
+    cpu: listing.cpu ?? null,
+    ram: listing.ram ?? null,
+    storage: listing.storage ?? null,
+  }) : 0;
+  const performance = getPerformanceTier(performanceScore);
+  const ratingForStars = Math.max(1, Math.min(5, Math.round(performanceScore / 20)));
   // Safe helpers for current image and list
   const images = Array.isArray(listing?.images) ? (listing!.images as string[]) : [];
   const currentImage = images[selectedImageIndex] || images[0];
-  // Derived inputs for FPS calculation
   const gpuForCalc = listing?.gpu ?? null;
   const cpuForCalc = listing?.cpu ?? null;
   useEffect(() => {
-    setEstimatedGameFps(getEstimatedFps(performance.rating, gpuForCalc, cpuForCalc));
+    setEstimatedGameFps(getEstimatedFps(ratingForStars, gpuForCalc, cpuForCalc));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [performance.rating, gpuForCalc, cpuForCalc]);
-
-  function getPerformanceRating(gpu: string | null, cpu: string | null) {
-    const gpuLower = (gpu ?? '').toLowerCase();
-    const cpuLower = (cpu ?? '').toLowerCase();
-    
-    if (gpuLower.includes('rtx 40') || gpuLower.includes('rx 7') || 
-        cpuLower.includes('i9') || cpuLower.includes('ryzen 9')) return { rating: 5, label: 'Huippusuoritus' };
-    if (gpuLower.includes('rtx 30') || gpuLower.includes('rx 6') || 
-        cpuLower.includes('i7') || cpuLower.includes('ryzen 7')) return { rating: 4, label: 'Erinomainen' };
-    if (gpuLower.includes('gtx') || gpuLower.includes('rx 5') || 
-        cpuLower.includes('i5') || cpuLower.includes('ryzen 5')) return { rating: 3, label: 'Hyvä' };
-    return { rating: 2, label: 'Perus' };
-  }
+  }, [ratingForStars, gpuForCalc, cpuForCalc]);
 
   // Returns two representative colors from an image URL for dynamic UI theming
   // (palette extraction removed)
@@ -192,7 +186,7 @@ export default function ListingDetailPage() {
     allFpsData.forEach(({ game, resolution, quality, multiplier }) => {
       const perfBase = FPS_DATA.BASE_FPS + (rating - 3) * FPS_DATA.RATING_ADJUST;
       const tuning = Math.min(1.5, Math.max(0.75, getGpuTierMultiplier(gpu) * getCpuTierMultiplier(cpu)));
-      const calculatedFps = Math.round(perfBase * multiplier * tuning * 1.5);
+      const calculatedFps = Math.round(perfBase * multiplier * tuning * 2.7);
       const fps = Math.max(1, calculatedFps);
 
       if (!estimatedFpsMap.has(game)) {
@@ -727,14 +721,13 @@ export default function ListingDetailPage() {
                           key={i}
                           className={cn(
                             "w-4 h-4",
-                            i < performance.rating 
+                            i < ratingForStars 
                               ? "text-[var(--color-warning)] fill-current" 
                               : "text-tertiary"
                           )}
                         />
                       ))}
                     </div>
-                    <span className="text-sm font-semibold text-primary text-left xs:text-right">{performance.label}</span>
                   </div>
                 </div>
               </CardHeader>

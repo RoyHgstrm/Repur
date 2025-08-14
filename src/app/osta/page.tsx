@@ -166,7 +166,6 @@ export default function OstaPage() {
                     <SelectItem value="newest">Uusimmat ensin</SelectItem>
                     <SelectItem value="price-low">Halvin ensin</SelectItem>
                     <SelectItem value="price-high">Kallein ensin</SelectItem>
-                    <SelectItem value="rating">Parhaiten arvioitu</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -325,7 +324,6 @@ export default function OstaPage() {
                   <SelectItem value="newest">Uusimmat ensin</SelectItem>
                   <SelectItem value="price-low">Halvin ensin</SelectItem>
                   <SelectItem value="price-high">Kallein ensin</SelectItem>
-                  <SelectItem value="rating">Parhaiten arvioitu</SelectItem>
                 </SelectContent>
               </Select>
             </div>
