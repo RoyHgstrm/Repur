@@ -1,0 +1,106 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Siirry sisältöön" [ref=e2] [cursor=pointer]:
+    - /url: "#content"
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "Etusivu" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e9] [cursor=pointer]: R
+            - generic [ref=e10] [cursor=pointer]: Repur.fi
+          - generic [ref=e11]:
+            - link "Osta" [ref=e12] [cursor=pointer]:
+              - /url: /osta
+            - link "Myy" [ref=e13] [cursor=pointer]:
+              - /url: /myy
+            - link "Meistä" [ref=e14] [cursor=pointer]:
+              - /url: /meista
+            - link "Yhteystiedot" [ref=e15] [cursor=pointer]:
+              - /url: /yhteystiedot
+            - link "Tuki" [ref=e16] [cursor=pointer]:
+              - /url: /tuki
+            - link "Kirjaudu" [ref=e18] [cursor=pointer]:
+              - /url: /sign-in
+              - button "Kirjaudu" [ref=e19]
+    - main [ref=e21]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: 🕵️‍♂️
+        - heading "404 - Sivua ei löytynyt" [level=2] [ref=e25]
+        - paragraph [ref=e26]: Pahoittelut, etsimääsi sivua ei löytynyt.
+        - link "Palaa etusivulle" [ref=e27] [cursor=pointer]:
+          - /url: /
+      - region "Notifications (F8)":
+        - list
+    - contentinfo [ref=e28]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - heading "Tarvitsetko apua oikean koneen valintaan?" [level=2] [ref=e32]
+            - paragraph [ref=e33]: Ota yhteyttä – autamme mielellämme.
+          - link "Ota yhteyttä" [ref=e34] [cursor=pointer]:
+            - /url: /yhteystiedot
+            - generic [ref=e35] [cursor=pointer]:
+              - img [ref=e36] [cursor=pointer]
+              - text: Ota yhteyttä
+        - generic [ref=e39]:
+          - generic [ref=e40]:
+            - generic [ref=e41]:
+              - generic [ref=e43]: R
+              - generic [ref=e44]: Repur.fi
+            - paragraph [ref=e45]: Kestävää ja luotettavaa suorituskykyä – uudelleenkäytetyt premium-pelikoneet.
+          - generic [ref=e46]:
+            - heading "Tuotteet" [level=3] [ref=e47]
+            - list [ref=e48]:
+              - listitem [ref=e49]:
+                - link "Osta" [ref=e50] [cursor=pointer]:
+                  - /url: /osta
+              - listitem [ref=e51]:
+                - link "Myy Koneesi" [ref=e52] [cursor=pointer]:
+                  - /url: /myy
+          - generic [ref=e53]:
+            - heading "Tuki" [level=3] [ref=e54]
+            - list [ref=e55]:
+              - listitem [ref=e56]:
+                - link "Asiakastuki" [ref=e57] [cursor=pointer]:
+                  - /url: /tuki
+              - listitem [ref=e58]:
+                - link "Takuu" [ref=e59] [cursor=pointer]:
+                  - /url: /takuu
+              - listitem [ref=e60]:
+                - link "Yhteystiedot" [ref=e61] [cursor=pointer]:
+                  - /url: /yhteystiedot
+          - generic [ref=e62]:
+            - heading "Yritys" [level=3] [ref=e63]
+            - list [ref=e64]:
+              - listitem [ref=e65]:
+                - link "Meistä" [ref=e66] [cursor=pointer]:
+                  - /url: /meista
+              - listitem [ref=e67]:
+                - link "Käyttöehdot" [ref=e68] [cursor=pointer]:
+                  - /url: /kayttoehdot
+              - listitem [ref=e69]:
+                - link "Tietosuojakäytäntö" [ref=e70] [cursor=pointer]:
+                  - /url: /tietosuoja
+        - generic [ref=e71]:
+          - paragraph [ref=e72]: © 2025 Repur.fi. Kaikki oikeudet pidätetään.
+          - generic [ref=e73]:
+            - link "Facebook" [ref=e74] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e75] [cursor=pointer]
+            - link "Twitter" [ref=e77] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e78] [cursor=pointer]
+            - link "Instagram" [ref=e80] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e81] [cursor=pointer]
+            - link "LinkedIn" [ref=e84] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e85] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e94] [cursor=pointer]:
+    - img [ref=e95] [cursor=pointer]
+  - alert [ref=e98]
+```

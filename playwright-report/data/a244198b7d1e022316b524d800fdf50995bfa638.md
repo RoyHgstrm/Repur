@@ -1,0 +1,327 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "Siirry sisältöön" [ref=e2] [cursor=pointer]:
+    - /url: "#content"
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - navigation [ref=e5]:
+        - generic [ref=e6]:
+          - link "Etusivu" [ref=e7] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e9] [cursor=pointer]: R
+            - generic [ref=e10] [cursor=pointer]: Repur.fi
+          - generic [ref=e11]:
+            - link "Osta" [ref=e12] [cursor=pointer]:
+              - /url: /osta
+            - link "Myy" [ref=e13] [cursor=pointer]:
+              - /url: /myy
+            - link "Meistä" [ref=e14] [cursor=pointer]:
+              - /url: /meista
+            - link "Yhteystiedot" [ref=e15] [cursor=pointer]:
+              - /url: /yhteystiedot
+            - link "Tuki" [ref=e16] [cursor=pointer]:
+              - /url: /tuki
+            - link "Kirjaudu" [ref=e18] [cursor=pointer]:
+              - /url: /sign-in
+              - button "Kirjaudu" [ref=e19]
+    - main [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e30]:
+          - generic [ref=e31]:
+            - generic [ref=e32]:
+              - img [ref=e33]
+              - generic [ref=e36]: 3 aktiivista konetta • keskihinta 550€
+            - heading "Pelikoneet Uudella Tasolla" [level=1] [ref=e37]:
+              - generic [ref=e38]: Pelikoneet
+              - generic [ref=e39]: Uudella Tasolla
+            - paragraph [ref=e40]:
+              - text: Hanki premium-tason gaming-PC puoleen hintaan tai myy omasi
+              - generic [ref=e41]: hetkessä
+              - text: – 12 kuukauden takuulla ja ympäristöä säästäen.
+            - generic [ref=e42]:
+              - link "Selaa koneita" [ref=e43] [cursor=pointer]:
+                - /url: /osta
+                - generic [ref=e44] [cursor=pointer]:
+                  - text: Selaa koneita
+                  - img [ref=e45] [cursor=pointer]
+              - link "Myy koneesi – pyydä tarjous" [ref=e50] [cursor=pointer]:
+                - /url: /myy
+                - generic [ref=e51] [cursor=pointer]: Myy koneesi – pyydä tarjous
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - img [ref=e55]
+                - generic [ref=e58]: 12 kk
+                - generic [ref=e59]: Takuu
+              - generic [ref=e60]:
+                - img [ref=e62]
+                - generic [ref=e67]: Ilmainen
+                - generic [ref=e68]: Toimitus
+          - 'form "Katso tuote: GOLD | Ryzen 7 5800X | RTX 3080" [ref=e70]':
+            - button "GOLD | Ryzen 7 5800X | RTX 3080 GOLD | Ryzen 7 5800X | RTX 3080 Ryzen 7 5800X • RTX 3080 1000€" [ref=e71] [cursor=pointer]:
+              - img "GOLD | Ryzen 7 5800X | RTX 3080" [ref=e72] [cursor=pointer]
+              - generic [ref=e73] [cursor=pointer]:
+                - generic [ref=e74] [cursor=pointer]:
+                  - heading "GOLD | Ryzen 7 5800X | RTX 3080" [level=3] [ref=e75] [cursor=pointer]
+                  - paragraph [ref=e76] [cursor=pointer]: Ryzen 7 5800X • RTX 3080
+                - generic [ref=e78] [cursor=pointer]: 1000€
+        - generic [ref=e84]:
+          - generic [ref=e85]:
+            - generic [ref=e86]:
+              - img [ref=e87]
+              - generic [ref=e90]: Ajankohtaiset kunnostetut koneet
+            - heading "Peli-Koneetvalmiina toimintaan" [level=2] [ref=e91]:
+              - generic [ref=e92]: Peli-Koneet
+              - generic [ref=e93]: valmiina toimintaan
+            - paragraph [ref=e94]: Jokainen kone on asiantuntijoiden kunnostama, testattu ja optimoitu – pelaaminen voi alkaa heti laatikon avaamisen jälkeen.
+          - generic [ref=e95]:
+            - 'link "GOLD | Ryzen 7 5800X | RTX 3080 GOLD | Ryzen 7 5800X | RTX 3080 Kuin uusi 1000 € sis. alv Suorituskyky 71 CPU: Ryzen 7 5800X GPU: RTX 3080 RAM: 32 GB DDR4 3200 MHz SSD: 2 TB m.2 NVMe SSD Katso Osta Nyt Takuu Ilmainen" [ref=e98] [cursor=pointer]':
+              - /url: /osta/YL9p9ktl3eS49-CisbNlk
+              - generic [ref=e99] [cursor=pointer]:
+                - img "GOLD | Ryzen 7 5800X | RTX 3080" [ref=e101] [cursor=pointer]
+                - generic [ref=e102] [cursor=pointer]:
+                  - generic [ref=e103] [cursor=pointer]:
+                    - heading "GOLD | Ryzen 7 5800X | RTX 3080" [level=3] [ref=e104] [cursor=pointer]
+                    - button [ref=e105]:
+                      - img [ref=e106]
+                  - generic [ref=e108] [cursor=pointer]:
+                    - generic [ref=e109] [cursor=pointer]: Kuin uusi
+                    - generic [ref=e110] [cursor=pointer]:
+                      - generic [ref=e111] [cursor=pointer]: 1000 €
+                      - generic [ref=e112] [cursor=pointer]: sis. alv
+                - generic [ref=e113] [cursor=pointer]:
+                  - generic [ref=e114] [cursor=pointer]:
+                    - generic [ref=e115] [cursor=pointer]: Suorituskyky
+                    - progressbar [ref=e116] [cursor=pointer]
+                    - generic [ref=e118] [cursor=pointer]: "71"
+                  - generic [ref=e119] [cursor=pointer]:
+                    - generic [ref=e120] [cursor=pointer]:
+                      - generic [ref=e122] [cursor=pointer]: "CPU:"
+                      - generic [ref=e123] [cursor=pointer]: Ryzen 7 5800X
+                    - generic [ref=e124] [cursor=pointer]:
+                      - generic [ref=e126] [cursor=pointer]: "GPU:"
+                      - generic [ref=e127] [cursor=pointer]: RTX 3080
+                    - generic [ref=e128] [cursor=pointer]:
+                      - generic [ref=e129] [cursor=pointer]:
+                        - generic [ref=e130] [cursor=pointer]: "RAM:"
+                        - generic [ref=e131] [cursor=pointer]: 32 GB DDR4 3200 MHz
+                      - generic [ref=e132] [cursor=pointer]:
+                        - generic [ref=e133] [cursor=pointer]: "SSD:"
+                        - generic [ref=e134] [cursor=pointer]: 2 TB m.2 NVMe SSD
+                - generic [ref=e135] [cursor=pointer]:
+                  - generic [ref=e136] [cursor=pointer]:
+                    - button "Katso" [ref=e137]:
+                      - img [ref=e138]
+                      - generic [ref=e141]: Katso
+                    - button "Jaa" [ref=e142]:
+                      - img [ref=e143]
+                    - button "Osta Nyt" [ref=e149]:
+                      - img [ref=e150]
+                      - generic [ref=e152]: Osta Nyt
+                  - generic [ref=e153] [cursor=pointer]:
+                    - generic [ref=e154] [cursor=pointer]:
+                      - img [ref=e155] [cursor=pointer]
+                      - generic [ref=e157] [cursor=pointer]: Takuu
+                    - generic [ref=e158] [cursor=pointer]:
+                      - img [ref=e159] [cursor=pointer]
+                      - generic [ref=e164] [cursor=pointer]: Ilmainen
+            - 'link "SILVER | INTEL I5-11400F | RX 6600 (8GB) SILVER | INTEL I5-11400F | RX 6600 (8GB) Hyvä 400 € sis. alv Suorituskyky 35 CPU: Intel i5-11400F GPU: RX 6600 RAM: 16GB DDR4 3200MHz SSD: 256 GB M.2 SSD Katso Osta Nyt Takuu Ilmainen" [ref=e167] [cursor=pointer]':
+              - /url: /osta/-wCUfQGufLBWe31u0ZOSP
+              - generic [ref=e168] [cursor=pointer]:
+                - img "SILVER | INTEL I5-11400F | RX 6600 (8GB)" [ref=e170] [cursor=pointer]
+                - generic [ref=e171] [cursor=pointer]:
+                  - generic [ref=e172] [cursor=pointer]:
+                    - heading "SILVER | INTEL I5-11400F | RX 6600 (8GB)" [level=3] [ref=e173] [cursor=pointer]
+                    - button [ref=e174]:
+                      - img [ref=e175]
+                  - generic [ref=e177] [cursor=pointer]:
+                    - generic [ref=e178] [cursor=pointer]: Hyvä
+                    - generic [ref=e179] [cursor=pointer]:
+                      - generic [ref=e180] [cursor=pointer]: 400 €
+                      - generic [ref=e181] [cursor=pointer]: sis. alv
+                - generic [ref=e182] [cursor=pointer]:
+                  - generic [ref=e183] [cursor=pointer]:
+                    - generic [ref=e184] [cursor=pointer]: Suorituskyky
+                    - progressbar [ref=e185] [cursor=pointer]
+                    - generic [ref=e187] [cursor=pointer]: "35"
+                  - generic [ref=e188] [cursor=pointer]:
+                    - generic [ref=e189] [cursor=pointer]:
+                      - generic [ref=e191] [cursor=pointer]: "CPU:"
+                      - generic [ref=e192] [cursor=pointer]: Intel i5-11400F
+                    - generic [ref=e193] [cursor=pointer]:
+                      - generic [ref=e195] [cursor=pointer]: "GPU:"
+                      - generic [ref=e196] [cursor=pointer]: RX 6600
+                    - generic [ref=e197] [cursor=pointer]:
+                      - generic [ref=e198] [cursor=pointer]:
+                        - generic [ref=e199] [cursor=pointer]: "RAM:"
+                        - generic [ref=e200] [cursor=pointer]: 16GB DDR4 3200MHz
+                      - generic [ref=e201] [cursor=pointer]:
+                        - generic [ref=e202] [cursor=pointer]: "SSD:"
+                        - generic [ref=e203] [cursor=pointer]: 256 GB M.2 SSD
+                - generic [ref=e204] [cursor=pointer]:
+                  - generic [ref=e205] [cursor=pointer]:
+                    - button "Katso" [ref=e206]:
+                      - img [ref=e207]
+                      - generic [ref=e210]: Katso
+                    - button "Jaa" [ref=e211]:
+                      - img [ref=e212]
+                    - button "Osta Nyt" [ref=e218]:
+                      - img [ref=e219]
+                      - generic [ref=e221]: Osta Nyt
+                  - generic [ref=e222] [cursor=pointer]:
+                    - generic [ref=e223] [cursor=pointer]:
+                      - img [ref=e224] [cursor=pointer]
+                      - generic [ref=e226] [cursor=pointer]: Takuu
+                    - generic [ref=e227] [cursor=pointer]:
+                      - img [ref=e228] [cursor=pointer]
+                      - generic [ref=e233] [cursor=pointer]: Ilmainen
+          - link "Näytä kaikki koneet" [ref=e235] [cursor=pointer]:
+            - /url: /osta
+            - text: Näytä kaikki koneet
+            - img [ref=e236] [cursor=pointer]
+        - generic [ref=e240]:
+          - generic [ref=e241]:
+            - heading "MiksiRepur.fi?" [level=2] [ref=e242]:
+              - generic [ref=e243]: Miksi
+              - generic [ref=e244]: Repur.fi?
+            - paragraph [ref=e245]: Kunnostamme ja myymme premium-pelitietokoneita Suomessa. Tarjoamme 12 kuukauden takuun, reilun hinnoittelun ja selkeät speksit – ilman piilokuluja.
+          - generic [ref=e246]:
+            - generic [ref=e251] [cursor=pointer]:
+              - img [ref=e253] [cursor=pointer]
+              - heading "12 kuukauden takuu" [level=3] [ref=e256] [cursor=pointer]
+              - paragraph [ref=e257] [cursor=pointer]: Jokainen kone sisältää kattavan takuun ja nopean asiakastuen. Mielenrauhaasi ei myydä erikseen.
+            - generic [ref=e262] [cursor=pointer]:
+              - img [ref=e264] [cursor=pointer]
+              - heading "Testattua Tehoa" [level=3] [ref=e266] [cursor=pointer]
+              - paragraph [ref=e267] [cursor=pointer]: Suorituskyky on varmistettu raskailla pelimitouksilla. Saat juuri sen suorituskyvyn, mitä lupaamme.
+            - generic [ref=e272] [cursor=pointer]:
+              - img [ref=e274] [cursor=pointer]
+              - heading "Kestävä Valinta" [level=3] [ref=e281] [cursor=pointer]
+              - paragraph [ref=e282] [cursor=pointer]: Vähennä elektroniikkajätettä jopa 80%. Pelaaminen ei ole koskaan ollut näin ympäristöystävällistä.
+            - generic [ref=e287] [cursor=pointer]:
+              - img [ref=e289] [cursor=pointer]
+              - heading "Reilut Hinnat" [level=3] [ref=e291] [cursor=pointer]
+              - paragraph [ref=e292] [cursor=pointer]: Maksat vain suorituskyvystä, ei brändistä. Säästä jopa 50% uuden hinnasta menettämättä laatua.
+            - generic [ref=e297] [cursor=pointer]:
+              - img [ref=e299] [cursor=pointer]
+              - heading "Huolellinen kunnostus" [level=3] [ref=e301] [cursor=pointer]
+              - paragraph [ref=e302] [cursor=pointer]: Jokainen osa tarkistetaan, tarvittaessa päivitetään ja optimoidaan luotettavaa käyttöä varten.
+            - generic [ref=e307] [cursor=pointer]:
+              - img [ref=e309] [cursor=pointer]
+              - heading "Ilmainen toimitus" [level=3] [ref=e314] [cursor=pointer]
+              - paragraph [ref=e315] [cursor=pointer]: Nopea ja turvallinen toimitus Suomessa – ilman lisäkuluja.
+        - generic [ref=e321]:
+          - generic [ref=e322]:
+            - img [ref=e323]
+            - generic [ref=e325]: Käteistä hetkessä
+          - heading "Muuta Vanha Koneesikäteiseksi" [level=2] [ref=e326]:
+            - generic [ref=e327]: Muuta Vanha Koneesi
+            - generic [ref=e328]: käteiseksi
+          - paragraph [ref=e329]: Miksi antaa vanhan pelikoneen kerätä pölyä? Saat meiltä reilun alustavan arvion nopeasti ja vaivattomasti – prosessi on suunniteltu sinua varten.
+          - generic [ref=e330]:
+            - generic [ref=e331]:
+              - img [ref=e332]
+              - generic [ref=e335]: Alustava hinta-arvio verkossa
+            - generic [ref=e336]:
+              - img [ref=e337]
+              - generic [ref=e340]: Maksuton nouto tai postitus sovittaessa
+            - generic [ref=e341]:
+              - img [ref=e342]
+              - generic [ref=e345]: Nopea käsittely ja selkeä lopullinen tarjous
+            - generic [ref=e346]:
+              - img [ref=e347]
+              - generic [ref=e350]: Rahat tilille tarjouksen hyväksynnän jälkeen
+          - generic [ref=e351]:
+            - link "Aloita myynti nyt" [ref=e352] [cursor=pointer]:
+              - /url: /myy
+              - generic [ref=e353] [cursor=pointer]:
+                - text: Aloita myynti nyt
+                - img [ref=e354] [cursor=pointer]
+            - link "Katso esimerkkikoneita" [ref=e356] [cursor=pointer]:
+              - /url: /osta
+        - generic [ref=e359]:
+          - generic [ref=e360]:
+            - img [ref=e361]
+            - generic [ref=e364]: Sitoutuminen Laatuun
+          - heading "Laatu, läpinäkyvyys ja takuu" [level=2] [ref=e365]
+          - paragraph [ref=e366]: Jokainen myymämme tietokone edustaa sitoutumistamme laatuun, luotettavuuteen ja kestävään kehitykseen. Me emme myy vain tietokoneita – me myymme mielenrauhaa.
+          - generic [ref=e367]:
+            - link "Selaa koneita" [ref=e368] [cursor=pointer]:
+              - /url: /osta
+              - generic [ref=e369] [cursor=pointer]:
+                - text: Selaa koneita
+                - img [ref=e370] [cursor=pointer]
+            - link "Lue meistä lisää" [ref=e375] [cursor=pointer]:
+              - /url: /meista
+      - region "Notifications (F8)":
+        - list
+    - contentinfo [ref=e376]:
+      - generic [ref=e377]:
+        - generic [ref=e378]:
+          - generic [ref=e379]:
+            - heading "Tarvitsetko apua oikean koneen valintaan?" [level=2] [ref=e380]
+            - paragraph [ref=e381]: Ota yhteyttä – autamme mielellämme.
+          - link "Ota yhteyttä" [ref=e382] [cursor=pointer]:
+            - /url: /yhteystiedot
+            - generic [ref=e383] [cursor=pointer]:
+              - img [ref=e384] [cursor=pointer]
+              - text: Ota yhteyttä
+        - generic [ref=e387]:
+          - generic [ref=e388]:
+            - generic [ref=e389]:
+              - generic [ref=e391]: R
+              - generic [ref=e392]: Repur.fi
+            - paragraph [ref=e393]: Kestävää ja luotettavaa suorituskykyä – uudelleenkäytetyt premium-pelikoneet.
+          - generic [ref=e394]:
+            - heading "Tuotteet" [level=3] [ref=e395]
+            - list [ref=e396]:
+              - listitem [ref=e397]:
+                - link "Osta" [ref=e398] [cursor=pointer]:
+                  - /url: /osta
+              - listitem [ref=e399]:
+                - link "Myy Koneesi" [ref=e400] [cursor=pointer]:
+                  - /url: /myy
+          - generic [ref=e401]:
+            - heading "Tuki" [level=3] [ref=e402]
+            - list [ref=e403]:
+              - listitem [ref=e404]:
+                - link "Asiakastuki" [ref=e405] [cursor=pointer]:
+                  - /url: /tuki
+              - listitem [ref=e406]:
+                - link "Takuu" [ref=e407] [cursor=pointer]:
+                  - /url: /takuu
+              - listitem [ref=e408]:
+                - link "Yhteystiedot" [ref=e409] [cursor=pointer]:
+                  - /url: /yhteystiedot
+          - generic [ref=e410]:
+            - heading "Yritys" [level=3] [ref=e411]
+            - list [ref=e412]:
+              - listitem [ref=e413]:
+                - link "Meistä" [ref=e414] [cursor=pointer]:
+                  - /url: /meista
+              - listitem [ref=e415]:
+                - link "Käyttöehdot" [ref=e416] [cursor=pointer]:
+                  - /url: /kayttoehdot
+              - listitem [ref=e417]:
+                - link "Tietosuojakäytäntö" [ref=e418] [cursor=pointer]:
+                  - /url: /tietosuoja
+        - generic [ref=e419]:
+          - paragraph [ref=e420]: © 2025 Repur.fi. Kaikki oikeudet pidätetään.
+          - generic [ref=e421]:
+            - link "Facebook" [ref=e422] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e423] [cursor=pointer]
+            - link "Twitter" [ref=e425] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e426] [cursor=pointer]
+            - link "Instagram" [ref=e428] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e429] [cursor=pointer]
+            - link "LinkedIn" [ref=e432] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e433] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e442] [cursor=pointer]:
+    - img [ref=e443] [cursor=pointer]
+  - alert [ref=e446]
+```

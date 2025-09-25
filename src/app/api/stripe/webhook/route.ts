@@ -55,9 +55,12 @@ export async function POST(req: NextRequest) {
         const amountTotal = session.amount_total ?? 0; // in cents
 
         if (companyListingId) {
+          console.log(`[Stripe Webhook] Processing checkout.session.completed for listing: ${companyListingId}, buyer: ${buyerId}`);
+          console.log(`[Stripe Webhook] Attempting to mark listing ${companyListingId} as SOLD.`);
           // Mark listing as SOLD and insert purchase row if not already existing
           const listing = await db.query.listings.findFirst({ where: eq(listings.id, companyListingId) });
           if (listing) {
+            console.log(`[Stripe Webhook] Listing found. Attempting to insert purchase record for session: ${session.id}`);
             // Upsert purchase by session.id idempotency via unique (id) if we used session.id earlier, otherwise insert new
             await db.insert(purchases).values({
               id: session.id, // use Stripe session id as primary key to ensure idempotency
@@ -68,8 +71,11 @@ export async function POST(req: NextRequest) {
               shippingAddress: '-',
               status: 'COMPLETED',
             }).onConflictDoNothing();
+            console.log(`[Stripe Webhook] Purchase record insert attempted for session: ${session.id}.`);
+            console.log(`[Stripe Webhook] Attempting to update listing status to SOLD for listing: ${companyListingId}.`);
 
             await db.update(listings).set({ status: 'SOLD' }).where(eq(listings.id, companyListingId));
+            console.log(`[Stripe Webhook] Listing status update attempted for listing: ${companyListingId}.`);
 
             // Create warranty for this purchase: 12 months default
             try {
@@ -88,10 +94,12 @@ export async function POST(req: NextRequest) {
               // Don't fail webhook if warranty insert races; it can be recomputed
               console.error('Warranty creation failed', e);
             }
+            console.log(`[Stripe Webhook] Warranty creation attempted for purchase: ${session.id}.`);
 
             // Invalidate Redis cache
             await redis.del('listings:active');
             await redis.del(`listing:${companyListingId}`);
+            console.log(`[Stripe Webhook] Redis cache invalidated for listing: ${companyListingId}.`)
           }
         }
         break;
