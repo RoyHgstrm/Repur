@@ -15,7 +15,6 @@ import { Label } from "~/components/ui/label";
 import { cn } from "~/lib/utils";
 import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
-import Image from 'next/image';
 import { computePerformanceScore, getPerformanceTier } from '~/lib/performanceScoring'; // HOW: Import the new, comprehensive performance scoring utility.
 
 
@@ -70,7 +69,7 @@ export default function EmployeeDashboardPage() {
     applyHash();
     window.addEventListener('hashchange', applyHash);
     return () => window.removeEventListener('hashchange', applyHash);
-  }, []);
+  }, [setTab]);
 
   const sectionTitle = tab === 'companyListings' ? 'Yrityksen listaukset'
     : tab === 'tradeIns' ? 'Trade-In pyynnöt'
@@ -756,7 +755,6 @@ Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukaud
                   toast({ title: 'Virhe', description: err?.message ?? 'Kuvien lataus epäonnistui', variant: 'destructive' });
                 } finally {
                   if (fileInputRef.current) fileInputRef.current.value = '';
-                  setObjectUrls([]);
                   setSelectedImage([]);
                 }
               }}
@@ -819,7 +817,6 @@ Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukaud
                     size="sm"
                     className="mt-1 text-xs text-[var(--color-error)] hover:bg-[var(--color-error)]/10"
                     onClick={() => {
-                      setObjectUrls([]);
                       setSelectedImage([]);
                       setFormData((p) => ({ ...p, images: [] })); // Clear all images if 'Poista kaikki kuvat' is clicked
                     }}

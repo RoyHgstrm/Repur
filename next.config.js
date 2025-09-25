@@ -9,6 +9,13 @@ const nextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'wukkulrwjqqxcxiwnflc.storage.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
   },
   experimental: {
     // Reduce bundle size by optimizing icon library imports

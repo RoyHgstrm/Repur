@@ -1,6 +1,5 @@
 "use client"
 import { api } from '~/trpc/react';
-import { computePerformanceScore, getPerformanceTier } from '../../../lib/performanceScoring';
 // import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';
 import { Button } from '~/components/ui/button';
@@ -39,7 +38,7 @@ import { fi } from 'date-fns/locale';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { type RouterOutputs } from '~/trpc/react';
 import { cn } from '~/lib/utils';
@@ -50,6 +49,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { api as trpc } from '~/trpc/react';
 import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
 import { getStripe } from "~/lib/stripe";
+import { computePerformanceScore } from '../../../lib/performanceScoring';
 
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };
@@ -116,7 +116,6 @@ export default function ListingDetailPage() {
     ram: listing.ram ?? null,
     storage: listing.storage ?? null,
   }) : 0;
-  const performance = getPerformanceTier(performanceScore);
   const ratingForStars = Math.max(1, Math.min(5, Math.round(performanceScore / 20)));
   // Safe helpers for current image and list
   const images = Array.isArray(listing?.images) ? (listing!.images as string[]) : [];
