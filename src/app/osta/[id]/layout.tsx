@@ -12,7 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
     const title = listing.title ?? 'Repur.fi';
     const description = (listing.description ?? '').slice(0, 160) || 'Kunnostettu pelikone 12 kk takuulla.';
-    const image = Array.isArray(listing.images) && listing.images[0] ? String(listing.images[0]) : undefined;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://repur.fi'; // Fallback 
+    const image = Array.isArray(listing.images) && listing.images[0] ? `${baseUrl}${listing.images[0]}` : undefined;
 
     return {
       title,
