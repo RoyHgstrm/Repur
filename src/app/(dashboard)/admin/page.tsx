@@ -367,7 +367,6 @@ function CompanyListingForm() {
 
   const [selectedImage, setSelectedImage] = useReactState<File[]>([]); // New state for selected image files (array)
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [objectUrls, setObjectUrls] = useReactState<string[]>([]);
 
   // HOW: Auto-generate a marketing-friendly title prefix and description based on a performance tier
   //      computed from CPU/GPU strings. The generated content is in Finnish per localization rules.
@@ -487,7 +486,7 @@ Kaikki koneemme toimitetaan käyttövalmiina ja esiasennettuina virtajohdon kans
 Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukauden takuu.`,
   };
 
-  const getTierInfo = (score: number): { key: 'PLATINUM'|'GOLD'|'SILVER'|'BRONZE'; label: string } => {
+  const getPerformanceTier = (score: number): { key: 'PLATINUM'|'GOLD'|'SILVER'|'BRONZE'; label: string } => {
     if (score >= 85) return { key: 'PLATINUM', label: 'PLATINUM' };
     if (score >= 70) return { key: 'GOLD', label: 'GOLD' };
     if (score >= 55) return { key: 'SILVER', label: 'SILVER' };
@@ -497,7 +496,7 @@ Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukaud
   useEffect(() => {
     // Compute tier whenever CPU/GPU change
     const score = computePerformanceScore(formData.gpu, formData.cpu);
-    const { key, label } = getTierInfo(score);
+    const { key, label } = getPerformanceTier(score);
 
     // Title: add tier prefix by default if not present
     const currentTitle = formData.title?.trim() ?? '';
@@ -548,16 +547,6 @@ Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukaud
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.cpu, formData.gpu]);
 
-  // No longer need fileToBase64 as we'll send FormData directly
-  // const fileToBase64 = (file: File): Promise<string> => {
-  //   return new Promise((resolve, reject) => {
-  //     const reader = new FileReader();
-  //     reader.readAsDataURL(file);
-  //     reader.onload = () => resolve(reader.result as string);
-  //     reader.onerror = (error) => reject(error);
-  //   });
-  // };
-
   const createCompanyListingMutation = api.listings.createCompanyListing.useMutation({
     onSuccess: () => {
       toast({
@@ -580,7 +569,6 @@ Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukaud
         images: [], // Reset images on success
       });
       setSelectedImage([]); // Reset selected images on success
-      setObjectUrls([]); // Clear object URLs for previews
     },
     onError: (error: { message: string }) => {
       toast({

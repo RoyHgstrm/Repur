@@ -6,7 +6,7 @@ import { db } from '~/server/db';
 import { purchases } from '~/server/db/schema';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
 
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-07-30.basil' });
+const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' });
 
 const DateRangeSchema = z.object({ from: z.string().datetime().optional(), to: z.string().datetime().optional() }).optional();
 

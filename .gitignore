@@ -10,6 +10,7 @@
 
 # Bun
 /bun.lockb
+/bun.lock
 
 # Logs
 /logs/
