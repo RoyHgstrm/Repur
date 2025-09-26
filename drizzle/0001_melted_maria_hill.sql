@@ -1,0 +1,1 @@
+ALTER TABLE "repur2_listing" ADD COLUMN "views" numeric DEFAULT '0' NOT NULL;

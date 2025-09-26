@@ -38,7 +38,7 @@ import { fi } from 'date-fns/locale';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { type RouterOutputs } from '~/trpc/react';
 import { cn } from '~/lib/utils';
@@ -54,6 +54,7 @@ import { computePerformanceScore } from '../../../lib/performanceScoring';
 type DetailedListing = RouterOutputs['listings']['getCompanyListingById'] & {
   seller?: { name: string | null; };
   evaluatedBy?: { name: string | null; };
+  views?: number;
 };
 
 
@@ -68,6 +69,41 @@ export default function ListingDetailPage() {
   const favState = trpc.favorites.isFavorited.useQuery({ listingId: id }, { enabled: !!id && Boolean(isSignedIn) });
 
   const { data: listingData, isLoading, error } = api.listings.getCompanyListingById.useQuery({ id });
+  const incrementViews = api.listings.incrementListingViews.useMutation();
+
+  // HOW: Track if we've already incremented views and ensure auth is ready
+  // WHY: Prevent duplicate calls and ensure we have auth context
+  const viewIncrementedRef = useRef(false);
+  const { isLoaded: isAuthLoaded } = useAuth();
+
+  useEffect(() => {
+    let mounted = true;
+    let timer: NodeJS.Timeout | null = null;
+
+    const incrementViewCount = async () => {
+      if (!id || !isAuthLoaded || viewIncrementedRef.current || !mounted) return;
+
+      try {
+        // Wait for auth and other effects to settle
+        timer = setTimeout(() => {
+          if (mounted) {
+            incrementViews.mutate({ id });
+            viewIncrementedRef.current = true;
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('Failed to increment view count:', error);
+      }
+    };
+
+    void incrementViewCount();
+
+    return () => {
+      mounted = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [id, incrementViews, isAuthLoaded]);
+
   const [showPurchased, setShowPurchased] = useState(false);
   useEffect(() => {
     const url = new URL(window.location.href);

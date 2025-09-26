@@ -70,7 +70,7 @@ export default function OstaPage() {
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)]">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/10 via-[var(--color-secondary)]/10 to-[var(--color-accent)]/10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/110 via-[var(--color-secondary)]/110 to-[var(--color-accent)]/110" />
         <div className="container-responsive py-section relative">
           <div className="text-center space-y-6 max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] p-1 rounded-full">

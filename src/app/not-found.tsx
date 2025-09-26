@@ -1,6 +1,8 @@
 import { Button } from '~/components/ui/button'
 import Link from 'next/link'
 
+export const runtime = 'nodejs';
+
 export default function NotFound() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)] flex items-center justify-center">

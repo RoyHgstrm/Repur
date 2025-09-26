@@ -58,6 +58,7 @@ export const listings = createTable("listing", {
   powerSupply: varchar("power_supply", { length: 255 }).notNull(),
   caseModel: varchar("case_model", { length: 255 }), // Made optional
   basePrice: numeric("base_price").notNull(),
+  views: numeric("views").default("0").notNull(),
   // Optional campaign discount fields
   discountAmount: numeric("discount_amount"),
   discountStart: timestamp("discount_start", { withTimezone: true }),

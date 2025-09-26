@@ -7,6 +7,7 @@ import { nanoid } from 'nanoid';
 import { redis } from '~/lib/redis';
 import { sanitizeHtml } from '~/lib/utils';
 import { computePerformanceScore } from '~/lib/utils'; // HOW: Import the centralized performance score utility for tier filtering.
+import { viewsLimiter, listingsLimiter } from '~/lib/rate-limiter';
 
 // Validation schemas
 const CompanyListingSchema = z.object({
@@ -303,10 +304,28 @@ export const listingsRouter = createTRPCRouter({
 
   // Get all active company listings
   getActiveCompanyListings: publicProcedure
-    .input(z.object({ limit: z.number().optional(), featuredOnly: z.boolean().optional() }).optional())
+    .use(async ({ ctx, next }) => {
+      const ip = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
+      const { success } = await listingsLimiter.limit(ip);
+      if (!success) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many requests. Please try again later.",
+        });
+      }
+      return next();
+    })
+    .input(z.object({ 
+      limit: z.number().optional(), 
+      featuredOnly: z.boolean().optional(),
+      sortBy: z.enum(['views', 'created']).optional(),
+      sortOrder: z.enum(['asc', 'desc']).optional()
+    }).optional())
     .query(async ({ ctx, input }) => {
       const onlyFeatured = input?.featuredOnly === true;
-      const cacheKey = onlyFeatured ? 'listings:featured' : 'listings:active';
+      const sortBy = input?.sortBy ?? 'created';
+      const sortOrder = input?.sortOrder ?? 'desc';
+      const cacheKey = `listings:${onlyFeatured ? 'featured' : 'active'}:${sortBy}:${sortOrder}`;
       // HOW: Use shorter TTLs to reduce staleness in hero section; featured updates are important for landing page.
       // WHY: We want fast loads (cache) but also quick convergence to fresh data when items sell or change.
       const ttlSeconds = onlyFeatured ? 120 : 300; // 2 min for featured, 5 min for general active
@@ -329,6 +348,15 @@ export const listingsRouter = createTRPCRouter({
             ? and(eq(listings.status, 'ACTIVE'), eq(listings.isFeatured as any, true as any))
             : eq(listings.status, 'ACTIVE')) as any,
           limit: input?.limit,
+          orderBy: [
+            sortBy === 'views'
+              ? sortOrder === 'desc'
+                ? desc(listings.views)
+                : asc(listings.views)
+              : sortOrder === 'desc'
+                ? desc(listings.createdAt)
+                : asc(listings.createdAt)
+          ],
           // Try with discount fields first
           columns: {
             id: true,
@@ -353,6 +381,7 @@ export const listingsRouter = createTRPCRouter({
             evaluatedById: true,
             createdAt: true,
             updatedAt: true,
+            views: true,
           },
           with: {
             seller: true,
@@ -724,6 +753,7 @@ export const listingsRouter = createTRPCRouter({
         status: true,
         isFeatured: true,
         basePrice: true,
+        views: true,
       },
       with: {
         seller: true,
@@ -741,7 +771,7 @@ export const listingsRouter = createTRPCRouter({
     }
 
     const rows = await ctx.db.query.listings.findMany({
-      columns: { id: true, title: true, status: true, basePrice: true, isFeatured: true },
+      columns: { id: true, title: true, status: true, basePrice: true, isFeatured: true, views: true },
       with: { seller: true },
     });
     return rows;
@@ -790,6 +820,7 @@ export const listingsRouter = createTRPCRouter({
             evaluatedById: true,
             createdAt: true,
             updatedAt: true,
+            views: true,
           },
           with: {
             seller: true,
@@ -827,6 +858,7 @@ export const listingsRouter = createTRPCRouter({
               evaluatedById: true,
               createdAt: true,
               updatedAt: true,
+              views: true,
             },
             with: { seller: true, evaluatedBy: true },
           });
@@ -840,6 +872,50 @@ export const listingsRouter = createTRPCRouter({
         }
         throw err;
       }
+    }),
+
+  incrementListingViews: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // Use Redis to track view increments with a shorter expiry
+      const ip = ctx.headers.get("x-forwarded-for") ?? "127.0.0.1";
+      const viewKey = `views:${input.id}:${ip}`;
+      
+      // Check if this IP has already incremented this listing's views recently
+      const existing = await redis.get(viewKey);
+      if (existing && typeof existing === 'string') {
+        return JSON.parse(existing); // Return cached result
+      }
+
+      // Apply rate limit only for new view increments
+      const { success } = await viewsLimiter.limit(ip);
+      if (!success) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many requests. Please try again later.",
+        });
+      }
+
+      const listing = await ctx.db.query.listings.findFirst({
+        where: eq(listings.id, input.id),
+      });
+
+      if (!listing) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Listaus ei löytynyt' });
+      }
+
+      const updated = await ctx.db.update(listings)
+        .set({ views: (parseInt(listing.views, 10) + 1).toString() })
+        .where(eq(listings.id, input.id))
+        .returning({
+          id: listings.id,
+          views: listings.views,
+        });
+      
+      // Cache the result for 5 seconds to prevent duplicate increments
+      await redis.set(viewKey, JSON.stringify(updated[0]), { ex: 5 });
+      
+      return updated[0];
     }),
 
   // Employee: Mark trade-in as 'Contacted'

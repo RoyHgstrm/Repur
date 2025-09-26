@@ -81,66 +81,86 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
     return (
       <div className="group relative w-full overflow-hidden">
         <Link href={`/osta/${listing.id}`} className="block w-full">
-          <Card className="h-full flex flex-row items-stretch bg-surface-2 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/40 shadow-sm hover:shadow-md transition-transform duration-200 ease-out transform-gpu overflow-hidden">
+          <Card className="h-full flex flex-col sm:flex-row items-stretch bg-surface-2 border-[var(--color-border-light)] hover:border-[var(--color-primary)]/40 shadow-sm hover:shadow-md transition-transform duration-200 ease-out transform-gpu overflow-hidden">
             {/* Image */}
-            <div className="relative shrink-0 w-28 h-28 sm:w-36 sm:h-28 md:w-40 md:h-32 border-r border-[var(--color-border)]/50 rounded-lg overflow-hidden">
+            <div className="relative shrink-0 w-full aspect-[16/9] sm:aspect-auto sm:w-32 sm:h-32 md:w-48 md:h-40 lg:w-56 lg:h-44 border-b sm:border-b-0 sm:border-r border-[var(--color-border)]/50 overflow-hidden">
               {listing.images && listing.images.length > 0 && listing.images[0] ? (
                 <Image
                   src={listing.images[0]}
                   alt={listing.title || 'Product image'}
                   fill
-                  sizes="(max-width: 640px) 120px, 160px"
-                  className="object-cover rounded-lg"
-                  priority={eager}
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 128px, (max-width: 1024px) 192px, 224px"
+                  className="object-contain bg-surface-1"
+                  priority={eager ? true : false}
                   loading={eager ? 'eager' : 'lazy'}
                   fetchPriority={eager ? 'high' : 'auto'}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-surface-3">
-                  <span className="text-sm text-tertiary">Ei kuvaa</span>
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[var(--color-surface-3)] to-[var(--color-surface-2)]">
+                  <div className="flex flex-col items-center justify-center text-[var(--color-neutral)]/60">
+                    <div className="relative">
+                      <span className="text-2xl sm:text-3xl font-extrabold italic bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">
+                        R
+                      </span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/20 to-[var(--color-accent)]/20 blur-xl scale-150" aria-hidden />
+                    </div>
+                    <span className="text-xs mt-1 font-medium">Ei kuvaa</span>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Content */}
-            <div className="flex-1 min-w-0 p-3 sm:p-4">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm sm:text-base font-semibold text-primary line-clamp-2 leading-snug flex-1 min-w-0">
+            <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-2 mb-3">
+                <h3 className="text-sm sm:text-base font-semibold text-primary line-clamp-2 leading-snug flex-1 min-w-0 w-full sm:w-auto group-hover:text-gradient-primary transition-colors">
                   {listing.title ?? 'Nimetön tietokone'}
                 </h3>
-                <Badge className={cn("text-[10px] sm:text-xs font-semibold px-2 py-0.5 rounded-full shrink-0", getConditionColor(listing.condition))}>
+                <Badge className={cn("text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 mt-1 sm:mt-0", getConditionColor(listing.condition))}>
                   {listing.condition ?? 'Tuntematon'}
                 </Badge>
               </div>
 
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <div className="text-[11px] sm:text-xs text-secondary truncate">CPU: <span className="text-primary font-medium">{listing.cpu ?? 'Ei tietoa'}</span></div>
-                <div className="text-[11px] sm:text-xs text-secondary truncate">GPU: <span className="text-primary font-medium">{listing.gpu ?? 'Ei tietoa'}</span></div>
+              {/* Specs */}
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 p-2 bg-surface-1 rounded-lg transition-colors hover:bg-surface-1/80">
+                  <div className="w-1.5 h-1.5 bg-[var(--color-primary)] rounded-full flex-shrink-0"></div>
+                  <span className="text-xs text-secondary font-medium min-w-0">CPU:</span>
+                  <span className="text-xs text-primary font-semibold truncate flex-1">{listing.cpu ?? 'Ei tietoa'}</span>
+                </div>
+                <div className="flex items-center gap-2 p-2 bg-surface-1 rounded-lg transition-colors hover:bg-surface-1/80">
+                  <div className="w-1.5 h-1.5 bg-[var(--color-secondary)] rounded-full flex-shrink-0"></div>
+                  <span className="text-xs text-secondary font-medium min-w-0">GPU:</span>
+                  <span className="text-xs text-primary font-semibold truncate flex-1">{listing.gpu ?? 'Ei tietoa'}</span>
+                </div>
               </div>
 
-              <div className="mt-2 flex items-center justify-between">
-                <div className="flex items-baseline gap-1">
+              {/* Footer */}
+              <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-baseline gap-2">
                   {hasWindow && discountAmountNum > 0 ? (
                     <>
-                      <span className="text-xs text-tertiary line-through">{basePriceNum} €</span>
-                      <span className="text-lg font-extrabold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">{finalPrice} €</span>
+                      <span className="text-sm text-tertiary line-through">{basePriceNum} €</span>
+                      <span className="text-xl font-extrabold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">{finalPrice} €</span>
                     </>
                   ) : (
-                    <span className="text-lg font-extrabold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">{basePriceNum} €</span>
+                    <span className="text-xl font-extrabold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent">{basePriceNum} €</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 px-2 text-xs border-[var(--color-border-light)] text-secondary hover:bg-[var(--color-primary)]/10"
+                    className="flex-1 sm:flex-none h-9 px-3 text-sm border-[var(--color-border-light)] text-secondary hover:bg-[var(--color-primary)]/10 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all duration-300"
                     onClick={(e) => { e.preventDefault(); window.location.href = `/osta/${listing.id}`; }}
                   >
+                    <Eye className="w-4 h-4 mr-1.5 hidden sm:inline" />
                     Katso
                   </Button>
                   <Button
                     size="sm"
-                    className="h-8 px-3 text-xs bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white"
+                    className="flex-1 sm:flex-none h-9 px-4 text-sm bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-[var(--color-primary)]/25 transition-all duration-300"
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
@@ -152,6 +172,7 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
                       onPurchaseClick(listing);
                     }}
                   >
+                    <Zap className="w-4 h-4 mr-1.5 hidden sm:inline" />
                     Osta
                   </Button>
                 </div>
@@ -215,7 +236,7 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
           {/* Card Header */}
           <CardHeader className="pb-3 px-3 sm:px-4 md:px-6 space-y-3">
             <div className="flex justify-between items-start gap-2">
-              <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-primary group-hover:text-gradient-primary transition-all line-clamp-2 leading-tight flex-1">
+              <CardTitle className="text-sm xs:text-base sm:text-lg md:text-xl font-bold text-primary group-hover:text-gradient-primary transition-all line-clamp-2 leading-tight flex-1">
                 {listing.title ?? 'Nimetön tietokone'}
               </CardTitle>
               <Button
@@ -238,11 +259,7 @@ export const ProductCard = ({ listing, onPurchaseClick, variant = "grid", eager 
               <div className="text-right sm:text-right">
                 {hasWindow && discountAmountNum > 0 ? (
                   <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2">
-                      <span className="badge-spotlight animate-pulse-soft inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-accent)]/15 border border-[var(--color-accent)]/40 text-[var(--color-accent)] text-xs font-semibold">
-                        ✨ Alennus
-                      </span>
-                    </div>
+
                     <div className="flex items-baseline gap-2 justify-end">
                       <span className="text-sm text-tertiary line-through">{basePriceNum} €</span>
                       <span className="glow-accent-hover text-xl sm:text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-accent)] to-[var(--color-primary)] bg-clip-text text-transparent">

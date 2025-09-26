@@ -233,7 +233,9 @@ const StatCard = ({ value, label, icon }: { value: string, label: string, icon: 
 // HOW: This component renders the main landing page of the application.
 // WHY: It serves as the primary entry point for users, showcasing featured products and company values.
 export default function HomePage() {
-  const { data: listings, isLoading } = api.listings.getActiveCompanyListings.useQuery(
+  // HOW: Get featured listings for hero section and most viewed listings for main section
+  // WHY: Show popular items to increase engagement while keeping hero section for featured promotions
+  const { data: featuredListings } = api.listings.getActiveCompanyListings.useQuery(
     { limit: 6, featuredOnly: true },
     {
       // HOW: SWR-ish policy for hero listings to avoid stale data while keeping UI snappy.
@@ -247,6 +249,19 @@ export default function HomePage() {
       placeholderData: (prev: ListingWithSeller[] | undefined) => prev,
     }
   );
+  // Get most viewed listings for main section
+  const { data: popularListings, isLoading: isPopularLoading } = api.listings.getActiveCompanyListings.useQuery(
+    { limit: 6, sortBy: 'views', sortOrder: 'desc' },
+    {
+      staleTime: 30_000,          // treat data as fresh for 30s
+      gcTime: 5 * 60_000,         // keep in cache for 5 min
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchInterval: 60_000,    // background revalidate every 60s
+      refetchIntervalInBackground: true,
+    }
+  );
+
   // Cache on client for snappy loads; server caches in Redis.
   const { data: heroStats } = api.metrics.getHeroStats.useQuery(undefined, {
     staleTime: 30_000,
@@ -360,8 +375,8 @@ export default function HomePage() {
             </motion.div>
 
             {/* Right: featured listing / carousel */}
-            <div className="order-last lg:order-last mt-6 lg:mt-0 max-w-[720px] sm:max-w-[600px] w-full mx-auto">
-              <HeroFeaturedCarousel items={(listings ?? []).slice(0, 5)} />
+            <div className="order-last lg:order-last mt-6 lg:mt-0 max-w-[720px] sm:max-w-[600px] w-full mx-auto lg:pl-10">
+              <HeroFeaturedCarousel items={(featuredListings ?? []).slice(0, 5)} />
             </div>
           </div>
         </div>
@@ -380,7 +395,7 @@ export default function HomePage() {
           >
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[var(--color-secondary-dark)]/50 to-[var(--color-primary-dark)]/50 border border-[var(--color-secondary)]/30 mb-6">
               <TrendingUp className="w-4 h-4 text-[var(--color-secondary-light)] mr-2" />
-              <span className="text-sm text-[var(--color-secondary-light)] font-medium">Ajankohtaiset kunnostetut koneet</span>
+              <span className="text-sm text-[var(--color-secondary-light)] font-medium">Suosituimmat pelikoneet</span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-center">
@@ -393,12 +408,12 @@ export default function HomePage() {
             </h2>
 
             <p className="text-xl text-[var(--color-text-secondary)] max-w-2xl mx-auto">
-              Jokainen kone on asiantuntijoiden kunnostama, testattu ja optimoitu –
-              pelaaminen voi alkaa heti laatikon avaamisen jälkeen.
+              Katsotuimmat ja suosituimmat pelikoneet – asiantuntijoiden kunnostamat,
+              testatut ja optimoidut. Pelaaminen voi alkaa heti laatikon avaamisen jälkeen.
             </p>
           </motion.div>
 
-          {isLoading ? (
+          {isPopularLoading ? (
             <div className="product-list grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="bg-[var(--color-surface-2)]/50 rounded-2xl p-6 h-64 animate-pulse">
@@ -413,7 +428,7 @@ export default function HomePage() {
             <>
               {/* Mobile list view for featured */}
               <div className="sm:hidden space-y-3">
-                {listings?.map((listing: ListingWithSeller, index: number) => (
+                {popularListings?.map((listing: ListingWithSeller, index: number) => (
                   <ListingCard
                     key={listing.id}
                     listing={listing}
@@ -432,7 +447,7 @@ export default function HomePage() {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.2 }}
               >
-                {listings?.map((listing: ListingWithSeller, index: number) => (
+                {popularListings?.map((listing: ListingWithSeller, index: number) => (
                   <motion.div
                     key={listing.id}
                     variants={itemVariants}

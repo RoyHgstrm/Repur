@@ -79,51 +79,66 @@ export default function EmployeeDashboardPage() {
     : 'Hallintapaneeli';
 
   return (
-    <div className="container mx-auto px-container py-section">
+    <div className="container mx-auto px-4 sm:px-container py-section">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-3xl-fluid sm:text-4xl-fluid font-bold text-[var(--color-neutral)]">Hallintapaneeli</h1>
-        <div className="relative w-full sm:w-auto">
-          <Input placeholder="Haku (tilaukset, listaukset, asiakkaat)" className="w-full sm:min-w-[320px]" />
+        <h1 className="text-2xl sm:text-3xl-fluid lg:text-4xl-fluid font-bold text-[var(--color-neutral)] text-center sm:text-left">Hallintapaneeli</h1>
+        <div className="relative w-full sm:w-auto px-4 sm:px-0">
+          <Input 
+            placeholder="Haku (tilaukset, listaukset, asiakkaat)" 
+            className="w-full sm:min-w-[280px] lg:min-w-[320px] mx-auto sm:mx-0" 
+          />
         </div>
       </div>
 
       <AdminStats />
 
       {/* Breadcrumbs */}
-      <div className="mt-4 text-sm text-[var(--color-text-tertiary)]">
-        <nav aria-label="murupolku" className="flex items-center gap-2">
+      <div className="mt-4 text-xs sm:text-sm text-[var(--color-text-tertiary)] text-center sm:text-left px-4 sm:px-0">
+        <nav aria-label="murupolku" className="flex items-center justify-center sm:justify-start gap-2">
           <span>Hallintapaneeli</span>
           <span aria-hidden>/</span>
           <span className="text-[var(--color-text-secondary)]">{sectionTitle}</span>
         </nav>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => { setTab(v); window.location.hash = v; }} className="space-y-6 mt-6">
-        <TabsList className="sticky top-20 z-10 grid w-full grid-cols-5 bg-[var(--color-surface-2)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-2)]/60">
-          <TabsTrigger value="companyListings">Yrityksen Listaukset</TabsTrigger>
-          <TabsTrigger value="tradeIns">Trade-In Pyynnöt</TabsTrigger>
-          <TabsTrigger value="purchases">Ostot</TabsTrigger>
-          <TabsTrigger value="warranties">Takuut</TabsTrigger>
-          <TabsTrigger value="analytics">Analytiikka</TabsTrigger>
+      <Tabs 
+        value={tab} 
+        onValueChange={(v) => { setTab(v); window.location.hash = v; }} 
+        className="space-y-6 mt-6"
+      >
+        <TabsList className="sticky top-20 z-10 w-full bg-[var(--color-surface-2)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-2)]/60 overflow-x-auto flex justify-start sm:justify-center">
+          {/* Tabs for larger screens and now scrollable on small screens */}
+          <TabsTrigger value="companyListings" className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Yrityksen Listaukset</TabsTrigger>
+          <TabsTrigger value="tradeIns" className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Trade-In Pyynnöt</TabsTrigger>
+          <TabsTrigger value="purchases" className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Ostot</TabsTrigger>
+          <TabsTrigger value="warranties" className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Takuut</TabsTrigger>
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap">Analytiikka</TabsTrigger>
         </TabsList>
+        {/* The Select component for mobile is removed as the TabsList is now scrollable */}
 
-        <TabsContent value="companyListings">
-          <div className="grid grid-cols-1 gap-6">
+        <TabsContent value="companyListings" className="mt-4">
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 px-4 sm:px-0">
             <CompanyListingForm />
             <CompanyListingsManage />
           </div>
         </TabsContent>
 
         <TabsContent value="tradeIns">
-          <TradeInListingsTable />
+          <div className="w-full overflow-x-auto px-4 sm:px-0">
+            <TradeInListingsTable />
+          </div>
         </TabsContent>
 
         <TabsContent value="purchases">
-          <PurchasesTable />
+          <div className="w-full overflow-x-auto px-4 sm:px-0">
+            <PurchasesTable />
+          </div>
         </TabsContent>
 
         <TabsContent value="warranties">
-          <WarrantiesTable />
+          <div className="w-full overflow-x-auto px-4 sm:px-0">
+            <WarrantiesTable />
+          </div>
         </TabsContent>
 
         <TabsContent value="analytics">
@@ -371,97 +386,62 @@ function CompanyListingForm() {
   // HOW: Auto-generate a marketing-friendly title prefix and description based on a performance tier
   //      computed from CPU/GPU strings. The generated content is in Finnish per localization rules.
   // WHY: Ensures consistent quality and reduces manual work when creating listings.
-  const computePerformanceScore = (gpu: string | null, cpu: string | null): number => {
-    const g = (gpu ?? '').toLowerCase();
-    const c = (cpu ?? '').toLowerCase();
+  
+  useEffect(() => {
+    // Compute tier whenever CPU/GPU change
+    const score = computePerformanceScore({ gpu: formData.gpu, cpu: formData.cpu });
+    const tier = getPerformanceTier(score);
+    const tierKey = tier.level.toUpperCase() as 'PLATINUM'|'GOLD'|'SILVER'|'BRONZE';
+    const tierLabel = tier.level.toUpperCase();
 
-    // HOW: Define granular performance scores for various CPU models.
-    // WHY: Provides a more accurate representation of CPU performance compared to broad categories.
-    // TODO: This data could be moved to a centralized configuration or fetched from an external API for better maintainability and up-to-dateness.
-    const cpuScores: Record<string, number> = {
-      // Intel Core i9
-      'i9-14900k': 100, 'i9-13900k': 98, 'i9-12900k': 95, 'i9-11900k': 90, 'i9-10900k': 85,
-      // Intel Core i7
-      'i7-14700k': 92, 'i7-13700k': 90, 'i7-12700k': 88, 'i7-11700k': 82, 'i7-10700k': 78,
-      // Intel Core i5
-      'i5-14600k': 85, 'i5-13600k': 82, 'i5-12600k': 80, 'i5-11600k': 75, 'i5-10600k': 70,
-      // Intel Core i3
-      'i3-12100f': 50, 'i3-10100f': 45, 'i3-9100f': 40,
-      // AMD Ryzen 9
-      'ryzen 9 7950x3d': 100, 'ryzen 9 7900x3d': 98, 'ryzen 9 5950x': 95, 'ryzen 9 5900x': 92,
-      // AMD Ryzen 7
-      'ryzen 7 7800x3d': 95, 'ryzen 7 7700x': 90, 'ryzen 7 5800x3d': 88, 'ryzen 7 5700x': 85,
-      // AMD Ryzen 5
-      'ryzen 5 7600x': 80, 'ryzen 5 5600x': 78, 'ryzen 5 3600': 70,
-      // AMD Ryzen 3
-      'ryzen 3 3100': 48, 'ryzen 3 2200g': 42,
-      // Older generations / budget options (example scores)
-      'i7-9700k': 65, 'i5-9600k': 60, 'ryzen 5 2600': 55,
-      'i3': 40, 'ryzen 3': 40, 'pentium': 30, 'celeron': 20,
-    };
+    // Title: add tier prefix by default if not present
+    const currentTitle = formData.title?.trim() ?? '';
+    let nextTitle = '';
+    
+    // HOW: Clean CPU and GPU names for a cleaner title format.
+    // WHY: Removes verbose manufacturer/series prefixes to make the title more concise and readable.
+    const cleanCpu = formData.cpu ? formData.cpu.toUpperCase().replace(/(INTEL\\s*CORE\\s*|AMD\\s*RYZEN\\s*)/g, '').trim() : 'Ei tietoa';
+    const cleanGpu = formData.gpu ? formData.gpu.toUpperCase().replace(/(NVIDIA\\s*GEFORCE\\s*RTX\\s*|AMD\\s*RADEON\\s*RX\\s*)/g, '').trim() : 'Ei tietoa';
+    
+    const defaultGeneratedTitle = `${tierLabel} | ${cleanCpu} | ${cleanGpu}`;
 
-    // HOW: Define granular performance scores for various GPU models.
-    // WHY: Provides a more accurate representation of GPU performance, which is crucial for gaming PCs.
-    // TODO: This data could be moved to a centralized configuration or fetched from an external API for better maintainability and up-to-dateness.
-    const gpuScores: Record<string, number> = {
-      // NVIDIA GeForce RTX 40 Series
-      'rtx 4090': 100, 'rtx 4080 super': 98, 'rtx 4080': 95, 'rtx 4070 ti super': 92, 'rtx 4070 super': 90, 'rtx 4070': 88, 'rtx 4060 ti': 80, 'rtx 4060': 75,
-      // NVIDIA GeForce RTX 30 Series
-      'rtx 3090 ti': 87, 'rtx 3090': 85, 'rtx 3080 ti': 82, 'rtx 3080': 80, 'rtx 3070 ti': 78, 'rtx 3070': 75, 'rtx 3060 ti': 70, 'rtx 3060': 65, 'rtx 3050': 55,
-      // NVIDIA GeForce RTX 20 Series
-      'rtx 2080 ti': 60, 'rtx 2080 super': 58, 'rtx 2080': 55, 'rtx 2070 super': 52, 'rtx 2070': 50, 'rtx 2060 super': 48, 'rtx 2060': 45,
-      // NVIDIA GeForce GTX 16 Series
-      'gtx 1660 super': 40, 'gtx 1660 ti': 38, 'gtx 1660': 35,
-      // AMD Radeon RX 7000 Series
-      'rx 7900 xtx': 97, 'rx 7900 xt': 94, 'rx 7800 xt': 89, 'rx 7700 xt': 84, 'rx 7600': 72,
-      // AMD Radeon RX 6000 Series
-      'rx 6900 xt': 80, 'rx 6800 xt': 78, 'rx 6700 xt': 74, 'rx 6600 xt': 68, 'rx 6600': 60,
-      // Older generations / budget options (example scores)
-      'gtx 1080 ti': 50, 'gtx 1070': 40, 'rx 580': 35, 'gtx 1060': 30, 'rx 570': 25,
-    };
+    // Check if the current title already has a tier prefix in the expected format (e.g., "PLATINUM | ...")
+    const tierRegex = /^(PLATINUM|GOLD|SILVER|BRONZE)\\s*\\|/i;
 
-    let cpuScore = 0;
-    let gpuScore = 0;
+    if (tierRegex.test(currentTitle)) {
+      // If it has a tier, try to update it with the new tier and clean CPU/GPU.
+      // This handles cases where the user might have slightly modified the auto-generated title.
+      const parts = currentTitle.split('|').map(s => s.trim());
+      const existingCpuPart = parts[1] || 'Ei tietoa';
+      const existingGpuPart = parts[2] || 'Ei tietoa';
 
-    // Find CPU score by matching against known models
-    for (const key in cpuScores) {
-      if (c.includes(key)) {
-        cpuScore = cpuScores[key];
-        break;
-      }
+      // Preserve existing CPU/GPU if they are meaningful, otherwise use the cleaned form data
+      const finalCpuForTitle = (existingCpuPart !== 'Ei tietoa' && existingCpuPart !== '') ? existingCpuPart : cleanCpu;
+      const finalGpuForTitle = (existingGpuPart !== 'Ei tietoa' && existingGpuPart !== '') ? existingGpuPart : cleanGpu;
+
+      nextTitle = `${tierLabel} | ${finalCpuForTitle} | ${finalGpuForTitle}`;
+    } else if (currentTitle) {
+      // If there's a custom title but no tier prefix, prepend the tier and base info
+      nextTitle = `${tierLabel} | ${currentTitle}`;
+    } else {
+      // If title is empty, use the fully auto-generated title
+      nextTitle = defaultGeneratedTitle;
     }
 
-    // Find GPU score by matching against known models
-    for (const key in gpuScores) {
-      if (g.includes(key)) {
-        gpuScore = gpuScores[key];
-        break;
-      }
-    }
+    // Description: set or replace only if empty or previously auto-generated
+    const currentDesc = formData.description?.trim() ?? '';
+    // HOW: Improved check for auto-generated description to prevent overwriting user's custom content.
+    // WHY: Ensures that only truly auto-generated descriptions are replaced, preserving user edits.
+    const isAutoDesc = Object.values(AUTO_DESCRIPTIONS).some((d) => currentDesc.startsWith(d.substring(0, 50)) && currentDesc.length >= d.length * 0.8 && currentDesc.length <= d.length * 1.2); // Check start of string and length
+    const nextDesc = AUTO_DESCRIPTIONS[tierKey];
 
-    // HOW: Calculate a combined score with a weighted average, prioritizing GPU for gaming PCs.
-    // WHY: GPU performance is generally more critical for gaming than CPU performance.
-    // TODO: These weights could be configurable or dynamically adjusted based on the specific use case (e.g., workstation vs. gaming PC).
-    const gpuWeight = 0.7; // 70% importance for GPU
-    const cpuWeight = 0.3; // 30% importance for CPU
-
-    let combinedScore = (cpuScore * cpuWeight) + (gpuScore * gpuWeight);
-
-    // If no specific CPU or GPU is found, assign a default score to avoid zero impact on overall score.
-    // This ensures even unidentifiable components contribute somewhat to a baseline tier.
-    if (cpuScore === 0 && gpuScore === 0) {
-      combinedScore = 20; // A low base score if neither is recognized
-    } else if (cpuScore === 0) {
-      // If only CPU is unknown, give GPU more weight and assign a reasonable default for CPU's portion
-      combinedScore = (gpuScore * 0.8) + (50 * 0.2); // Assume average CPU (score 50) if not specified
-    } else if (gpuScore === 0) {
-      // If only GPU is unknown, give CPU more weight and assign a reasonable default for GPU's portion
-      combinedScore = (cpuScore * 0.5) + (30 * 0.5); // Assume low-average GPU (score 30) if not specified
-    }
-
-    // Ensure score is within 0-100 range
-    return Math.max(0, Math.min(100, combinedScore));
-  };
+    setFormData((prev) => ({
+      ...prev,
+      ...(nextTitle !== prev.title ? { title: nextTitle } : {}), // Only update if changed
+      ...((currentDesc.length === 0 || isAutoDesc) ? { description: nextDesc } : {}),
+    }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.cpu, formData.gpu]);
 
   const AUTO_DESCRIPTIONS: Record<'PLATINUM'|'GOLD'|'SILVER'|'BRONZE', string> = {
     PLATINUM: `Repur Platinum – Huippuluokan tehoa ilman kompromisseja
@@ -485,68 +465,6 @@ Repur Bronze -tason koneet ovat erinomainen vaihtoehto budjettitietoiselle pelaa
 Kaikki koneemme toimitetaan käyttövalmiina ja esiasennettuina virtajohdon kanssa – liitä vain virta ja aloita pelaaminen.
 Kuten muissakin malleissamme, mukana on 14 päivän palautusoikeus ja 12 kuukauden takuu.`,
   };
-
-  const getPerformanceTier = (score: number): { key: 'PLATINUM'|'GOLD'|'SILVER'|'BRONZE'; label: string } => {
-    if (score >= 85) return { key: 'PLATINUM', label: 'PLATINUM' };
-    if (score >= 70) return { key: 'GOLD', label: 'GOLD' };
-    if (score >= 55) return { key: 'SILVER', label: 'SILVER' };
-    return { key: 'BRONZE', label: 'BRONZE' };
-  };
-
-  useEffect(() => {
-    // Compute tier whenever CPU/GPU change
-    const score = computePerformanceScore(formData.gpu, formData.cpu);
-    const { key, label } = getPerformanceTier(score);
-
-    // Title: add tier prefix by default if not present
-    const currentTitle = formData.title?.trim() ?? '';
-    let nextTitle = '';
-    
-    // HOW: Clean CPU and GPU names for a cleaner title format.
-    // WHY: Removes verbose manufacturer/series prefixes to make the title more concise and readable.
-    const cleanCpu = formData.cpu ? formData.cpu.toUpperCase().replace(/(INTEL\\s*CORE\\s*|AMD\\s*RYZEN\\s*)/g, '').trim() : 'Ei tietoa';
-    const cleanGpu = formData.gpu ? formData.gpu.toUpperCase().replace(/(NVIDIA\\s*GEFORCE\\s*RTX\\s*|AMD\\s*RADEON\\s*RX\\s*)/g, '').trim() : 'Ei tietoa';
-    
-    const defaultGeneratedTitle = `${label} | ${cleanCpu} | ${cleanGpu}`;
-
-    // Check if the current title already has a tier prefix in the expected format (e.g., "PLATINUM | ...")
-    const tierRegex = /^(PLATINUM|GOLD|SILVER|BRONZE)\\s*\\|/i;
-
-    if (tierRegex.test(currentTitle)) {
-      // If it has a tier, try to update it with the new tier and clean CPU/GPU.
-      // This handles cases where the user might have slightly modified the auto-generated title.
-      const parts = currentTitle.split('|').map(s => s.trim());
-      const existingCpuPart = parts[1] || 'Ei tietoa';
-      const existingGpuPart = parts[2] || 'Ei tietoa';
-
-      // Preserve existing CPU/GPU if they are meaningful, otherwise use the cleaned form data
-      const finalCpuForTitle = (existingCpuPart !== 'Ei tietoa' && existingCpuPart !== '') ? existingCpuPart : cleanCpu;
-      const finalGpuForTitle = (existingGpuPart !== 'Ei tietoa' && existingGpuPart !== '') ? existingGpuPart : cleanGpu;
-
-      nextTitle = `${label} | ${finalCpuForTitle} | ${finalGpuForTitle}`;
-    } else if (currentTitle) {
-      // If there's a custom title but no tier prefix, prepend the tier and base info
-      nextTitle = `${label} | ${currentTitle}`;
-    } else {
-      // If title is empty, use the fully auto-generated title
-      nextTitle = defaultGeneratedTitle;
-    }
-
-    // Description: set or replace only if empty or previously auto-generated
-    const currentDesc = formData.description?.trim() ?? '';
-    // HOW: Improved check for auto-generated description to prevent overwriting user's custom content.
-    // WHY: Ensures that only truly auto-generated descriptions are replaced, preserving user edits.
-    const isAutoDesc = Object.values(AUTO_DESCRIPTIONS).some((d) => currentDesc.startsWith(d.substring(0, 50)) && currentDesc.length >= d.length * 0.8 && currentDesc.length <= d.length * 1.2); // Check start of string and length
-    const nextDesc = AUTO_DESCRIPTIONS[key];
-
-    setFormData((prev) => ({
-      ...prev,
-      ...(nextTitle !== prev.title ? { title: nextTitle } : {}), // Only update if changed
-      ...((currentDesc.length === 0 || isAutoDesc) ? { description: nextDesc } : {}),
-    }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.cpu, formData.gpu]);
-
   const createCompanyListingMutation = api.listings.createCompanyListing.useMutation({
     onSuccess: () => {
       toast({
@@ -1241,6 +1159,7 @@ function CompanyListingsManage() {
                   <th className="py-2 pr-3">Alennus</th>
                   <th className="py-2 pr-3">Tila</th>
                   <th className="py-2 pr-3">Nosto</th>
+                  <th className="py-2 pr-3">Katselukerrat</th>
                   <th className="py-2 pr-3 w-40">Toiminnot</th>
                 </tr>
               </thead>
@@ -1273,7 +1192,7 @@ function CompanyListingsManage() {
                       }
                       void refetch();
                     }} />
-
+                      <td className="py-1 px-2 align-middle">{l.views}</td>
                     </tr>
                 ))}
               </tbody>
