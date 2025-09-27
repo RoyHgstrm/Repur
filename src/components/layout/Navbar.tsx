@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from "next/link";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "~/components/ui/button";
-import { Logo } from "~/components/ui/Logo";
 
 /**
  * Modern, responsive Navbar following Repur.fi design guidelines.
@@ -67,10 +66,14 @@ export default function Navbar() {
             className="inline-flex items-center gap-2 group"
             aria-label="Etusivu"
           >
-              <Logo size={40} className="group-hover:shadow-lg group-hover:ring-black/20 transition-all" />
-            <span className="text-4xl font-extrabold tracking-tight text-[var(--color-neutral)] group-hover:text-[var(--color-primary)] drop-shadow-sm transition-colors">
-              Repur.fi
-            </span>
+            <img 
+              src="/repur-fi-4-min.png" 
+              alt="Repur.fi Logo"
+              width={60} 
+              height={60} 
+              className="h-14 w-auto object-cover group-hover:shadow-lg group-hover:ring-black/20 transition-all"
+            />
+
           </Link>
 
             {/* Desktop Navigation */}
@@ -182,10 +185,15 @@ export default function Navbar() {
             aria-label="Navigointivalikko"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
+            <div className="flex items-center justify-between px-4 py-1 border-b border-[var(--color-border)]">
               <div className="flex items-center gap-3">
-                  <Logo size={40} />
-                <span className="text-lg font-extrabold text-[var(--color-neutral)]">Repur.fi</span>
+                <img
+                  src="/repur-fi-4-min.png"
+                  alt="Repur.fi Logo"
+                  width={60}
+                  height={60}
+                  className="h-14 w-auto object-contain"
+                />
               </div>
               <Button
                 variant="ghost"

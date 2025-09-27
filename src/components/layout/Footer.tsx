@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
-import { Logo } from "~/components/ui/Logo";
 
 /**
  * Modern Footer with newsletter, social links and consistent spacing.
@@ -28,8 +27,13 @@ export default function Footer() {
           {/* Logo and Description */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Logo size={40} />
-              <span className="text-xl font-bold text-primary">Repur.fi</span>
+              <img 
+                src="/repur-fi-4-min.png" 
+                alt="Repur.fi Logo"
+                width={40} 
+                height={40} 
+                className="h-18 w-auto object-contain"
+              />
             </div>
             <p className="text-secondary">
               Kestävää ja luotettavaa suorituskykyä – uudelleenkäytetyt premium-pelikoneet.
