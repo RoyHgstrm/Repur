@@ -1,4 +1,5 @@
 "use client"
+// Client component for listing details
 import { api } from '~/trpc/react';
 // import { notFound } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '~/components/ui/card';

@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     description: 'Premium-tason pelikoneet kunnostettuna. 12 kk takuu ja ilmainen toimitus.',
     images: [
       {
-        url: 'https://repur.fi/repur-fi-white2.png',
+        url: 'https://repur.fi/repur-fi-3.png',
         width: 1200,
         height: 630,
         alt: 'Repur.fi – Kunnostetut pelikoneet',
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     title: 'Repur.fi – Kunnostetut pelikoneet',
     description: 'Premium-tason pelikoneet kunnostettuna. 12 kk takuu ja ilmainen toimitus.',
     images: [
-      'https://repur.fi/repur-fi-white2.png',
+      'https://repur.fi/repur-fi-3.png',
     ],
   },
   alternates: {
