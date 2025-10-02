@@ -13,9 +13,9 @@
  * @property {any} [key: string] - Allows for additional, unspecified properties.
  */
 export interface Part {
-  name: string;
-  price: number | null;
-  [key: string]: any;
+	name: string;
+	price: number | null;
+	[key: string]: any;
 }
 
 /**
@@ -32,14 +32,14 @@ export interface Part {
  * @property {string | null} graphics - The integrated graphics of the CPU, or null if none.
  */
 export interface CpuPart {
-  name: string;
-  price: number | null;
-  core_count: number;
-  core_clock: number;
-  boost_clock: number | null;
-  microarchitecture: string;
-  tdp: number;
-  graphics: string | null;
+	name: string;
+	price: number | null;
+	core_count: number;
+	core_clock: number;
+	boost_clock: number | null;
+	microarchitecture: string;
+	tdp: number;
+	graphics: string | null;
 }
 
 /**
@@ -56,14 +56,14 @@ export interface CpuPart {
  * @property {number | null} length - The length of the GPU in millimeters, or null if not available.
  */
 export interface GpuPart {
-  name: string;
-  price: number | null;
-  chipset: string;
-  memory: number;
-  core_clock: number;
-  boost_clock: number | null;
-  color: string | null;
-  length: number | null;
+	name: string;
+	price: number | null;
+	chipset: string;
+	memory: number;
+	core_clock: number;
+	boost_clock: number | null;
+	color: string | null;
+	length: number | null;
 }
 
 // Note: JSON module resolution is handled by tsconfig "resolveJsonModule": true.

@@ -13,9 +13,9 @@
  * @property {any} [key: string] - Allows for additional, unspecified properties.
  */
 interface Part {
-  name: string;
-  price: number | null;
-  [key: string]: any;
+	name: string;
+	price: number | null;
+	[key: string]: any;
 }
 
 /**
@@ -32,14 +32,14 @@ interface Part {
  * @property {string | null} graphics - The integrated graphics of the CPU, or null if none.
  */
 interface CpuPart {
-  name: string;
-  price: number | null;
-  core_count: number;
-  core_clock: number;
-  boost_clock: number | null;
-  microarchitecture: string;
-  tdp: number;
-  graphics: string | null;
+	name: string;
+	price: number | null;
+	core_count: number;
+	core_clock: number;
+	boost_clock: number | null;
+	microarchitecture: string;
+	tdp: number;
+	graphics: string | null;
 }
 
 /**
@@ -56,28 +56,28 @@ interface CpuPart {
  * @property {number | null} length - The length of the GPU in millimeters, or null if not available.
  */
 interface GpuPart {
-  name: string;
-  price: number | null;
-  chipset: string;
-  memory: number;
-  core_clock: number;
-  boost_clock: number | null;
-  color: string | null;
-  length: number | null;
+	name: string;
+	price: number | null;
+	chipset: string;
+	memory: number;
+	core_clock: number;
+	boost_clock: number | null;
+	color: string | null;
+	length: number | null;
 }
 
 // Declare modules for JSON files to provide type inference
-declare module '*.json' {
-  const value: any; // Fallback for other JSONs
-  export default value;
+declare module "*.json" {
+	const value: any; // Fallback for other JSONs
+	export default value;
 }
 
-declare module '@/data/parts/cpu.json' {
-  const value: CpuPart[];
-  export default value;
+declare module "@/data/parts/cpu.json" {
+	const value: CpuPart[];
+	export default value;
 }
 
-declare module '@/data/parts/video-card.json' {
-  const value: GpuPart[];
-  export default value;
+declare module "@/data/parts/video-card.json" {
+	const value: GpuPart[];
+	export default value;
 }
