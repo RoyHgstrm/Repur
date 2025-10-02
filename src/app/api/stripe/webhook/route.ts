@@ -9,10 +9,9 @@ import { env } from "~/env";
 import { db } from "~/server/db";
 import { listings, purchases, warranties } from "~/server/db/schema";
 import { eq } from "drizzle-orm";
-import { limiter } from "~/lib/rate-limiter";
+import { defaultLimiter } from "~/lib/rate-limiter"; // Import the defaultLimiter instance
 import { redis } from "~/lib/redis";
 import { revalidatePath } from "next/cache";
-import { createRateLimiter } from "~/lib/rate-limiter";
 import { sendPurchaseConfirmationEmail } from "~/lib/email";
 import { headers } from "next/headers";
 import { Decimal } from "decimal.js";
@@ -30,15 +29,14 @@ const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
 
 export async function POST(req: NextRequest) {
 	// Basic rate-limit per IP for webhooks to avoid floods
-	const ip = req.headers.get("x-forwarded-for") ?? "unknown";
-	const { success } = await limiter.limit(`stripe:webhook:${ip}`);
-	if (!success)
-		return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+	const ip = req.headers.get("x-forwarded-for") ?? "127.0.0.1"; // Use x-forwarded-for for IP
+	const { success } = await defaultLimiter.limit(ip); // Use defaultLimiter directly
 
-	const rateLimiter = createRateLimiter({
-		interval: 10 * 1000, // 10 seconds
-		uniqueTokens: 100, // 100 unique tokens
-	});
+	if (!success) {
+		// Log rate limit exceeded.
+		console.warn(`[Stripe Webhook] Rate limit exceeded for IP: ${ip}`);
+		return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+	}
 
 	// Log the start of the webhook function for debugging in production.
 	console.log("[Stripe Webhook] Function started.");
@@ -100,12 +98,12 @@ export async function POST(req: NextRequest) {
 					// Fetch the listing associated with the purchase
 					const purchase = await db.query.purchases.findFirst({
 						where: eq(purchases.id, purchaseId),
-						with: { companyListing: true }, // Eager load the related companyListing
+						with: { companyListing: true, buyer: true }, // Eager load the related companyListing and buyer
 					});
 
-					if (purchase) {
+					if (purchase && purchase.buyer) {
 						console.log(
-							`[Stripe Webhook] Purchase record found (ID: ${purchaseId}). Current status: ${purchase.status}. Listing ID: ${purchase.companyListingId}`,
+							`[Stripe Webhook] Purchase record found (ID: ${purchaseId}). Current status: ${purchase.status}. Listing ID: ${purchase.companyListingId}. Buyer Email: ${purchase.buyer.email}`,
 						);
 
 						// Check if the purchase is already completed or processing to prevent redundant updates
@@ -131,7 +129,7 @@ export async function POST(req: NextRequest) {
 							.set({
 								status: "COMPLETED",
 								paymentMethod: "stripe",
-								purchasePrice: new Decimal(amountTotal).dividedBy(100), // Convert cents to EUR
+								purchasePrice: new Decimal(amountTotal).dividedBy(100).toString(), // Convert cents to EUR and then to string
 								stripeCheckoutSessionId: stripeCheckoutSessionId, // Store Stripe's checkout session ID
 								updatedAt: new Date(),
 							})
@@ -160,22 +158,62 @@ export async function POST(req: NextRequest) {
 						console.log(`[Stripe Webhook] Idempotency key set for event ${eventId}.`);
 
 						// Send confirmation email
-						if (purchase.userId && purchase.user) {
+						if (purchase.buyer.email) {
 							await sendPurchaseConfirmationEmail({
-								recipientEmail: purchase.user.email,
+								recipientEmail: purchase.buyer.email,
 								purchaseId: purchase.id,
 								productName: purchase.companyListing.title,
 								totalAmount: new Decimal(amountTotal).dividedBy(100),
 							});
 							// Log confirmation email sent.
-							console.log(`[Stripe Webhook] Purchase confirmation email sent to ${purchase.user.email} for purchase ${purchase.id}.`);
+							console.log(`[Stripe Webhook] Purchase confirmation email sent to ${purchase.buyer.email} for purchase ${purchase.id}.`);
 						} else {
 							// Log if email could not be sent.
-							console.warn(`[Stripe Webhook] Could not send purchase confirmation email for purchase ${purchase.id}. User or email missing.`);
+							console.warn(`[Stripe Webhook] Could not send purchase confirmation email for purchase ${purchase.id}. Buyer email missing.`);
 						}
+
+						// Create warranty for this purchase: 12 months default
+						try {
+							const start = new Date();
+							const end = new Date(start);
+							end.setMonth(end.getMonth() + 12);
+							await db
+								.insert(warranties)
+								.values({
+									id: purchaseId + ":w",
+									purchaseId: purchaseId,
+									startDate: start,
+									endDate: end,
+									status: "ACTIVE",
+									terms: "12 kuukauden takuu kaikille komponenteille",
+								})
+								.onConflictDoNothing();
+							console.log(
+								`[Stripe Webhook] Warranty creation attempted for purchase: ${purchaseId}.`,
+							);
+						} catch (e) {
+							console.error(
+								`[Stripe Webhook] Warranty creation failed for purchase ${purchaseId}:`,
+								e,
+							);
+						}
+
+						// Invalidate Redis cache
+						if (purchase.companyListingId) {
+							await redis.del("listings:active");
+							await redis.del(`listing:${purchase.companyListingId}`);
+							console.log(
+								`[Stripe Webhook] Redis cache invalidated for listing: ${purchase.companyListingId}.`,
+							);
+						}
+						// Revalidate Next.js paths
+						revalidatePath("/admin");
+						revalidatePath("/osta");
+						revalidatePath(`/osta/${purchase.companyListingId}`);
+						revalidatePath("/");
 					} else {
-						// Log if purchase record not found.
-						console.warn(`[Stripe Webhook] Purchase record with ID ${purchaseId} not found.`);
+						// Log if purchase update failed or listing not found, or buyer is missing.
+						console.warn(`[Stripe Webhook] Failed to update purchase ${purchaseId}: purchase or associated listing not found, or buyer is missing.`);
 					}
 				} else {
 					// Log if purchaseId is missing in session metadata.
@@ -209,7 +247,7 @@ export async function POST(req: NextRequest) {
 			case "invoice.payment_failed": {
 				const invoice = event.data.object as Stripe.Invoice;
 				// Log Invoice ID for failed payment events.
-				console.error(`[Stripe Webhook] Invoice payment failed: ${invoice.id}. Customer: ${invoice.customer}. Status: ${invoice.status}. Last payment error: ${invoice.last_payment_error?.message}`);
+				console.error(`[Stripe Webhook] Invoice payment failed: ${invoice.id}. Customer: ${invoice.customer}. Status: ${invoice.status}`);
 				break;
 			}
 			// Handle other event types as needed
