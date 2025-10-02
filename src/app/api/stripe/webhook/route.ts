@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
 			case "checkout.session.completed": {
 				const session = event.data.object as Stripe.Checkout.Session;
 				const purchaseId = session.metadata?.purchaseId; // Retrieve our internal purchaseId
+				const stripeCheckoutSessionId = session.id; // Retrieve Stripe's checkout session ID
 				// const companyListingId = session.metadata?.companyListingId; // Keep for now in case of old sessions
 				// const buyerId = session.metadata?.buyerId; // Keep for now in case of old sessions
 
@@ -67,17 +68,18 @@ export async function POST(req: NextRequest) {
 
 				if (purchaseId) {
 					console.log(
-						`[Stripe Webhook] Processing checkout.session.completed for purchase: ${purchaseId}`,
+						`[Stripe Webhook] Processing checkout.session.completed for purchase: ${purchaseId}. Session ID: ${session.id}`,
 					);
 
 					// Fetch the listing associated with the purchase
 					const purchase = await db.query.purchases.findFirst({
 						where: eq(purchases.id, purchaseId),
+						with: { companyListing: true }, // Eager load the related companyListing
 					});
 
 					if (purchase) {
 						console.log(
-							`[Stripe Webhook] Purchase record found. Attempting to update status to COMPLETED for purchase: ${purchaseId}.`,
+							`[Stripe Webhook] Purchase record found (ID: ${purchaseId}). Current status: ${purchase.status}. Listing ID: ${purchase.companyListingId}`,
 						);
 
 						// Update the existing purchase record
@@ -85,6 +87,7 @@ export async function POST(req: NextRequest) {
 							.update(purchases)
 							.set({
 								status: "COMPLETED",
+								stripeCheckoutSessionId: stripeCheckoutSessionId, // Store the Stripe Checkout Session ID
 								// Update paymentMethod and shippingAddress if provided by Stripe, otherwise keep existing
 								// paymentMethod: session.payment_method_details?.card?.brand ?? purchase.paymentMethod,
 								// shippingAddress: session.customer_details?.address ? JSON.stringify(session.customer_details.address) : purchase.shippingAddress,
@@ -93,20 +96,20 @@ export async function POST(req: NextRequest) {
 							})
 							.where(eq(purchases.id, purchaseId));
 						console.log(
-							`[Stripe Webhook] Purchase record updated to COMPLETED for purchase: ${purchaseId}.`,
+							`[Stripe Webhook] Purchase record updated to COMPLETED for purchase: ${purchaseId}. New status: COMPLETED.`,
 						);
 
 						// Mark listing as SOLD
 						if (purchase.companyListingId) {
 							console.log(
-								`[Stripe Webhook] Attempting to mark listing ${purchase.companyListingId} as SOLD.`,
+								`[Stripe Webhook] Attempting to mark listing ${purchase.companyListingId} as SOLD. Current status: ${purchase.companyListing?.status}`,
 							);
 							await db
 								.update(listings)
 								.set({ status: "SOLD" })
 								.where(eq(listings.id, purchase.companyListingId));
 							console.log(
-								`[Stripe Webhook] Listing status update attempted for listing: ${purchase.companyListingId}.`,
+								`[Stripe Webhook] Listing status update attempted for listing: ${purchase.companyListingId}. New status: SOLD.`,
 							);
 						}
 
@@ -127,7 +130,7 @@ export async function POST(req: NextRequest) {
 								})
 								.onConflictDoNothing();
 						} catch (e) {
-							console.error("Warranty creation failed", e);
+							console.error(`[Stripe Webhook] Warranty creation failed for purchase ${purchaseId}:`, e);
 						}
 						console.log(
 							`[Stripe Webhook] Warranty creation attempted for purchase: ${purchaseId}.`,

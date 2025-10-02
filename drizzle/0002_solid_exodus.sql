@@ -1,0 +1,2 @@
+ALTER TABLE "repur2_purchase" ADD COLUMN "stripe_checkout_session_id" varchar(255);--> statement-breakpoint
+ALTER TABLE "repur2_purchase" ADD CONSTRAINT "repur2_purchase_stripe_checkout_session_id_unique" UNIQUE("stripe_checkout_session_id");

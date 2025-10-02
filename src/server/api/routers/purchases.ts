@@ -153,8 +153,17 @@ export const purchasesRouter = createTRPCRouter({
 			});
 			if (!row) throw new Error("Tilausta ei löydy");
 
-			// Our purchase.id is Stripe Checkout Session ID (from webhook)
-			const session = await stripe.checkout.sessions.retrieve(row.id);
+			// Use the stored Stripe Checkout Session ID for refund
+			// Ensure stripeCheckoutSessionId is not null
+			if (!row.stripeCheckoutSessionId) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Stripe Checkout Session ID puuttuu ostotapahtumasta.",
+				});
+			}
+			const session = await stripe.checkout.sessions.retrieve(
+				row.stripeCheckoutSessionId, // Use the new column
+			);
 			const pi = session.payment_intent;
 			if (!pi) throw new Error("Maksutapahtumaa ei löydy");
 
@@ -179,18 +188,21 @@ export const purchasesRouter = createTRPCRouter({
 	getPurchaseStatus: publicProcedure
 		.input(z.object({ purchaseId: z.string() }))
 		.query(async ({ ctx, input }) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+			console.log(`[tRPC] getPurchaseStatus received purchaseId: ${input.purchaseId}`);
 			const purchase = await db.query.purchases.findFirst({
 				where: eq(purchases.id, input.purchaseId),
 				columns: { status: true, companyListingId: true },
 			});
 
 			if (!purchase) {
+				console.warn(`[tRPC] getPurchaseStatus: Purchase not found for ID: ${input.purchaseId}`);
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Ostotapahtumaa ei löytynyt",
 				});
 			}
 
+			console.log(`[tRPC] getPurchaseStatus: Purchase found, status: ${purchase.status}`);
 			return {
 				status: purchase.status,
 				companyListingId: purchase.companyListingId,

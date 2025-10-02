@@ -112,18 +112,18 @@ export default function OstosVahvistusPage() {
 	if (!purchaseIdForStatus && !checkoutSessionId) {
 		// This case should be handled by the initial useEffect, but as a safeguard.
 		content = (
-			<Alert variant="destructive">
+			<Alert variant="destructive" className="w-full max-w-md mx-auto">
 				<Terminal className="h-4 w-4" />
-				<AlertTitle>Ostosvahvistus epäonnistui</AlertTitle>
-				<AlertDescription>
+				<AlertTitle className="text-lg sm:text-xl pl-8">Ostosvahvistus epäonnistui</AlertTitle>
+				<AlertDescription className="text-sm sm:text-base">
 					Ostotunnusta ei löytynyt. Yritä uudelleen tai ota yhteyttä
 					asiakaspalveluun.
 				</AlertDescription>
-				<div className="flex gap-2 mt-4">
-					<Button asChild>
+				<div className="flex flex-col sm:flex-row gap-2 mt-4 w-full">
+					<Button asChild className="w-full sm:w-auto">
 						<Link href="/">Siirry etusivulle</Link>
 					</Button>
-					<Button variant="outline" asChild>
+					<Button variant="outline" asChild className="w-full sm:w-auto">
 						<Link href="/yhteystiedot">Ota yhteyttä</Link>
 					</Button>
 				</div>
@@ -133,7 +133,7 @@ export default function OstosVahvistusPage() {
 		content = (
 			<Alert>
 				<Loader2 className="h-4 w-4 animate-spin" />
-				<AlertTitle>Vahvistetaan ostotapahtumaa...</AlertTitle>
+				<AlertTitle className="pl-8">Vahvistetaan ostotapahtumaa...</AlertTitle>
 				<AlertDescription>
 					Tarkistamme ostoksesi tilaa. Tämä voi kestää hetken.
 				</AlertDescription>
@@ -146,7 +146,7 @@ export default function OstosVahvistusPage() {
 		content = (
 			<Alert variant="success">
 				<CheckCircle className="h-4 w-4" />
-				<AlertTitle>Osto vahvistettu!</AlertTitle>
+				<AlertTitle className="pl-8">Osto vahvistettu!</AlertTitle>
 				<AlertDescription>
 					Kiitos ostoksestasi! Saat pian vahvistussähköpostin ja toimitustiedot.
 				</AlertDescription>
@@ -168,7 +168,7 @@ export default function OstosVahvistusPage() {
 		content = (
 			<Alert variant="destructive">
 				<XCircle className="h-4 w-4" />
-				<AlertTitle>Ostosvahvistus epäonnistui</AlertTitle>
+				<AlertTitle className="pl-8">Ostosvahvistus epäonnistui</AlertTitle>
 				<AlertDescription>
 					{errorMessage ||
 						"Tapahtui virhe ostoksesi vahvistamisessa. Ota yhteyttä asiakaspalveluun antamalla ostotunnuksesi."}
@@ -191,7 +191,7 @@ export default function OstosVahvistusPage() {
 	}
 
 	return (
-		<div className="container mx-auto px-container py-section flex justify-center items-center min-h-[60vh]">
+		<div className="container mx-auto px-container py-section flex justify-center items-center min-h-[95vh]">
 			<Card className="w-full max-w-2xl bg-[var(--color-surface-2)] border-[var(--color-border)]">
 				<CardHeader>
 					<CardTitle className="text-2xl-fluid font-semibold text-center">
