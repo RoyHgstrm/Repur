@@ -89,9 +89,9 @@ export default function ListingDetailPage() {
 	} = api.listings.getCompanyListingById.useQuery(
 		{ id },
 		{
-			staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
+			staleTime: 1000, // Data is considered stale after 1 second, always re-fetch in background on mount/refocus
 			refetchOnWindowFocus: true, // Re-fetch when window regains focus
-			refetchInterval: 60 * 1000, // Re-fetch every 1 minute in the background
+			refetchInterval: 5000, // Re-fetch every 5 seconds in the background
 		},
 	);
 	const incrementViews = api.listings.incrementListingViews.useMutation();
@@ -129,6 +129,16 @@ export default function ListingDetailPage() {
 			if (timer) clearTimeout(timer);
 		};
 	}, [id, incrementViews, isAuthLoaded]);
+
+	const [isListingSold, setIsListingSold] = useState(false);
+
+	useEffect(() => {
+		if (listingData?.status === "SOLD" || listingData?.status === "ARCHIVED") {
+			setIsListingSold(true);
+		} else {
+			setIsListingSold(false);
+		}
+	}, [listingData?.status]);
 
 	// Old showPurchased state and effect removed, now handled by /ostos-vahvistus
 	// const [showPurchased, setShowPurchased] = useState(false);
@@ -528,7 +538,7 @@ export default function ListingDetailPage() {
 				{/* Status banner (shown only when not ACTIVE) */}
 				{(() => {
 					const status = (listing?.status as string | undefined) ?? "ACTIVE";
-					if (status === "ACTIVE") return null;
+					if (status === "ACTIVE" && !isListingSold) return null;
 					const isSold = status === "SOLD";
 					const message = isSold
 						? "Tämä listaus on myyty."
@@ -1035,7 +1045,7 @@ export default function ListingDetailPage() {
 								{(() => {
 									const status =
 										(listing?.status as string | undefined) ?? "ACTIVE";
-									if (status !== "ACTIVE") return null;
+									if (status !== "ACTIVE" || isListingSold) return null; // Hide if not active or if already sold via polling
 									return (
 										<div className="space-y-3">
 											<EnhancedPurchaseDialog
