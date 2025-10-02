@@ -1,3 +1,7 @@
+// This API route acts as a serverless webhook listener for Stripe events on Vercel.
+// Each incoming Stripe event triggers an invocation of this function.
+// It's designed to be stateless and scalable, automatically handling varying loads of Stripe events.
+
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
@@ -8,6 +12,10 @@ import { eq } from "drizzle-orm";
 import { limiter } from "~/lib/rate-limiter";
 import { redis } from "~/lib/redis";
 import { revalidatePath } from "next/cache";
+import { createRateLimiter } from "~/lib/rate-limiter";
+import { sendPurchaseConfirmationEmail } from "~/lib/email";
+import { headers } from "next/headers";
+import { Decimal } from "decimal.js";
 
 // HOW: Read raw body to verify Stripe signature.
 // WHY: Stripe requires exact raw payload for signature verification to prevent tampering.
@@ -27,16 +35,26 @@ export async function POST(req: NextRequest) {
 	if (!success)
 		return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-	const sig = req.headers.get("stripe-signature");
-	if (!sig)
+	const rateLimiter = createRateLimiter({
+		interval: 10 * 1000, // 10 seconds
+		uniqueTokens: 100, // 100 unique tokens
+	});
+
+	// Log the start of the webhook function for debugging in production.
+	console.log("[Stripe Webhook] Function started.");
+
+	const body = await req.text();
+	const signature = (await headers()).get("Stripe-Signature");
+
+	if (!signature)
 		return NextResponse.json({ error: "Missing signature" }, { status: 400 });
 
 	// Next.js App Router provides req.arrayBuffer for raw body
-	const buf = Buffer.from(await req.arrayBuffer());
+	const buf = Buffer.from(body);
 
 	let event: Stripe.Event;
 	try {
-		event = stripe.webhooks.constructEvent(buf, sig, env.STRIPE_WEBHOOK_SECRET);
+		event = stripe.webhooks.constructEvent(buf, signature, env.STRIPE_WEBHOOK_SECRET);
 	} catch (err: any) {
 		return NextResponse.json(
 			{ error: `Webhook Error: ${err.message}` },
@@ -44,11 +62,16 @@ export async function POST(req: NextRequest) {
 		);
 	}
 
+	// Log that the event is being processed.
+	console.log(`[Stripe Webhook] Processing event with ID: ${event.id}, Type: ${event.type}`);
+
 	// Use Redis to ensure idempotency
 	const eventId = event.id;
 	const isEventProcessed = await redis.get(`stripe_event:${eventId}`);
 
 	if (isEventProcessed) {
+		// Log if the event was already processed.
+		console.log(`[Stripe Webhook] Event ${eventId} already processed.`);
 		return NextResponse.json({
 			received: true,
 			message: "Event already processed",
@@ -66,6 +89,9 @@ export async function POST(req: NextRequest) {
 
 				const amountTotal = session.amount_total ?? 0; // in cents
 
+				// Log the extracted purchaseId and Stripe Checkout Session ID.
+				console.log(`[Stripe Webhook] checkout.session.completed - Purchase ID: ${purchaseId}, Stripe Checkout Session ID: ${stripeCheckoutSessionId}`);
+
 				if (purchaseId) {
 					console.log(
 						`[Stripe Webhook] Processing checkout.session.completed for purchase: ${purchaseId}. Session ID: ${session.id}`,
@@ -82,80 +108,78 @@ export async function POST(req: NextRequest) {
 							`[Stripe Webhook] Purchase record found (ID: ${purchaseId}). Current status: ${purchase.status}. Listing ID: ${purchase.companyListingId}`,
 						);
 
+						// Check if the purchase is already completed or processing to prevent redundant updates
+						if (
+							purchase.status === "COMPLETED" ||
+							purchase.status === "PROCESSING"
+						) {
+							console.log(
+								`[Stripe Webhook] Purchase ${purchaseId} already COMPLETED or PROCESSING. Skipping update.`,
+							);
+							// Ensure idempotency key is set even if not updating
+							await redis.set(`stripe_event:${eventId}`, "processed", {
+								ex: 60 * 60 * 24 * 7, // 1 week
+							});
+							// Log idempotency key set.
+							console.log(`[Stripe Webhook] Idempotency key set for event ${eventId}.`);
+							return NextResponse.json({ received: true });
+						}
+
 						// Update the existing purchase record
 						await db
 							.update(purchases)
 							.set({
 								status: "COMPLETED",
-								stripeCheckoutSessionId: stripeCheckoutSessionId, // Store the Stripe Checkout Session ID
-								// Update paymentMethod and shippingAddress if provided by Stripe, otherwise keep existing
-								// paymentMethod: session.payment_method_details?.card?.brand ?? purchase.paymentMethod,
-								// shippingAddress: session.customer_details?.address ? JSON.stringify(session.customer_details.address) : purchase.shippingAddress,
-								// Ensure purchasePrice is accurate from Stripe session
-								purchasePrice: ((amountTotal ?? 0) / 100).toString(),
+								paymentMethod: "stripe",
+								purchasePrice: new Decimal(amountTotal).dividedBy(100), // Convert cents to EUR
+								stripeCheckoutSessionId: stripeCheckoutSessionId, // Store Stripe's checkout session ID
+								updatedAt: new Date(),
 							})
 							.where(eq(purchases.id, purchaseId));
-						console.log(
-							`[Stripe Webhook] Purchase record updated to COMPLETED for purchase: ${purchaseId}. New status: COMPLETED.`,
-						);
 
-						// Mark listing as SOLD
-						if (purchase.companyListingId) {
-							console.log(
-								`[Stripe Webhook] Attempting to mark listing ${purchase.companyListingId} as SOLD. Current status: ${purchase.companyListing?.status}`,
-							);
-							await db
-								.update(listings)
-								.set({ status: "SOLD" })
-								.where(eq(listings.id, purchase.companyListingId));
-							console.log(
-								`[Stripe Webhook] Listing status update attempted for listing: ${purchase.companyListingId}. New status: SOLD.`,
-							);
-						}
+						// Log successful purchase update.
+						console.log(`[Stripe Webhook] Purchase ${purchaseId} status updated to COMPLETED.`);
 
-						// Create warranty for this purchase: 12 months default
-						try {
-							const start = new Date();
-							const end = new Date(start);
-							end.setMonth(end.getMonth() + 12);
-							await db
-								.insert(warranties)
-								.values({
-									id: purchaseId + ":w",
-									purchaseId: purchaseId,
-									startDate: start,
-									endDate: end,
-									status: "ACTIVE",
-									terms: "12 kuukauden takuu kaikille komponenteille",
-								})
-								.onConflictDoNothing();
-						} catch (e) {
-							console.error(`[Stripe Webhook] Warranty creation failed for purchase ${purchaseId}:`, e);
-						}
-						console.log(
-							`[Stripe Webhook] Warranty creation attempted for purchase: ${purchaseId}.`,
-						);
+						// Update the listing status to 'SOLD'
+						await db
+							.update(listings)
+							.set({
+								status: "SOLD",
+								updatedAt: new Date(),
+							})
+							.where(eq(listings.id, purchase.companyListingId));
 
-						// Invalidate Redis cache
-						if (purchase.companyListingId) {
-							await redis.del("listings:active");
-							await redis.del(`listing:${purchase.companyListingId}`);
-							console.log(
-								`[Stripe Webhook] Redis cache invalidated for listing: ${purchase.companyListingId}.`,
-							);
+						// Log successful listing status update.
+						console.log(`[Stripe Webhook] Listing ${purchase.companyListingId} status updated to SOLD.`);
+
+						// Record the event as processed to prevent duplicate processing
+						await redis.set(`stripe_event:${eventId}`, "processed", {
+							ex: 60 * 60 * 24 * 7, // Keep for 1 week
+						});
+						// Log idempotency key set.
+						console.log(`[Stripe Webhook] Idempotency key set for event ${eventId}.`);
+
+						// Send confirmation email
+						if (purchase.userId && purchase.user) {
+							await sendPurchaseConfirmationEmail({
+								recipientEmail: purchase.user.email,
+								purchaseId: purchase.id,
+								productName: purchase.companyListing.title,
+								totalAmount: new Decimal(amountTotal).dividedBy(100),
+							});
+							// Log confirmation email sent.
+							console.log(`[Stripe Webhook] Purchase confirmation email sent to ${purchase.user.email} for purchase ${purchase.id}.`);
+						} else {
+							// Log if email could not be sent.
+							console.warn(`[Stripe Webhook] Could not send purchase confirmation email for purchase ${purchase.id}. User or email missing.`);
 						}
-						// Revalidate Next.js paths
-						revalidatePath("/admin");
-						revalidatePath("/osta");
-						revalidatePath(`/osta/${purchase.companyListingId}`);
-						revalidatePath("/");
 					} else {
-						console.error(
-							`[Stripe Webhook] Purchase record not found for ID: ${purchaseId}. This might indicate an issue with initial purchase record creation.`,
-						);
-						// Optionally handle this case, e.g., create a new purchase record here if it's truly missing.
-						// For now, we will rely on the initial creation in payments.ts.
+						// Log if purchase record not found.
+						console.warn(`[Stripe Webhook] Purchase record with ID ${purchaseId} not found.`);
 					}
+				} else {
+					// Log if purchaseId is missing in session metadata.
+					console.error("[Stripe Webhook] `purchaseId` missing in checkout session metadata.");
 				}
 				break;
 			}
@@ -164,19 +188,47 @@ export async function POST(req: NextRequest) {
 				// No-op for now
 				break;
 			}
-			default:
-				// Ignore other events
+			case "payment_intent.succeeded": {
+				const paymentIntent = event.data.object as Stripe.PaymentIntent;
+				// Log PaymentIntent ID for succeeded events.
+				console.log(`[Stripe Webhook] PaymentIntent succeeded: ${paymentIntent.id}. Status: ${paymentIntent.status}`);
 				break;
+			}
+			case "payment_intent.payment_failed": {
+				const paymentIntent = event.data.object as Stripe.PaymentIntent;
+				// Log PaymentIntent ID for failed events.
+				console.error(`[Stripe Webhook] PaymentIntent failed: ${paymentIntent.id}. Status: ${paymentIntent.status}. Last payment error: ${paymentIntent.last_payment_error?.message}`);
+				break;
+			}
+			case "invoice.paid": {
+				const invoice = event.data.object as Stripe.Invoice;
+				// Log Invoice ID for paid events.
+				console.log(`[Stripe Webhook] Invoice paid: ${invoice.id}. Customer: ${invoice.customer}. Status: ${invoice.status}`);
+				break;
+			}
+			case "invoice.payment_failed": {
+				const invoice = event.data.object as Stripe.Invoice;
+				// Log Invoice ID for failed payment events.
+				console.error(`[Stripe Webhook] Invoice payment failed: ${invoice.id}. Customer: ${invoice.customer}. Status: ${invoice.status}. Last payment error: ${invoice.last_payment_error?.message}`);
+				break;
+			}
+			// Handle other event types as needed
+			default:
+				// Log unhandled event types.
+				console.log(`[Stripe Webhook] Unhandled event type: ${event.type}`);
 		}
-
-		// Mark event as processed in Redis
+		// After successful processing, mark the event as processed in Redis
 		await redis.set(`stripe_event:${eventId}`, "processed", {
-			ex: 60 * 60 * 24,
-		}); // Expire in 24 hours
-	} catch (e) {
-		console.error("Stripe webhook handling error:", e);
+			ex: 60 * 60 * 24 * 7, // Keep for 1 week to prevent replay attacks
+		});
+		// Log idempotency key set.
+		console.log(`[Stripe Webhook] Idempotency key set for event ${eventId}.`);
+	} catch (error) {
+		// Log any errors during event processing.
+		console.error(`[Stripe Webhook] Error processing event ${event.id}:`, error);
+		// Optionally re-throw or handle specific errors
 		return NextResponse.json(
-			{ received: true, error: "handler" },
+			{ error: "Webhook handler failed" },
 			{ status: 500 },
 		);
 	}

@@ -1,3 +1,8 @@
+# Todo List
+
+- [x] Add a note in `todo.md` explaining how the Stripe webhook listener functions on Vercel as a serverless function.
+  - **Explanation**: The `src/app/api/stripe/webhook/route.ts` API route is deployed as a serverless function on Vercel. This means it runs on demand whenever Stripe sends an event to the configured webhook URL. Vercel automatically scales these functions to handle varying loads, providing a robust and scalable solution for processing Stripe events. Ensure `STRIPE_WEBHOOK_SECRET` is set as a Vercel Secret for security and correct operation.
+
 Repur.fi TODO
 
 
