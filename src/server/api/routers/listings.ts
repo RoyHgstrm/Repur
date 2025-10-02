@@ -8,6 +8,8 @@ import { redis } from '~/lib/redis';
 import { sanitizeHtml } from '~/lib/utils';
 import { computePerformanceScore } from '~/lib/utils'; // HOW: Import the centralized performance score utility for tier filtering.
 import { viewsLimiter, listingsLimiter } from '~/lib/rate-limiter';
+import { revalidatePath } from 'next/cache';
+import { getImage } from '~/server/utils/image'; // HOW: Import getImage utility for resolving image paths.
 
 // Validation schemas
 const CompanyListingSchema = z.object({
@@ -506,6 +508,13 @@ export const listingsRouter = createTRPCRouter({
       await redis.del('listings:featured');
       await redis.del(`listing:${input.companyListingId}`);
 
+      // HOW: Revalidate relevant Next.js paths to ensure data freshness on the client.
+      // WHY: Updates to listings, especially status, need to be immediately visible.
+      revalidatePath('/admin');
+      revalidatePath('/osta');
+      revalidatePath(`/osta/${input.companyListingId}`);
+      revalidatePath('/'); // For featured listings on homepage
+
       return updatedListing[0];
     }),
 
@@ -616,6 +625,13 @@ export const listingsRouter = createTRPCRouter({
       await redis.del('listings:active');
       await redis.del('listings:featured');
       await redis.del(`listing:${id}`);
+
+      // HOW: Revalidate relevant Next.js paths to ensure data freshness on the client.
+      // WHY: Updates to listings, especially price, name, or status, need to be immediately visible.
+      revalidatePath('/admin');
+      revalidatePath('/osta');
+      revalidatePath(`/osta/${id}`);
+      revalidatePath('/'); // For featured listings on homepage
 
       return updated[0];
     }),
@@ -754,12 +770,19 @@ export const listingsRouter = createTRPCRouter({
         isFeatured: true,
         basePrice: true,
         views: true,
+        images: true,
       },
       with: {
         seller: true,
       },
     });
-    return userListingsData;
+    // HOW: Resolve image paths to public URLs on the server before sending to client.
+    // WHY: Client components require absolute URLs for `next/image` component to function correctly.
+    const listingsWithResolvedImages = await Promise.all(userListingsData.map(async (listing) => ({
+      ...listing,
+      images: await Promise.all((listing.images ?? []).map(async (imagePath: string) => await getImage(imagePath))),
+    })));
+    return listingsWithResolvedImages;
   }),
 
   // Employee/Admin: Get all company listings
@@ -771,10 +794,16 @@ export const listingsRouter = createTRPCRouter({
     }
 
     const rows = await ctx.db.query.listings.findMany({
-      columns: { id: true, title: true, status: true, basePrice: true, isFeatured: true, views: true },
+      columns: { id: true, title: true, status: true, basePrice: true, isFeatured: true, views: true, images: true },
       with: { seller: true },
     });
-    return rows;
+    // HOW: Resolve image paths to public URLs on the server before sending to client.
+    // WHY: Client components require absolute URLs for `next/image` component to function correctly.
+    const listingsWithResolvedImages = await Promise.all(rows.map(async (listing) => ({
+      ...listing,
+      images: await Promise.all((listing.images ?? []).map(async (imagePath: string) => await getImage(imagePath))),
+    })));
+    return listingsWithResolvedImages;
   }),
 
   // Get a single company listing by ID

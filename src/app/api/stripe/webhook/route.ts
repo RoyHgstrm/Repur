@@ -9,6 +9,7 @@ import { listings, purchases, warranties } from '~/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { limiter } from '~/lib/rate-limiter';
 import { redis } from '~/lib/redis';
+import { revalidatePath } from 'next/cache';
 
 // HOW: Read raw body to verify Stripe signature.
 // WHY: Stripe requires exact raw payload for signature verification to prevent tampering.
@@ -50,32 +51,38 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        const companyListingId = session.metadata?.companyListingId;
-        const buyerId = session.metadata?.buyerId;
+        const purchaseId = session.metadata?.purchaseId; // Retrieve our internal purchaseId
+        // const companyListingId = session.metadata?.companyListingId; // Keep for now in case of old sessions
+        // const buyerId = session.metadata?.buyerId; // Keep for now in case of old sessions
+
         const amountTotal = session.amount_total ?? 0; // in cents
 
-        if (companyListingId) {
-          console.log(`[Stripe Webhook] Processing checkout.session.completed for listing: ${companyListingId}, buyer: ${buyerId}`);
-          console.log(`[Stripe Webhook] Attempting to mark listing ${companyListingId} as SOLD.`);
-          // Mark listing as SOLD and insert purchase row if not already existing
-          const listing = await db.query.listings.findFirst({ where: eq(listings.id, companyListingId) });
-          if (listing) {
-            console.log(`[Stripe Webhook] Listing found. Attempting to insert purchase record for session: ${session.id}`);
-            // Upsert purchase by session.id idempotency via unique (id) if we used session.id earlier, otherwise insert new
-            await db.insert(purchases).values({
-              id: session.id, // use Stripe session id as primary key to ensure idempotency
-              companyListingId,
-              userId: buyerId ?? null,
-              purchasePrice: ((amountTotal ?? 0) / 100).toString(),
-              paymentMethod: 'stripe',
-              shippingAddress: '-',
-              status: 'COMPLETED',
-            }).onConflictDoNothing();
-            console.log(`[Stripe Webhook] Purchase record insert attempted for session: ${session.id}.`);
-            console.log(`[Stripe Webhook] Attempting to update listing status to SOLD for listing: ${companyListingId}.`);
+        if (purchaseId) {
+          console.log(`[Stripe Webhook] Processing checkout.session.completed for purchase: ${purchaseId}`);
 
-            await db.update(listings).set({ status: 'SOLD' }).where(eq(listings.id, companyListingId));
-            console.log(`[Stripe Webhook] Listing status update attempted for listing: ${companyListingId}.`);
+          // Fetch the listing associated with the purchase
+          const purchase = await db.query.purchases.findFirst({ where: eq(purchases.id, purchaseId) });
+
+          if (purchase) {
+            console.log(`[Stripe Webhook] Purchase record found. Attempting to update status to COMPLETED for purchase: ${purchaseId}.`);
+
+            // Update the existing purchase record
+            await db.update(purchases).set({
+              status: 'COMPLETED',
+              // Update paymentMethod and shippingAddress if provided by Stripe, otherwise keep existing
+              // paymentMethod: session.payment_method_details?.card?.brand ?? purchase.paymentMethod,
+              // shippingAddress: session.customer_details?.address ? JSON.stringify(session.customer_details.address) : purchase.shippingAddress,
+              // Ensure purchasePrice is accurate from Stripe session
+              purchasePrice: ((amountTotal ?? 0) / 100).toString(),
+            }).where(eq(purchases.id, purchaseId));
+            console.log(`[Stripe Webhook] Purchase record updated to COMPLETED for purchase: ${purchaseId}.`);
+
+            // Mark listing as SOLD
+            if (purchase.companyListingId) {
+              console.log(`[Stripe Webhook] Attempting to mark listing ${purchase.companyListingId} as SOLD.`);
+              await db.update(listings).set({ status: 'SOLD' }).where(eq(listings.id, purchase.companyListingId));
+              console.log(`[Stripe Webhook] Listing status update attempted for listing: ${purchase.companyListingId}.`);
+            }
 
             // Create warranty for this purchase: 12 months default
             try {
@@ -83,23 +90,33 @@ export async function POST(req: NextRequest) {
               const end = new Date(start);
               end.setMonth(end.getMonth() + 12);
               await db.insert(warranties).values({
-                id: session.id + ':w',
-                purchaseId: session.id,
+                id: purchaseId + ':w',
+                purchaseId: purchaseId,
                 startDate: start,
                 endDate: end,
                 status: 'ACTIVE',
                 terms: '12 kuukauden takuu kaikille komponenteille',
               }).onConflictDoNothing();
             } catch (e) {
-              // Don't fail webhook if warranty insert races; it can be recomputed
               console.error('Warranty creation failed', e);
             }
-            console.log(`[Stripe Webhook] Warranty creation attempted for purchase: ${session.id}.`);
+            console.log(`[Stripe Webhook] Warranty creation attempted for purchase: ${purchaseId}.`);
 
             // Invalidate Redis cache
-            await redis.del('listings:active');
-            await redis.del(`listing:${companyListingId}`);
-            console.log(`[Stripe Webhook] Redis cache invalidated for listing: ${companyListingId}.`)
+            if (purchase.companyListingId) {
+              await redis.del('listings:active');
+              await redis.del(`listing:${purchase.companyListingId}`);
+              console.log(`[Stripe Webhook] Redis cache invalidated for listing: ${purchase.companyListingId}.`)
+            }
+            // Revalidate Next.js paths
+            revalidatePath('/admin');
+            revalidatePath('/osta');
+            revalidatePath(`/osta/${purchase.companyListingId}`);
+            revalidatePath('/');
+          } else {
+            console.error(`[Stripe Webhook] Purchase record not found for ID: ${purchaseId}. This might indicate an issue with initial purchase record creation.`);
+            // Optionally handle this case, e.g., create a new purchase record here if it's truly missing.
+            // For now, we will rely on the initial creation in payments.ts.
           }
         }
         break;

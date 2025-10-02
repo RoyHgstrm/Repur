@@ -16,6 +16,7 @@ import { cn } from "~/lib/utils";
 import { ShieldCheck, Layers, Receipt, TrendingUp, ListChecks } from "lucide-react";
 import { api as trpc } from '~/trpc/react';
 import { computePerformanceScore, getPerformanceTier } from '~/lib/performanceScoring'; // HOW: Import the new, comprehensive performance scoring utility.
+import Image from 'next/image';
 
 
 // Define the Zod schema for company listings, matching the server-side schema
@@ -1061,20 +1062,20 @@ function CompanyListingsManage() {
   };
 
   return (
-    <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)]">
+    <Card className="bg-[var(--color-surface-2)] border-[var(--color-border)] w-full">
       <CardHeader>
         <CardTitle className="text-2xl-fluid">Hallinnoi listauksia</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Controls */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-2">
           <Input
             placeholder="Hae (otsikko, myyjä, ID)"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="lg:col-span-4"
+            className="md:col-span-2 lg:col-span-4"
           />
-          <div className="flex gap-2 lg:col-span-3">
+          <div className="flex flex-wrap gap-2 md:col-span-2 lg:col-span-3">
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as any); setPage(1); }}>
               <SelectTrigger className="w-full h-9">
                 <SelectValue placeholder="Tila" />
@@ -1098,12 +1099,12 @@ function CompanyListingsManage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="flex gap-2 lg:col-span-3">
-            <Input placeholder="Min €" type="number" value={minPrice} onChange={(e) => { setMinPrice(e.target.value); setPage(1); }} />
-            <Input placeholder="Max €" type="number" value={maxPrice} onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }} />
+          <div className="flex flex-wrap gap-2 md:col-span-2 lg:col-span-3">
+            <Input placeholder="Min €" type="number" value={minPrice} onChange={(e) => { setMinPrice(e.target.value); setPage(1); }} className="flex-1" />
+            <Input placeholder="Max €" type="number" value={maxPrice} onChange={(e) => { setMaxPrice(e.target.value); setPage(1); }} className="flex-1" />
           </div>
-          <div className="flex items-center gap-2 lg:col-span-2">
-            <Button variant={onlyMine ? 'default' : 'outline'} size="sm" onClick={() => { setOnlyMine((v) => !v); setPage(1); }}>
+          <div className="flex flex-wrap items-center gap-2 md:col-span-2 lg:col-span-2">
+            <Button variant={onlyMine ? 'default' : 'outline'} size="sm" onClick={() => { setOnlyMine((v) => !v); setPage(1); }} className="flex-1">
               {onlyMine ? 'Vain omat (päällä)' : 'Vain omat'}
             </Button>
             <Select value={String(pageSize)} onValueChange={(v) => { setPageSize(Number(v)); setPage(1); }}>
@@ -1122,13 +1123,13 @@ function CompanyListingsManage() {
         {/* Bulk actions */}
         <div className="flex flex-wrap gap-3 items-center justify-between">
           <div className="text-xs text-[var(--color-text-tertiary)]">Valittu: {selectedIds.size}</div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={() => bulkUpdateStatus('ACTIVE')} disabled={selectedIds.size === 0}>Merkitse aktiiviseksi</Button>
             <Button variant="outline" size="sm" onClick={() => bulkUpdateStatus('ARCHIVED')} disabled={selectedIds.size === 0}>Arkistoi</Button>
             <Button variant="outline" size="sm" onClick={() => bulkUpdateStatus('SOLD')} disabled={selectedIds.size === 0}>Merkitse myydyksi</Button>
           </div>
           {/* Bulk discount quick controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Input placeholder="Alennus €" type="number" className="h-8 w-28 text-xs" value={bulkDiscountAmount} onChange={(e) => setBulkDiscountAmount(e.target.value)} />
             <Select value={bulkPresetDays} onValueChange={(v) => setBulkPresetDays(v as any)}>
               <SelectTrigger className="h-8 w-28 text-xs"><SelectValue placeholder="Kesto" /></SelectTrigger>
@@ -1150,24 +1151,36 @@ function CompanyListingsManage() {
           <p className="text-[var(--color-text-secondary)] text-sm">Ei listauksia.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm overflow-x-auto block">
               <thead>
-                <tr className="text-left text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]/50">
-                  <th className="py-2 pr-3"><input type="checkbox" aria-label="Valitse kaikki" onChange={(e) => toggleAll(e.target.checked)} checked={paged.length > 0 && paged.every((x) => selectedIds.has(x.id))} /></th>
-                  <th className="py-2 pr-3">Otsikko</th>
-                  <th className="py-2 pr-3">Hinta (€)</th>
-                  <th className="py-2 pr-3">Alennus</th>
-                  <th className="py-2 pr-3">Tila</th>
-                  <th className="py-2 pr-3">Nosto</th>
-                  <th className="py-2 pr-3">Katselukerrat</th>
-                  <th className="py-2 pr-3 w-40">Toiminnot</th>
+                <tr className="text-left text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]/50 flex flex-wrap sm:table-row">
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell"><input type="checkbox" aria-label="Valitse kaikki" onChange={(e) => toggleAll(e.target.checked)} checked={paged.length > 0 && paged.every((x) => selectedIds.has(x.id))} /></th>
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell">Kuva</th>
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell">Otsikko</th>
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell">Hinta (€)</th>
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell">Alennus</th>
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell">Tila</th>
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell">Nosto</th>
+                  <th className="py-2 pr-3 w-full sm:w-auto sm:table-cell">Katselukerrat</th>
+                  <th className="py-2 pr-3 w-full sm:w-40 sm:table-cell">Toiminnot</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block sm:table-row-group">
                 {paged.map((l) => (
-                  <tr key={l.id} className="border-b border-[var(--color-border)]/50">
-                    <td className="py-1 px-2 align-middle">
+                  <tr key={l.id} className="border-b border-[var(--color-border)]/50 flex flex-col sm:table-row">
+                    <td className="py-1 px-2 align-middle sm:table-cell">
                       <input type="checkbox" aria-label={`Valitse ${l.title ?? l.id}`} checked={selectedIds.has(l.id)} onChange={(e) => toggleOne(l.id, e.target.checked)} />
+                    </td>
+                    <td className="py-1 px-2 align-middle sm:table-cell">
+                      {l.images && l.images.length > 0 && (
+                        <Image
+                          src={l.images[0]}
+                          alt={l.title ?? 'Listauskuva'}
+                          width={48}
+                          height={48}
+                          className="object-cover rounded-md aspect-square mx-auto sm:mx-0"
+                        />
+                      )}
                     </td>
                     <ManageRow listing={l as any} onSave={async (payload) => {
                       const { companyListingId, status, basePrice, discountAmount, discountStart, discountEnd } = payload;
@@ -1192,13 +1205,13 @@ function CompanyListingsManage() {
                       }
                       void refetch();
                     }} />
-                      <td className="py-1 px-2 align-middle">{l.views}</td>
-                    </tr>
+                    <td className="py-1 px-2 align-middle sm:table-cell">{l.views}</td>
+                  </tr>
                 ))}
               </tbody>
             </table>
             {/* Pagination */}
-            <div className="flex items-center justify-between mt-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between mt-2 text-xs">
               <div className="text-[var(--color-text-tertiary)]">Sivu {pageSafe}/{totalPages} • {filtered.length} listaus(ta)</div>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={pageSafe <= 1}>Edellinen</Button>
@@ -1213,7 +1226,7 @@ function CompanyListingsManage() {
 }
 
 type ManageRowProps = {
-  listing: { id: string; title: string | null; status: string; basePrice: string };
+  listing: { id: string; title: string | null; status: string; basePrice: string; isFeatured: boolean; discountAmount?: string; discountStart?: Date; discountEnd?: Date; views?: number; images?: string[]; }; // Added images
   onSave: (payload: { companyListingId: string; status: any; basePrice?: number; discountAmount?: number; discountStart?: string; discountEnd?: string }) => void;
 };
 
@@ -1283,7 +1296,7 @@ function ManageRow({ listing, onSave }: ManageRowProps) {
         <div className="flex gap-1 flex-col xs:flex-row">
           <Button
             size="sm"
-            className="w-full xs:w-auto px-2 py-1 text-xs"
+            className="w-full xs:w-auto px-2 py-1 text-xs text-[var(--color-text-primary)]"
             onClick={() => {
               const numeric = Number(price);
               const disc = Number(discountAmount);
@@ -1303,12 +1316,22 @@ function ManageRow({ listing, onSave }: ManageRowProps) {
           <Button
             size="sm"
             variant="outline"
-            className="w-full xs:w-auto px-2 py-1 text-xs"
+            className="w-full xs:w-auto px-2 py-1 text-xs text-[var(--color-text-primary)]"
             onClick={() => {
               window.location.href = `/admin/listings/${listing.id}`;
             }}
           >
             Muokkaa
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full xs:w-auto px-2 py-1 text-xs text-[var(--color-text-primary)]"
+            onClick={() => {
+              window.open(`/osta/${listing.id}`, '_blank');
+            }}
+          >
+            Näytä
           </Button>
         </div>
       </td>

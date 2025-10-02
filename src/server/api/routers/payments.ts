@@ -3,7 +3,8 @@ import Stripe from 'stripe';
 import { env } from '~/env';
 import { createTRPCRouter, protectedProcedure } from '../trpc';
 import { eq } from 'drizzle-orm';
-import { listings } from '~/server/db/schema';
+import { listings, purchases } from '~/server/db/schema';
+import { nanoid } from 'nanoid';
 
 // HOW: Server-only Stripe client configured with API version for stability.
 // WHY: Explicit API versioning prevents unexpected breaking changes on Stripe upgrades.
@@ -39,6 +40,19 @@ export const paymentsRouter = createTRPCRouter({
         unitAmount = Math.max(0, basePriceCents - discountCents);
       }
 
+      // HOW: Create a pending purchase record in DB before Stripe checkout.
+      // WHY: Ensures a local record exists immediately, allowing robust webhook processing and client-side status checks.
+      const purchaseId = nanoid();
+      await ctx.db.insert(purchases).values({
+        id: purchaseId,
+        companyListingId: listing.id,
+        userId: ctx.userId,
+        purchasePrice: (unitAmount / 100).toString(),
+        paymentMethod: 'stripe', // Will be updated by webhook if needed
+        shippingAddress: '-', // Placeholder, updated by webhook if available or during post-purchase flow
+        status: 'PENDING',
+      });
+
       // Create Checkout Session
       const session = await stripe.checkout.sessions.create({
         mode: 'payment',
@@ -57,14 +71,13 @@ export const paymentsRouter = createTRPCRouter({
           },
         ],
         metadata: {
-          companyListingId: listing.id,
-          buyerId: ctx.userId,
+          purchaseId: purchaseId, // Pass our internal purchaseId to Stripe
         },
         success_url: input.successUrl,
         cancel_url: input.cancelUrl,
       });
 
-      return { id: session.id, url: session.url };
+      return { id: session.id, url: session.url, purchaseId: purchaseId };
     }),
 });
 

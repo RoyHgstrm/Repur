@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Facebook, Twitter, Instagram, Linkedin, Mail } from "lucide-react";
+import Image from "next/image";
 
 /**
  * Modern Footer with newsletter, social links and consistent spacing.
@@ -27,11 +28,11 @@ export default function Footer() {
           {/* Logo and Description */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <img 
+              <Image 
                 src="/repur-fi-4-min.png" 
                 alt="Repur.fi Logo"
-                width={40} 
-                height={40} 
+                width={72} // Adjusted width for better fit, original was not explicit but img had h-18 which is 72px
+                height={72} // Adjusted height to match width and h-18
                 className="h-18 w-auto object-contain"
               />
             </div>

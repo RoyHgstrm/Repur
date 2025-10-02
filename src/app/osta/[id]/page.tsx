@@ -69,7 +69,11 @@ export default function ListingDetailPage() {
   const favToggle = trpc.favorites.toggle.useMutation();
   const favState = trpc.favorites.isFavorited.useQuery({ listingId: id }, { enabled: !!id && Boolean(isSignedIn) });
 
-  const { data: listingData, isLoading, error } = api.listings.getCompanyListingById.useQuery({ id });
+  const { data: listingData, isLoading, error } = api.listings.getCompanyListingById.useQuery({ id }, {
+    staleTime: 5 * 60 * 1000, // Data is considered fresh for 5 minutes
+    refetchOnWindowFocus: true, // Re-fetch when window regains focus
+    refetchInterval: 60 * 1000, // Re-fetch every 1 minute in the background
+  });
   const incrementViews = api.listings.incrementListingViews.useMutation();
 
   // HOW: Track if we've already incremented views and ensure auth is ready
@@ -105,15 +109,16 @@ export default function ListingDetailPage() {
     };
   }, [id, incrementViews, isAuthLoaded]);
 
-  const [showPurchased, setShowPurchased] = useState(false);
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    if (url.searchParams.get('maksu') === 'onnistui') {
-      setShowPurchased(true);
-      url.searchParams.delete('maksu');
-      window.history.replaceState({}, '', url.pathname + url.search);
-    }
-  }, []);
+  // Old showPurchased state and effect removed, now handled by /ostos-vahvistus
+  // const [showPurchased, setShowPurchased] = useState(false);
+  // useEffect(() => {
+  //   const url = new URL(window.location.href);
+  //   if (url.searchParams.get('maksu') === 'onnistui') {
+  //     setShowPurchased(true);
+  //     url.searchParams.delete('maksu');
+  //     window.history.replaceState({}, '', url.pathname + url.search);
+  //   }
+  // }, []);
   const createCheckout = api.payments.createCheckoutSession.useMutation();
 
   const listing = listingData as DetailedListing;
@@ -385,17 +390,6 @@ export default function ListingDetailPage() {
       </div>
 
       <div className="max-w-7xl mx-auto py-8 px-container">
-        {showPurchased && (
-          <div className="mb-4">
-            <div className="rounded-xl border border-[var(--color-border)] bg-gradient-to-r from-[var(--color-secondary)]/10 to-[var(--color-primary)]/10 p-4">
-              <div className="flex items-center gap-2 text-[var(--color-text-primary)]">
-                <CheckCircle className="w-5 h-5 text-[var(--color-success)]" />
-                <div className="font-semibold">Osto vahvistettu</div>
-              </div>
-              <div className="text-sm text-[var(--color-text-secondary)] mt-1">Kiitos ostoksesta! Saat pian vahvistussähköpostin ja toimitustiedot.</div>
-            </div>
-          </div>
-        )}
          {/* Status banner (shown only when not ACTIVE) */}
          {(() => {
            const status = (listing?.status as string | undefined) ?? 'ACTIVE';
@@ -879,18 +873,21 @@ export default function ListingDetailPage() {
                             }
                           } catch { /* noop */ }
                           try {
-                            const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
-                            const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;
                             const res = await createCheckout.mutateAsync({
                               companyListingId: listing.id,
-                              successUrl,
-                              cancelUrl,
+                              successUrl: `${window.location.origin}/ostos-vahvistus?purchaseId=PLACEHOLDER_PURCHASE_ID`, // Placeholder
+                              cancelUrl: `${window.location.origin}/osta/${listing.id}?maksu=peruttu`,
                             });
+                            
+                            // Now construct the final success URL using the actual purchaseId from the response
+                            const finalSuccessUrl = `${window.location.origin}/ostos-vahvistus?purchaseId=${res.purchaseId}`;
+
                             const stripe = await getStripe();
                             if (stripe) {
                               await stripe.redirectToCheckout({ sessionId: res.id });
                             } else if (res.url) {
-                              window.location.href = res.url;
+                              // If Stripe.js is not loaded or fails, fall back to direct URL with the correct purchaseId
+                              window.location.href = finalSuccessUrl;
                             }
                           } catch (e) {
                             console.error(e);

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import Link from "next/link";
 import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "~/components/ui/button";
@@ -66,7 +67,7 @@ export default function Navbar() {
             className="inline-flex items-center gap-2 group"
             aria-label="Etusivu"
           >
-            <img 
+            <Image 
               src="/repur-fi-4-min.png" 
               alt="Repur.fi Logo"
               width={60} 
@@ -187,7 +188,7 @@ export default function Navbar() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-1 border-b border-[var(--color-border)]">
               <div className="flex items-center gap-3">
-                <img
+                <Image
                   src="/repur-fi-4-min.png"
                   alt="Repur.fi Logo"
                   width={60}

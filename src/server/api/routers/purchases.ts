@@ -1,10 +1,11 @@
 import { z } from 'zod';
 import Stripe from 'stripe';
 import { env } from '~/env';
-import { createTRPCRouter, protectedProcedure } from '../trpc';
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '../trpc';
 import { db } from '~/server/db';
 import { purchases } from '~/server/db/schema';
 import { and, desc, eq, gte, lte, sql } from 'drizzle-orm';
+import { TRPCError } from '@trpc/server';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' });
 
@@ -123,6 +124,23 @@ export const purchasesRouter = createTRPCRouter({
       // Send receipt email via Stripe: receipts must be enabled in Stripe Dashboard.
       // Note: Programmatic email sending uses Stripe's email settings – ensure "Email customers" is on.
       return { id: refund.id, status: refund.status };
+    }),
+
+  // HOW: New query to fetch the status of a specific purchase.
+  // WHY: Enables client-side polling on the success page to confirm purchase completion status from the server.
+  getPurchaseStatus: publicProcedure
+    .input(z.object({ purchaseId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const purchase = await db.query.purchases.findFirst({
+        where: eq(purchases.id, input.purchaseId),
+        columns: { status: true, companyListingId: true },
+      });
+
+      if (!purchase) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Ostotapahtumaa ei löytynyt' });
+      }
+
+      return { status: purchase.status, companyListingId: purchase.companyListingId };
     }),
 });
 

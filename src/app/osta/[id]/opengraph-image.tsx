@@ -1,4 +1,5 @@
 import { ImageResponse } from 'next/og'
+// import Image from 'next/image'; // Removed to avoid conflict
 import { api } from '~/trpc/server'
 
 // HOW: Define image dimensions for social sharing
@@ -21,8 +22,8 @@ export default async function Image({ params }: { params: { id: string } }) {
 
     // Get the main image URL
     const mainImage = Array.isArray(listing.images) && listing.images.length > 0
-      ? listing.images[0]
-      : 'https://repur.fi/repur-fi-3.png'
+      ? `${process.env.NEXT_PUBLIC_SITE_URL || 'https://repur.fi'}${listing.images[0]}`
+      : `${process.env.NEXT_PUBLIC_SITE_URL || 'https://repur.fi'}/repur-fi-3.png`
 
     // Format price with potential discount
     const basePriceNum = Number(listing.basePrice ?? 0)
@@ -59,7 +60,7 @@ export default async function Image({ params }: { params: { id: string } }) {
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: 30 }}>
             <img
               src="https://repur.fi/repur-fi-2.png"
-              alt="Repur.fi"
+              alt="Repur.fi logo"
               width={120}
               height={40}
               style={{ marginRight: 20 }}
@@ -89,7 +90,7 @@ export default async function Image({ params }: { params: { id: string } }) {
             }}>
               <img
                 src={mainImage}
-                alt={listing.title}
+                alt={listing.title ?? 'Tuotteen kuva'}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -218,7 +219,7 @@ export default async function Image({ params }: { params: { id: string } }) {
         >
           <img
             src="https://repur.fi/repur-fi-2.png"
-            alt="Repur.fi"
+            alt="Repur.fi logo"
             width={200}
             height={67}
             style={{ marginBottom: 30 }}
