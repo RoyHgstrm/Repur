@@ -875,19 +875,23 @@ export default function ListingDetailPage() {
                           try {
                             const res = await createCheckout.mutateAsync({
                               companyListingId: listing.id,
-                              successUrl: `${window.location.origin}/ostos-vahvistus?purchaseId=PLACEHOLDER_PURCHASE_ID`, // Placeholder
+                              successUrl: `${window.location.origin}/ostos-vahvistus`,
                               cancelUrl: `${window.location.origin}/osta/${listing.id}?maksu=peruttu`,
                             });
                             
-                            // Now construct the final success URL using the actual purchaseId from the response
-                            const finalSuccessUrl = `${window.location.origin}/ostos-vahvistus?purchaseId=${res.purchaseId}`;
+                            // After receiving the actual purchaseId from the response, update the success URL.
+                            // Stripe's success_url doesn't directly support dynamic values from the session creation in this way.
+                            // The best approach here is to ensure the webhook updates the status, and the client polls.
+                            // The actual purchaseId is passed in the metadata, and the webhook will use it.
+                            // For the client-side redirect, we'll use the purchaseId from our backend response.
+                            const redirectUrl = `${window.location.origin}/ostos-vahvistus?purchaseId=${res.purchaseId}`;
 
                             const stripe = await getStripe();
                             if (stripe) {
                               await stripe.redirectToCheckout({ sessionId: res.id });
                             } else if (res.url) {
-                              // If Stripe.js is not loaded or fails, fall back to direct URL with the correct purchaseId
-                              window.location.href = finalSuccessUrl;
+                              // Fallback to direct URL redirect
+                              window.location.href = redirectUrl;
                             }
                           } catch (e) {
                             console.error(e);

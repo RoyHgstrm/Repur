@@ -11,17 +11,34 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 
 export default function OstosVahvistusPage() {
   const searchParams = useSearchParams();
-  const purchaseId = searchParams.get("purchaseId");
+  const initialPurchaseId = searchParams.get("purchaseId");
+  const checkoutSessionId = searchParams.get("checkoutSessionId");
 
-  // State to manage polling status and timeout
+  // State to manage the actual purchaseId used for polling
+  const [currentPurchaseId, setCurrentPurchaseId] = useState<string | null>(initialPurchaseId);
   const [pollingStatus, setPollingStatus] = useState<"loading" | "success" | "error" | "timeout">("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Poll for purchase status
-  const { data, error } = api.purchases.getPurchaseStatus.useQuery(
-    { purchaseId: purchaseId ?? "" },
+  // Fetch purchaseId from checkoutSessionId if available
+  const { data: fetchedPurchaseIdData, isLoading: isFetchingPurchaseId, error: fetchPurchaseIdError } = api.purchases.getPurchaseIdByCheckoutSession.useQuery(
+    { checkoutSessionId: checkoutSessionId ?? "" },
     {
-      enabled: !!purchaseId,
+      enabled: !!checkoutSessionId && !currentPurchaseId, // Only run if checkoutSessionId exists and we don't have a purchaseId yet
+      onSuccess: (data) => {
+        setCurrentPurchaseId(data.purchaseId);
+      },
+      onError: (err) => {
+        setPollingStatus("error");
+        setErrorMessage(err.message || "Ostotunnuksen hakeminen epäonnistui Stripe-sessiolta.");
+      },
+    }
+  );
+
+  // Poll for purchase status using the resolved purchaseId
+  const { data, error } = api.purchases.getPurchaseStatus.useQuery(
+    { purchaseId: currentPurchaseId ?? "" },
+    {
+      enabled: !!currentPurchaseId,
       refetchInterval: pollingStatus === "loading" ? 2000 : false, // Poll every 2 seconds if loading, otherwise stop
       retry: 3, // Retry a few times if there are network issues
       staleTime: 5000, // Consider data stale after 5 seconds to trigger refetchInterval
@@ -29,7 +46,7 @@ export default function OstosVahvistusPage() {
   );
 
   useEffect(() => {
-    if (!purchaseId) {
+    if (!currentPurchaseId) {
       setPollingStatus("error");
       setErrorMessage("Ostotunnusta ei löytynyt. Ostosvahvistus epäonnistui.");
       return;
@@ -52,7 +69,7 @@ export default function OstosVahvistusPage() {
         setErrorMessage(`Ostotapahtuman tila: ${data.status}. Ota yhteyttä asiakaspalveluun.`);
       }
     }
-  }, [purchaseId, data, error, pollingStatus]);
+  }, [currentPurchaseId, data, error, pollingStatus]);
 
   // This useEffect handles the timeout for polling if no response is received in time.
   useEffect(() => {
@@ -67,7 +84,7 @@ export default function OstosVahvistusPage() {
   }, [pollingStatus]);
 
   let content;
-  if (!purchaseId) {
+  if (!currentPurchaseId) {
     content = (
       <Alert variant="destructive">
         <Terminal className="h-4 w-4" />
@@ -107,7 +124,7 @@ export default function OstosVahvistusPage() {
         <XCircle className="h-4 w-4" />
         <AlertTitle>Ostosvahvistus epäonnistui</AlertTitle>
         <AlertDescription>{errorMessage || "Tapahtui virhe ostoksesi vahvistamisessa. Ota yhteyttä asiakaspalveluun antamalla ostotunnuksesi."}</AlertDescription>
-        {purchaseId && <p className="text-sm text-muted-foreground mt-2">Ostotunnus: {purchaseId}</p>}
+        {currentPurchaseId && <p className="text-sm text-muted-foreground mt-2">Ostotunnus: {currentPurchaseId}</p>}
         <div className="flex gap-2 mt-4">
           <Button asChild><Link href="/">Siirry etusivulle</Link></Button>
           <Button variant="outline" asChild><Link href="/yhteystiedot">Ota yhteyttä</Link></Button>

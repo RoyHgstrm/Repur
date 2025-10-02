@@ -142,6 +142,20 @@ export const purchasesRouter = createTRPCRouter({
 
       return { status: purchase.status, companyListingId: purchase.companyListingId };
     }),
+
+  // HOW: New query to fetch the purchaseId using the Stripe Checkout Session ID.
+  // WHY: Enables the client-side success page to retrieve the internal purchaseId after Stripe redirects with a session ID, facilitating subsequent polling for purchase status.
+  getPurchaseIdByCheckoutSession: publicProcedure
+    .input(z.object({ checkoutSessionId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const session = await stripe.checkout.sessions.retrieve(input.checkoutSessionId);
+      const purchaseId = session.metadata?.purchaseId;
+
+      if (!purchaseId) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Ostotunnusta ei löytynyt Stripe-sessiolta.' });
+      }
+      return { purchaseId: purchaseId };
+    }),
 });
 
 

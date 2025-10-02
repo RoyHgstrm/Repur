@@ -73,7 +73,7 @@ export const paymentsRouter = createTRPCRouter({
         metadata: {
           purchaseId: purchaseId, // Pass our internal purchaseId to Stripe
         },
-        success_url: input.successUrl,
+        success_url: `${input.successUrl}?checkoutSessionId={CHECKOUT_SESSION_ID}`,
         cancel_url: input.cancelUrl,
       });
 
