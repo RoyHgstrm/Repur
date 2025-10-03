@@ -141,6 +141,15 @@ const CPU_SCORES: Readonly<Record<string, number>> = {
 	"7600x": 88,
 	"7500f": 85,
 
+	// AMD 5000 Series (Zen 3)
+	"5950x": 88,
+	"5900x": 87,
+	"5800x3d": 85,
+	"5800x": 82,
+	"5700x": 80,
+	"5600x": 78,
+	"5600g": 75,
+
 	// Mobile CPUs
 	"7945hx": 97,
 	"7845hx": 92,

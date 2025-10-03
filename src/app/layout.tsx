@@ -9,7 +9,6 @@ import Providers from "~/components/layout/Providers";
 import React from "react";
 import type { Metadata } from "next";
 import { Toaster } from "~/components/ui/toaster";
-import { Analytics } from "@vercel/analytics/next"; // Import Vercel Analytics
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -142,7 +141,7 @@ export default function RootLayout({
 						</main>
 						<Footer />
 						<Toaster />
-						<Analytics /> {/* Add Vercel Analytics component here */}
+						{/* <Analytics /> */}
 					</ClerkProvider>
 				</Providers>
 			</body>

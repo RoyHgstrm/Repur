@@ -6,9 +6,10 @@ import { db } from "~/server/db";
 import { purchases } from "~/server/db/schema";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { logger } from "~/server/utils/logger";
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-	apiVersion: "2025-08-27.basil",
+	apiVersion: "2025-09-30.clover",
 });
 
 const DateRangeSchema = z
@@ -187,25 +188,27 @@ export const purchasesRouter = createTRPCRouter({
 	// WHY: Enables client-side polling on the success page to confirm purchase completion status from the server.
 	getPurchaseStatus: publicProcedure
 		.input(z.object({ purchaseId: z.string() }))
-		.query(async ({ ctx, input }) => { // eslint-disable-line @typescript-eslint/no-unused-vars
-			console.log(`[tRPC] getPurchaseStatus received purchaseId: ${input.purchaseId}`);
-			const purchase = await db.query.purchases.findFirst({
+		.query(async ({ input, ctx }) => {
+			logger.info(
+				`[tRPC] getPurchaseStatus received purchaseId: ${input.purchaseId}`,
+			);
+			const purchase = await ctx.db.query.purchases.findFirst({
 				where: eq(purchases.id, input.purchaseId),
-				columns: { status: true, companyListingId: true },
 			});
 
 			if (!purchase) {
-				console.warn(`[tRPC] getPurchaseStatus: Purchase not found for ID: ${input.purchaseId}`);
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "Ostotapahtumaa ei löytynyt",
-				});
+				logger.warn(`[tRPC] getPurchaseStatus: Purchase ${input.purchaseId} not found.`);
+				return null;
 			}
 
-			console.log(`[tRPC] getPurchaseStatus: Purchase found, status: ${purchase.status}`);
+			logger.info(
+				`[tRPC] getPurchaseStatus: Purchase found, status: ${purchase.status}`,
+			);
+
 			return {
+				id: purchase.id,
 				status: purchase.status,
-				companyListingId: purchase.companyListingId,
+				// Add other relevant purchase details here
 			};
 		}),
 
@@ -214,9 +217,11 @@ export const purchasesRouter = createTRPCRouter({
 	getPurchaseIdByCheckoutSession: publicProcedure
 		.input(z.object({ checkoutSessionId: z.string() }))
 		.query(async ({ ctx, input }) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+			logger.info(`[tRPC] getPurchaseIdByCheckoutSession received checkoutSessionId: ${input.checkoutSessionId}`);
 			const session = await stripe.checkout.sessions.retrieve(
 				input.checkoutSessionId,
 			);
+			logger.info(`[tRPC] getPurchaseIdByCheckoutSession Stripe session retrieved: ${session.id}, metadata: ${JSON.stringify(session.metadata)}`);
 			const purchaseId = session.metadata?.purchaseId;
 
 			if (!purchaseId) {

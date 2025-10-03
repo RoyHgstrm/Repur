@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 // import Image from 'next/image'; // Removed to avoid conflict
 import { api } from "~/trpc/server";
+import { getImage } from "~/server/utils/image"; // HOW: Import the server-side image utility.
 
 // HOW: Define image dimensions for social sharing
 // WHY: Ensure optimal display across platforms
@@ -25,7 +26,7 @@ export default async function Image({ params }: { params: { id: string } }) {
 		// Get the main image URL
 		const mainImage =
 			Array.isArray(listing.images) && listing.images.length > 0
-				? `${process.env.NEXT_PUBLIC_SITE_URL || "https://repur.fi"}${listing.images[0]}`
+				? await getImage(listing.images[0]) // WHY: Resolve the internal image path to a public Supabase URL.
 				: `${process.env.NEXT_PUBLIC_SITE_URL || "https://repur.fi"}/repur-fi-3.png`;
 
 		// Format price with potential discount

@@ -61,8 +61,8 @@ import {
 } from "~/components/ui/select";
 import { api as trpc } from "~/trpc/react";
 import EnhancedPurchaseDialog from "~/components/features/EnhancedPurchaseDialog";
-import { getStripe } from "~/lib/stripe";
-import { computePerformanceScore } from "../../../lib/performanceScoring";
+import { loadStripe } from "@stripe/stripe-js"; // Directly import loadStripe for testing.
+import { computePerformanceScore } from "~/lib/performanceScoring"; // HOW: Import function to calculate PC performance score.
 
 type DetailedListing = RouterOutputs["listings"]["getCompanyListingById"] & {
 	seller?: { name: string | null };
@@ -465,7 +465,7 @@ export default function ListingDetailPage() {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)]">
 			{/* Navigation Header */}
-			<div className=" top-0 z-999 top-16  backdrop-blur-lg border-b border-[var(--color-border)] pt-4">
+			<div className=" top-0 z-999 top-16  backdrop-blur-lg border-b border-[var(--color-border)] pt-16">
 				<div className="container-responsive py-4">
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-4">
@@ -1034,9 +1034,7 @@ export default function ListingDetailPage() {
 													{basePriceNum} €
 												</div>
 											)}
-											<p className="text-xs text-tertiary mt-1">
-												Sisältää alv:n
-											</p>
+
 										</div>
 									);
 								})()}
@@ -1159,13 +1157,18 @@ export default function ListingDetailPage() {
 														// For the client-side redirect, we'll use the purchaseId from our backend response.
 														const redirectUrl = `${window.location.origin}/ostos-vahvistus?purchaseId=${res.purchaseId}`;
 
-														const stripe = await getStripe();
+														const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "");
 														if (stripe) {
-															await stripe.redirectToCheckout({
-																sessionId: res.id,
-															});
-														} else if (res.url) {
-															// Fallback to direct URL redirect
+															// HOW: Redirects the user to the Stripe checkout page.
+															// WHY: Stripe handles the final redirect to our success page after payment.
+															if (res.url) {
+																window.location.assign(res.url);
+															} else {
+																// Fallback to direct URL redirect if Stripe.js somehow fails to load or res.url is null.
+																window.location.href = redirectUrl;
+															}
+														} else {
+															// Fallback to direct URL redirect if Stripe.js somehow fails to load.
 															window.location.href = redirectUrl;
 														}
 													} catch (e) {

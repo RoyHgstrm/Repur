@@ -72,6 +72,7 @@ export default function Navbar() {
 								alt="Repur.fi Logo"
 								width={60}
 								height={60}
+								priority // Add priority for LCP image
 								className="h-14 w-auto object-cover group-hover:shadow-lg group-hover:ring-black/20 transition-all"
 							/>
 						</Link>

@@ -9,7 +9,7 @@ import { nanoid } from "nanoid";
 // HOW: Server-only Stripe client configured with API version for stability.
 // WHY: Explicit API versioning prevents unexpected breaking changes on Stripe upgrades.
 const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-	apiVersion: "2025-08-27.basil",
+	apiVersion: "2025-09-30.clover",
 });
 
 export const paymentsRouter = createTRPCRouter({

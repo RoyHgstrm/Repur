@@ -1,14 +1,12 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import PurchaseStatusClient from "./purchase-status-client"; // Import the new client component
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 import { Loader2 } from "lucide-react";
 
-export default async function OstosVahvistusPage() {
-	const header = await headers(); // Await the headers() call
-	const searchParams = new URLSearchParams(header.get("referer") ?? "");
-	const checkoutSessionId = searchParams.get("session_id");
+export default async function OstosVahvistusPage({ searchParams }: { searchParams: Promise<{ checkoutSessionId?: string }> }) {
+	const resolvedSearchParams = await searchParams;
+	const checkoutSessionId = resolvedSearchParams.checkoutSessionId; // HOW: Access checkoutSessionId from searchParams.
 
 	// If there's no checkoutSessionId, it means the user didn't come from a Stripe checkout, so redirect.
 	if (!checkoutSessionId) {

@@ -772,7 +772,7 @@ export default function MyyPage() {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--color-surface-1)] via-[var(--color-surface-2)] to-[var(--color-surface-1)] text-[var(--color-neutral)]">
 			{/* Hero Section */}
 			<div className="relative overflow-hidden">
-				<div className="absolute inset-0 bg-gradient-to-r from-[var(--color-primary)]/110 via-[var(--color-secondary)]/110 to-[var(--color-accent)]/110" />
+				<div className="absolute inset-0 bg-gradient-to-r" />
 				<div className="container-responsive py-section relative">
 					<div className="text-center space-y-6 max-w-4xl mx-auto">
 						<motion.h1

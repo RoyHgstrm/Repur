@@ -372,8 +372,8 @@ export default function HomePage() {
 					/>
 				</div>
 
-				<div className="container mx-auto max-w-6xl px-6 relative z-10">
-					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[60vh] md:min-h-[70vh]">
+				<div className="container mx-auto max-w-6xl px-6 relative z-10 ">
+					<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center min-h-[85vh] pt-16 lg:pt-0">
 						<motion.div
 							initial={{ y: 30, opacity: 0 }}
 							whileInView={{ y: 0, opacity: 1 }}

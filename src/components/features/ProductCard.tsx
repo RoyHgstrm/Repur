@@ -454,7 +454,14 @@ export const ProductCard = ({
 											});
 											const stripe = await getStripe();
 											if (stripe) {
-												await stripe.redirectToCheckout({ sessionId: res.id });
+												// HOW: Redirects to Stripe checkout using direct URL assignment.
+												// WHY: Workaround for redirectToCheckout type issues with the current Stripe.js setup.
+												if (res.url) {
+													window.location.assign(res.url);
+												} else {
+													// Fallback if URL is null
+													// toast({ title: "Virhe", description: "Maksulinkki puuttuu.", variant: "destructive" });
+												}
 											} else if (res.url) {
 												window.location.href = res.url;
 											}

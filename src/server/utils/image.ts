@@ -8,23 +8,32 @@ export async function getImage(inputPath: string): Promise<string> {
 	const supabaseUrlPrefix =
 		`${supabase.storage.from("images").getPublicUrl("").data?.publicUrl ?? ""}`.replace(
 			/\/$/,
-			"",
-		); // Ensure no trailing slash
+			"", // Remove trailing slash if exists
+		) + "/"; // Ensure it ends with a slash
+
+	console.log("DEBUG: getImage - supabaseUrlPrefix:", supabaseUrlPrefix); // DEBUG
+	console.log("DEBUG: getImage - inputPath:", inputPath); // DEBUG
+
 	let imageKey = inputPath;
 
 	if (inputPath.startsWith(supabaseUrlPrefix)) {
 		// Extract the object key by removing the public URL prefix
-		imageKey = inputPath.substring(supabaseUrlPrefix.length + 1); // +1 to remove the leading slash from the key
+		imageKey = inputPath.substring(supabaseUrlPrefix.length);
 	}
+
+	console.log("DEBUG: getImage - resolved imageKey:", imageKey); // DEBUG
 
 	const cacheKey = `image:${imageKey}`;
 	const cached = await redis.get<string>(cacheKey);
 	if (cached) {
+		console.log("DEBUG: getImage - Cache hit for:", imageKey); // DEBUG
 		return cached;
 	}
 
 	// Fetch public URL from Supabase using the extracted imageKey
 	const { data } = supabase.storage.from("images").getPublicUrl(imageKey);
+
+	console.log("DEBUG: getImage - Supabase publicUrl data:", data?.publicUrl); // DEBUG
 
 	if (!data?.publicUrl) {
 		// Fallback if publicUrl is still not found or invalid
