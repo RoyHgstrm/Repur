@@ -7,6 +7,8 @@ import { metricsRouter } from "~/server/api/routers/metrics";
 import { favoritesRouter } from "~/server/api/routers/favorites";
 import { warrantiesRouter } from "~/server/api/routers/warranties";
 
+import { logsRouter } from "~/server/api/routers/logs";
+
 export const appRouter = createTRPCRouter({
 	// Public route example
 	hello: publicProcedure.query(() => {
@@ -22,6 +24,7 @@ export const appRouter = createTRPCRouter({
 	favorites: favoritesRouter,
 	metrics: metricsRouter,
 	warranties: warrantiesRouter,
+	logs: logsRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -13,6 +13,10 @@
  * - Differentiates between various severity levels for better log analysis.
  */
 
+import { db } from "~/server/db";
+import { logs } from "~/server/db/schema";
+import { nanoid } from "nanoid";
+
 type LogLevel = 'info' | 'warn' | 'error';
 
 const formatMessage = (level: LogLevel, message: string) => {
@@ -21,13 +25,16 @@ const formatMessage = (level: LogLevel, message: string) => {
 };
 
 export const logger = {
-  info: (message: string, ...args: any[]) => {
+  info: async (message: string, ...args: any[]) => {
     console.log(formatMessage('info', message), ...args);
+    await db.insert(logs).values({ id: nanoid(), level: 'info', message });
   },
-  warn: (message: string, ...args: any[]) => {
+  warn: async (message: string, ...args: any[]) => {
     console.warn(formatMessage('warn', message), ...args);
+    await db.insert(logs).values({ id: nanoid(), level: 'warn', message });
   },
-  error: (message: string, ...args: any[]) => {
+  error: async (message: string, ...args: any[]) => {
     console.error(formatMessage('error', message), ...args);
+    await db.insert(logs).values({ id: nanoid(), level: 'error', message });
   },
 };

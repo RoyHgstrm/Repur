@@ -146,7 +146,8 @@ export const purchases = createTable("purchase", {
 	}),
 	purchasePrice: numeric("purchase_price").notNull(),
 	paymentMethod: varchar("payment_method", { length: 255 }).notNull(),
-	shippingAddress: varchar("shipping_address", { length: 255 }).notNull(),
+  shippingAddress: varchar('shipping_address', { length: 256 }).notNull(),
+  shippingPhone: varchar('shipping_phone', { length: 256 }),
 	stripeCheckoutSessionId: varchar("stripe_checkout_session_id", { length: 255 }).unique(), // HOW: Stores the Stripe Checkout Session ID for later reference. WHY: Enables linking our internal purchaseId to Stripe's session for refunds and webhook reconciliation.
 	status: varchar("status", { length: 255 }).default("PROCESSING").notNull(), // e.g., 'PROCESSING', 'COMPLETED', 'CANCELLED'
 	createdAt: timestamp("created_at", { withTimezone: true })
@@ -173,6 +174,16 @@ export const warranties = createTable("warranty", {
 		.defaultNow()
 		.notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
+
+// Log model for storing application logs
+export const logs = createTable("log", {
+	id: varchar("id", { length: 255 }).notNull().primaryKey(),
+	level: varchar("level", { length: 50 }).notNull(), // e.g., 'info', 'warn', 'error'
+	message: varchar("message", { length: 2048 }).notNull(),
+	timestamp: timestamp("timestamp", { withTimezone: true })
 		.defaultNow()
 		.notNull(),
 });

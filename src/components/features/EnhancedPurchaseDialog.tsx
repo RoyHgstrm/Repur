@@ -1,6 +1,7 @@
 "use client";
 
 import type * as React from "react";
+import { useState } from "react";
 import {
 	Dialog,
 	DialogContent,
@@ -14,12 +15,20 @@ import { Button } from "~/components/ui/button";
 import { ShieldCheck, Truck, Gauge, CheckCircle2 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { DialogClose } from "@radix-ui/react-dialog";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 
 export interface EnhancedPurchaseDialogProps {
 	trigger: React.ReactNode;
 	productTitle: string;
 	priceEUR: number;
-	onConfirm: () => void;
+	onConfirm: (shippingAddress: {
+		street: string;
+		city: string;
+		postalCode: string;
+		country: string;
+		phone: string;
+	}) => void;
 	confirmLabel?: string;
 	cancelLabel?: string;
 	highlights?: Array<{ icon?: React.ReactNode; text: string }>;
@@ -36,6 +45,12 @@ export function EnhancedPurchaseDialog({
 	highlights,
 	className,
 }: EnhancedPurchaseDialogProps) {
+	const [streetAddress, setStreetAddress] = useState("");
+	const [city, setCity] = useState("");
+	const [postalCode, setPostalCode] = useState("");
+	const [country, setCountry] = useState("Suomi"); // HOW: Set default country to "Suomi" for initial state. WHY: Ensures country is always provided to backend, matching schema requirements.
+	const [phoneNumber, setPhoneNumber] = useState("");
+
 	const defaultHighlights: Array<{ icon?: React.ReactNode; text: string }> =
 		highlights ?? [
 			{
@@ -59,6 +74,10 @@ export function EnhancedPurchaseDialog({
 		];
 
 	const formattedPrice = Number.isFinite(priceEUR) ? `${priceEUR} €` : "—";
+
+	const handleConfirm = () => {
+		onConfirm({ street: streetAddress, city, postalCode, country, phone: phoneNumber });
+	};
 
 	return (
 		<Dialog>
@@ -86,6 +105,59 @@ export function EnhancedPurchaseDialog({
 						</div>
 						<div className="mt-1 text-2xl-fluid font-extrabold text-gradient-primary">
 							{formattedPrice}
+						</div>
+					</div>
+
+					<div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-1)] p-4 space-y-4">
+						<h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
+							Toimitusosoite
+						</h3>
+						<div className="grid gap-2">
+							<Label htmlFor="streetAddress">Katuosoite</Label>
+							<Input
+								id="streetAddress"
+								value={streetAddress}
+								onChange={(e) => setStreetAddress(e.target.value)}
+								placeholder="Esim. Katu 1 A 2"
+							/>
+						</div>
+						<div className="grid grid-cols-2 gap-4">
+							<div className="grid gap-2">
+								<Label htmlFor="postalCode">Postinumero</Label>
+								<Input
+									id="postalCode"
+									value={postalCode}
+									onChange={(e) => setPostalCode(e.target.value)}
+									placeholder="Esim. 00100"
+								/>
+							</div>
+							<div className="grid gap-2">
+								<Label htmlFor="city">Kaupunki</Label>
+								<Input
+									id="city"
+									value={city}
+									onChange={(e) => setCity(e.target.value)}
+									placeholder="Esim. Helsinki"
+								/>
+							</div>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="country">Maa</Label>
+							<Input
+								id="country"
+								value={country}
+								onChange={(e) => setCountry(e.target.value)}
+								placeholder="Esim. Suomi"
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="phoneNumber">Puhelinnumero</Label>
+							<Input
+								id="phoneNumber"
+								value={phoneNumber}
+								onChange={(e) => setPhoneNumber(e.target.value)}
+								placeholder="Esim. 040 123 4567"
+							/>
 						</div>
 					</div>
 
@@ -118,7 +190,7 @@ export function EnhancedPurchaseDialog({
 							"min-w-[10rem] bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)]",
 							"hover:from-[var(--color-primary)]/90 hover:to-[var(--color-accent)]/90 text-white",
 						)}
-						onClick={onConfirm}
+						onClick={handleConfirm}
 						data-testid="confirm-purchase"
 					>
 						{confirmLabel}

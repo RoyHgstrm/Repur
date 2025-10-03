@@ -136,6 +136,46 @@ export const purchasesRouter = createTRPCRouter({
 		};
 	}),
 
+	// Admin/staff: Get total purchases and total revenue
+	totalStats: protectedProcedure.query(async ({ ctx }) => {
+		if (ctx.userRole !== "ADMIN" && ctx.userRole !== "EMPLOYEE") {
+			throw new Error("Vain henkilöstö voi nähdä tilastot");
+		}
+
+		const total = await db
+			.select({
+				count: sql<number>`count(*)`,
+				revenue: sql<string>`coalesce(sum(${purchases.purchasePrice}), '0')`,
+			})
+			.from(purchases)
+			.where(eq(purchases.status, "COMPLETED"));
+
+		return {
+			totalCount: Number(total[0]?.count ?? 0),
+			totalRevenue: Number(total[0]?.revenue ?? 0),
+		};
+	}),
+
+	// Admin/staff: Get breakdown of purchases by status
+	statusBreakdown: protectedProcedure.query(async ({ ctx }) => {
+		if (ctx.userRole !== "ADMIN" && ctx.userRole !== "EMPLOYEE") {
+			throw new Error("Vain henkilöstö voi nähdä tilastot");
+		}
+
+		const breakdown = await db
+			.select({
+				status: purchases.status,
+				count: sql<number>`count(*)`,
+			})
+			.from(purchases)
+			.groupBy(purchases.status);
+
+		return breakdown.map((b) => ({
+			status: b.status,
+			count: Number(b.count ?? 0),
+		}));
+	}),
+
 	// Admin: Refund a purchase via Stripe and email receipt to customer via Stripe
 	refund: protectedProcedure
 		.input(
@@ -230,6 +270,19 @@ export const purchasesRouter = createTRPCRouter({
 					message: "Ostotunnusta ei löytynyt Stripe-sessiolta.",
 				});
 			}
-			return { purchaseId: purchaseId };
+
+			const purchase = await ctx.db.query.purchases.findFirst({
+				where: eq(purchases.id, purchaseId),
+				with: { companyListing: true, buyer: true },
+			});
+
+			if (!purchase) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Ostotapahtumaa ei löytynyt.",
+				});
+			}
+
+			return { purchase: purchase };
 		}),
 });

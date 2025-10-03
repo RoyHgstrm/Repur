@@ -1,0 +1,1 @@
+ALTER TABLE "repur2_purchase" ADD COLUMN "shipping_phone" varchar(256);

@@ -77,6 +77,8 @@ type TradeInListing = {
 	} | null;
 };
 
+import { LogViewer } from "~/components/features/LogViewer";
+
 export default function EmployeeDashboardPage() {
 	const { data: stats } = trpc.purchases.getStats.useQuery(undefined, {
 		refetchOnWindowFocus: false,
@@ -84,11 +86,15 @@ export default function EmployeeDashboardPage() {
 
 	// HOW: Sync Tabs with URL hash so sidebar links (#companyListings, #tradeIns, etc.) switch sections.
 	// WHY: Improves navigation, enables deep-linking and back/forward support.
-	const [tab, setTab] = useReactState<string>("companyListings");
+	const [tab, setTab] = useReactState<"companyListings" | "tradeIns" | "purchases" | "warranties" | "analytics" | "logs">("companyListings");
 	useEffect(() => {
 		const applyHash = () => {
-			const raw = window.location.hash.replace(/^#/, "") || "companyListings";
-			setTab(raw);
+			const raw = window.location.hash.replace(/^#/, "");
+			if (["companyListings", "tradeIns", "purchases", "warranties", "analytics", "logs"].includes(raw)) {
+				setTab(raw as "companyListings" | "tradeIns" | "purchases" | "warranties" | "analytics" | "logs");
+			} else {
+				setTab("companyListings"); // Default tab
+			}
 		};
 		applyHash();
 		window.addEventListener("hashchange", applyHash);
@@ -104,81 +110,89 @@ export default function EmployeeDashboardPage() {
 					? "Ostot"
 					: tab === "warranties"
 						? "Takuut"
-						: tab === "analytics"
-							? "Analytiikka"
-							: "Hallintapaneeli";
-
-	return (
-		<div className="container mx-auto px-4 sm:px-container py-section">
-			<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-				<h1 className="text-2xl sm:text-3xl-fluid lg:text-4xl-fluid font-bold text-[var(--color-neutral)] text-center sm:text-left">
-					Hallintapaneeli
-				</h1>
-				<div className="relative w-full sm:w-auto px-4 sm:px-0">
-					<Input
-						placeholder="Haku (tilaukset, listaukset, asiakkaat)"
-						className="w-full sm:min-w-[280px] lg:min-w-[320px] mx-auto sm:mx-0"
-					/>
-				</div>
-			</div>
-
-			<AdminStats />
-
-			{/* Breadcrumbs */}
-			<div className="mt-4 text-xs sm:text-sm text-[var(--color-text-tertiary)] text-center sm:text-left px-4 sm:px-0">
-				<nav
-					aria-label="murupolku"
-					className="flex items-center justify-center sm:justify-start gap-2"
-				>
-					<span>Hallintapaneeli</span>
-					<span aria-hidden>/</span>
-					<span className="text-[var(--color-text-secondary)]">
-						{sectionTitle}
-					</span>
-				</nav>
-			</div>
-
-			<Tabs
-				value={tab}
-				onValueChange={(v) => {
-					setTab(v);
-					window.location.hash = v;
-				}}
-				className="space-y-6 mt-6"
-			>
-				<TabsList className="sticky top-20 z-10 w-full bg-[var(--color-surface-2)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-2)]/60 overflow-x-auto flex justify-start sm:justify-center">
-					{/* Tabs for larger screens and now scrollable on small screens */}
-					<TabsTrigger
-						value="companyListings"
-						className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
-					>
-						Yrityksen Listaukset
-					</TabsTrigger>
-					<TabsTrigger
-						value="tradeIns"
-						className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
-					>
-						Trade-In Pyynnöt
-					</TabsTrigger>
-					<TabsTrigger
-						value="purchases"
-						className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
-					>
-						Ostot
-					</TabsTrigger>
-					<TabsTrigger
-						value="warranties"
-						className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
-					>
-						Takuut
-					</TabsTrigger>
-					<TabsTrigger
-						value="analytics"
-						className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
-					>
-						Analytiikka
-					</TabsTrigger>
-				</TabsList>
+													: tab === "analytics"
+														? "Analytiikka"
+														: tab === "logs"
+															? "Logs"
+															: "Hallintapaneeli";
+						
+							return (
+								<div className="container mx-auto px-4 sm:px-container py-section">
+									<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+										<h1 className="text-2xl sm:text-3xl-fluid lg:text-4xl-fluid font-bold text-[var(--color-neutral)] text-center sm:text-left">
+											Hallintapaneeli
+										</h1>
+										<div className="relative w-full sm:w-auto px-4 sm:px-0">
+											<Input
+												placeholder="Haku (tilaukset, listaukset, asiakkaat)"
+												className="w-full sm:min-w-[280px] lg:min-w-[320px] mx-auto sm:mx-0"
+											/>
+										</div>
+									</div>
+						
+									<AdminStats />
+						
+									{/* Breadcrumbs */}
+									<div className="mt-4 text-xs sm:text-sm text-[var(--color-text-tertiary)] text-center sm:text-left px-4 sm:px-0">
+										<nav
+											aria-label="murupolku"
+											className="flex items-center justify-center sm:justify-start gap-2"
+										>
+											<span>Hallintapaneeli</span>
+											<span aria-hidden>/</span>
+											<span className="text-[var(--color-text-secondary)]">
+												{sectionTitle}
+											</span>
+										</nav>
+									</div>
+						
+									<Tabs
+										value={tab}
+														onValueChange={(v) => {
+															if (["companyListings", "tradeIns", "purchases", "warranties", "analytics", "logs"].includes(v)) {
+																setTab(v as "companyListings" | "tradeIns" | "purchases" | "warranties" | "analytics" | "logs");
+																window.location.hash = v;
+															}
+														}}										className="space-y-6 mt-6"
+									>
+										<TabsList className="sticky top-20 z-10 w-full bg-[var(--color-surface-2)]/80 backdrop-blur supports-[backdrop-filter]:bg-[var(--color-surface-2)]/60 overflow-x-auto flex justify-start sm:justify-center">
+											{/* Tabs for larger screens and now scrollable on small screens */}
+											<TabsTrigger
+												value="companyListings"
+												className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
+											>
+												Yrityksen Listaukset
+											</TabsTrigger>
+											<TabsTrigger
+												value="tradeIns"
+												className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
+											>
+												Trade-In Pyynnöt
+											</TabsTrigger>
+											<TabsTrigger
+												value="purchases"
+												className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
+											>
+												Ostot
+											</TabsTrigger>
+											<TabsTrigger
+												value="warranties"
+												className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
+											>
+												Takuut
+											</TabsTrigger>
+											<TabsTrigger
+												value="analytics"
+												className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
+											>
+												Analytiikka
+											</TabsTrigger>
+											<TabsTrigger
+												value="logs"
+												className="text-xs sm:text-sm p-2 sm:p-3 whitespace-nowrap"
+											>
+												Logs
+											</TabsTrigger>				</TabsList>
 				{/* The Select component for mobile is removed as the TabsList is now scrollable */}
 
 				<TabsContent value="companyListings" className="mt-4">
@@ -208,6 +222,12 @@ export default function EmployeeDashboardPage() {
 
 				<TabsContent value="analytics">
 					<AdminAnalytics stats={stats} />
+				</TabsContent>
+
+				<TabsContent value="logs">
+					<div className="w-full overflow-x-auto px-4 sm:px-0">
+						<LogViewer />
+					</div>
 				</TabsContent>
 			</Tabs>
 		</div>
@@ -268,6 +288,8 @@ function AdminStats() {
 	);
 }
 
+import { SalesChart } from "~/components/features/SalesChart";
+
 function AdminAnalytics({
 	stats,
 }: {
@@ -279,6 +301,13 @@ function AdminAnalytics({
 		  }
 		| undefined;
 }) {
+	const { data: totalStats } = trpc.purchases.totalStats.useQuery(undefined, {
+		refetchOnWindowFocus: false,
+	});
+	const { data: statusBreakdown } = trpc.purchases.statusBreakdown.useQuery(undefined, {
+		refetchOnWindowFocus: false,
+	});
+
 	return (
 		<Card className="bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-neutral)]">
 			<CardHeader>
@@ -288,6 +317,19 @@ function AdminAnalytics({
 			</CardHeader>
 			<CardContent className="space-y-4">
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+					<Card className="bg-[var(--color-surface-3)] border-[var(--color-border)]">
+						<CardContent className="p-4">
+							<div className="text-sm text-[var(--color-text-tertiary)]">
+								Kaikki ostot
+							</div>
+							<div className="text-2xl-fluid font-bold">
+								{totalStats?.totalCount ?? 0} kpl
+							</div>
+							<div className="text-sm text-[var(--color-text-secondary)]">
+								{totalStats?.totalRevenue ?? 0} €
+							</div>
+						</CardContent>
+					</Card>
 					<Card className="bg-[var(--color-surface-3)] border-[var(--color-border)]">
 						<CardContent className="p-4">
 							<div className="text-sm text-[var(--color-text-tertiary)]">
@@ -315,24 +357,24 @@ function AdminAnalytics({
 						</CardContent>
 					</Card>
 				</div>
-				<div>
+				<SalesChart dailyData={stats?.daily ?? []} />
+
+				<div className="space-y-2">
 					<div className="text-sm text-[var(--color-text-tertiary)] mb-2">
-						Päivittäinen myynti (7pv)
+						Ostotilanne
 					</div>
-					<div className="grid grid-cols-7 gap-2">
-						{stats?.daily.map((d) => (
-							<div
-								key={d.day}
-								className="p-3 rounded-lg bg-[var(--color-surface-3)] border border-[var(--color-border)]"
-							>
-								<div className="text-xs text-[var(--color-text-tertiary)]">
-									{d.day.slice(5)}
-								</div>
-								<div className="text-sm font-semibold">{d.count} kpl</div>
-								<div className="text-xs text-[var(--color-text-secondary)]">
-									{d.revenue} €
-								</div>
-							</div>
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+						{statusBreakdown?.map((item) => (
+							<Card key={item.status} className="bg-[var(--color-surface-3)] border-[var(--color-border)]">
+								<CardContent className="p-4">
+									<div className="text-sm text-[var(--color-text-tertiary)]">
+										{item.status}
+									</div>
+									<div className="text-2xl-fluid font-bold">
+										{item.count} kpl
+									</div>
+								</CardContent>
+							</Card>
 						))}
 					</div>
 				</div>
@@ -340,6 +382,7 @@ function AdminAnalytics({
 		</Card>
 	);
 }
+
 
 function PurchasesTable() {
 	const [q, setQ] = useReactState("");
@@ -393,9 +436,12 @@ function PurchasesTable() {
 								<tr className="text-left text-[var(--color-text-tertiary)] border-b border-[var(--color-border)]/50">
 									<th className="py-2 pr-3">ID</th>
 									<th className="py-2 pr-3">Ostaja</th>
+									<th className="py-2 pr-3">Ostajan sähköposti</th>
 									<th className="py-2 pr-3">Tuote</th>
 									<th className="py-2 pr-3">Hinta (€)</th>
 									<th className="py-2 pr-3">Tila</th>
+									<th className="py-2 pr-3">Osoite</th>
+									<th className="py-2 pr-3">Puhelinnumero</th>
 									<th className="py-2 pr-3">Nosto</th>
 									<th className="py-2 pr-3 w-40">Toiminnot</th>
 								</tr>
@@ -408,11 +454,14 @@ function PurchasesTable() {
 									>
 										<td className="py-2 pr-3 font-mono text-xs">{p.id}</td>
 										<td className="py-2 pr-3">{p.buyer?.email ?? "—"}</td>
+										<td className="py-2 pr-3">{p.buyer?.email ?? "—"}</td>
 										<td className="py-2 pr-3">
 											{p.companyListing?.title ?? "—"}
 										</td>
 										<td className="py-2 pr-3">{Number(p.purchasePrice)} €</td>
 										<td className="py-2 pr-3">{p.status}</td>
+										<td className="py-2 pr-3">{p.shippingAddress}</td>
+										<td className="py-2 pr-3">{p.shippingPhone ?? "—"}</td>
 										<td className="py-2 pr-3">—</td>
 										<td className="py-2 pr-3">
 											<div className="flex gap-2">

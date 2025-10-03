@@ -20,6 +20,13 @@ export const paymentsRouter = createTRPCRouter({
 				companyListingId: z.string(),
 				successUrl: z.string().url(),
 				cancelUrl: z.string().url(),
+				shippingAddress: z.object({
+					street: z.string().min(1, "Katuosoite vaaditaan"),
+					city: z.string().min(1, "Kaupunki vaaditaan"),
+					postalCode: z.string().min(1, "Postinumero vaaditaan"),
+					country: z.string().min(1, "Maa vaaditaan"),
+					phone: z.string().min(1, "Puhelinnumero vaaditaan"),
+				}),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -53,9 +60,10 @@ export const paymentsRouter = createTRPCRouter({
 				userId: ctx.userId,
 				purchasePrice: (unitAmount / 100).toString(),
 				paymentMethod: "stripe", // Will be updated by webhook if needed
-				shippingAddress: "-", // Placeholder, updated by webhook if available or during post-purchase flow
-				status: "PENDING",
-			});
+				                shippingAddress: `${input.shippingAddress.street}, ${input.shippingAddress.postalCode} ${input.shippingAddress.city}, ${input.shippingAddress.country}`,
+				                shippingPhone: input.shippingAddress.phone,
+				                stripeCheckoutSessionId: null, // Will be updated by webhook if needed
+				                status: "PENDING",			});
 
 			// Create Checkout Session
 			const session = await stripe.checkout.sessions.create({

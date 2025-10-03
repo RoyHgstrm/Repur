@@ -1129,7 +1129,7 @@ export default function ListingDetailPage() {
 														? Math.max(0, basePriceNum - discountAmountNum)
 														: basePriceNum;
 												})()}
-												onConfirm={async () => {
+												onConfirm={async (shippingAddress) => { // HOW: Accept shippingAddress from dialog. WHY: Required by payments.createCheckoutSession schema.
 													// Guard server call as well to avoid 401
 													try {
 														const signedIn =
@@ -1148,6 +1148,7 @@ export default function ListingDetailPage() {
 															companyListingId: listing.id,
 															successUrl: `${window.location.origin}/ostos-vahvistus`,
 															cancelUrl: `${window.location.origin}/osta/${listing.id}?maksu=peruttu`,
+															shippingAddress: shippingAddress, // HOW: Pass the collected shipping address. WHY: Fulfills the payments.createCheckoutSession schema requirement.
 														});
 
 														// After receiving the actual purchaseId from the response, update the success URL.

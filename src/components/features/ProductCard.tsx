@@ -438,20 +438,23 @@ export const ProductCard = ({
 									trigger={<span className="hidden sm:inline">Osta Nyt</span>}
 									productTitle={listing.title}
 									priceEUR={finalPrice}
-									onConfirm={async () => {
+									onConfirm={async (shippingAddress) => { // HOW: Accept shippingAddress from dialog. WHY: Required by checkout.mutateAsync schema.
+										// Guard server call as well to avoid 401
 										if (!isSignedIn) {
 											const returnUrl = `${window.location.origin}/osta/${listing.id}`;
 											window.location.href = `/sign-in?redirect_url=${encodeURIComponent(returnUrl)}`;
 											return;
 										}
 										try {
-											const successUrl = `${window.location.origin}/osta/${listing.id}?maksu=onnistui`;
+											const successUrl = `${window.location.origin}/ostos-vahvistus`;
 											const cancelUrl = `${window.location.origin}/osta/${listing.id}?maksu=peruttu`;
 											const res = await checkout.mutateAsync({
 												companyListingId: listing.id,
 												successUrl,
 												cancelUrl,
+												shippingAddress, // HOW: Pass the collected shipping address. WHY: Fulfills the payments.createCheckoutSession schema requirement.
 											});
+
 											const stripe = await getStripe();
 											if (stripe) {
 												// HOW: Redirects to Stripe checkout using direct URL assignment.

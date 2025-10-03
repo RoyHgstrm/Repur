@@ -74,6 +74,11 @@ export async function POST(req: NextRequest) {
 	}
 
 	logger.info(`[Stripe Webhook] Processing event with ID: ${event.id}, Type: ${event.type}`);
+	// Log additional details for debugging, especially for checkout sessions
+	if (event.type === "checkout.session.completed") {
+		const session = event.data.object as Stripe.Checkout.Session;
+		logger.info(`[Stripe Webhook] Checkout Session Details - Amount Total: ${session.amount_total}, Currency: ${session.currency}, Payment Status: ${session.payment_status}`);
+	}
 
 	try {
 		switch (event.type) {
@@ -186,3 +191,5 @@ export async function POST(req: NextRequest) {
 
 	return new Response(JSON.stringify({ received: true }), { status: 200 });
 }
+
+
