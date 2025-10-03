@@ -86,7 +86,7 @@ export default clerkMiddleware(async (authCtx, req: NextRequest) => {
 
 export const config = {
 	matcher: [
-		"/((?!.*\\..*|_next).*)-match",
+		"/((?!.*\\..*|_next).*)",
 		"/",
 		"/(api|trpc)(.*)",
 		"/(admin)(.*)",
