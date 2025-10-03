@@ -21,6 +21,7 @@ export const env = createEnv({
 			.string()
 			.min(1, "SUPABASE_SERVICE_ROLE_KEY puuttuu"), // Supabase service role key
 		NEXT_PUBLIC_SUPABASE_URL: z.string().url(), // Supabase URL, also exposed to client
+    CLERK_SECRET_KEY: z.string().min(1),
 	},
 
 	/**
@@ -35,6 +36,7 @@ export const env = createEnv({
 			.string()
 			.min(1, "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY puuttuu"),
 		NEXT_PUBLIC_SUPABASE_URL: z.string().url(), // Supabase URL
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
 	},
 
 	/**
@@ -52,6 +54,8 @@ export const env = createEnv({
 		UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
 		SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 		NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 		// NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 	},
 	/**
