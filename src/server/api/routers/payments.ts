@@ -60,10 +60,10 @@ export const paymentsRouter = createTRPCRouter({
 				userId: ctx.userId,
 				purchasePrice: (unitAmount / 100).toString(),
 				paymentMethod: "stripe", // Will be updated by webhook if needed
-				                shippingAddress: `${input.shippingAddress.street}, ${input.shippingAddress.postalCode} ${input.shippingAddress.city}, ${input.shippingAddress.country}`,
-				                shippingPhone: input.shippingAddress.phone,
-				                stripeCheckoutSessionId: null, // Will be updated by webhook if needed
-				                status: "PENDING",			});
+				shippingAddress: `${input.shippingAddress.street}, ${input.shippingAddress.postalCode} ${input.shippingAddress.city}, ${input.shippingAddress.country}`,
+				shippingPhone: input.shippingAddress.phone,
+				status: "PENDING",
+			});
 
 			// Create Checkout Session
 			const session = await stripe.checkout.sessions.create({

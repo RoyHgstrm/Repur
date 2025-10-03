@@ -26,7 +26,7 @@ export default async function Image({ params }: { params: { id: string } }) {
 		// Get the main image URL
 		const mainImage =
 			Array.isArray(listing.images) && listing.images.length > 0
-				? await getImage(listing.images[0]) // WHY: Resolve the internal image path to a public Supabase URL.
+				? listing.images[0] // HOW: Use the raw image URL directly from the listing. WHY: The provided image URL is already public and does not need processing.
 				: `${process.env.NEXT_PUBLIC_SITE_URL || "https://repur.fi"}/repur-fi-3.png`;
 
 		// Format price with potential discount
