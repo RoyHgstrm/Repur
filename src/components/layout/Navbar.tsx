@@ -14,11 +14,9 @@ export default function Navbar() {
 	const [open, setOpen] = useState(false);
 	const [scrolled, setScrolled] = useState(false);
 	const panelRef = useRef<HTMLDivElement | null>(null);
-	const [mounted, setMounted] = useState(false); // HOW: Add a mounted state to track if the component is mounted on the client. WHY: To prevent Clerk components from rendering server-side.
 
 	// Track scroll for enhanced backdrop blur
 	useEffect(() => {
-		setMounted(true); // HOW: Set mounted to true after the initial client-side render. WHY: Ensures Clerk components are only rendered client-side.
 		const handleScroll = () => {
 			setScrolled(window.scrollY > 10);
 		};
@@ -113,52 +111,46 @@ export default function Navbar() {
 							</Link>
 
 							<div className="ml-6 pl-6 border-l border-[var(--color-border)] flex items-center gap-3">
-								{mounted && ( // HOW: Conditionally render Clerk components only when mounted. WHY: Prevents server-side rendering issues.
-									<SignedOut>
-										<Link href="/sign-in">
-											<Button
-												size="sm"
-												className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200"
-											>
-												Kirjaudu
-											</Button>
-										</Link>
-									</SignedOut>
-								)}
+								<SignedOut>
+									<Link href="/sign-in">
+										<Button
+											size="sm"
+											className="bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white border-0 shadow-sm hover:shadow-md transition-all duration-200"
+										>
+											Kirjaudu
+										</Button>
+									</Link>
+								</SignedOut>
 
-								{mounted && ( // HOW: Conditionally render Clerk components only when mounted. WHY: Prevents server-side rendering issues.
-									<SignedIn>
-										<UserButton
-											appearance={{
-												elements: {
-													userButtonAvatarBox:
-														"w-8 h-8 hover:scale-105 transition-transform duration-200",
-													userButtonPopoverCard:
-														"bg-white border-slate-200 shadow-xl",
-													userButtonPopoverFooter: "bg-slate-50",
-												},
-											}}
-											afterSignOutUrl="/"
-										/>
-									</SignedIn>
-								)}
-							</div>
-						</div>
-
-						{/* Mobile Controls */}
-						<div className="md:hidden flex items-center gap-3">
-							{mounted && ( // HOW: Conditionally render Clerk components only when mounted. WHY: Prevents server-side rendering issues.
 								<SignedIn>
 									<UserButton
 										appearance={{
 											elements: {
-												userButtonAvatarBox: "w-8 h-8",
+												userButtonAvatarBox:
+													"w-8 h-8 hover:scale-105 transition-transform duration-200",
+												userButtonPopoverCard:
+													"bg-white border-slate-200 shadow-xl",
+												userButtonPopoverFooter: "bg-slate-50",
 											},
 										}}
 										afterSignOutUrl="/"
 									/>
 								</SignedIn>
-							)}
+							</div>
+						</div>
+
+						{/* Mobile Controls */}
+						<div className="md:hidden flex items-center gap-3">
+							<SignedIn>
+								<UserButton
+									appearance={{
+										elements: {
+											userButtonAvatarBox: "w-8 h-8",
+										},
+									}}
+									afterSignOutUrl="/"
+								/>
+							</SignedIn>
 
 							<Button
 								variant="outline"
@@ -222,7 +214,6 @@ export default function Navbar() {
 								className="h-10 w-10"
 								onClick={() => setOpen(false)}
 								aria-label="Sulje valikko"
-								aria-expanded={open}
 							>
 								<svg
 									className="h-6 w-6 text-[var(--color-neutral)] drop-shadow-sm"
@@ -290,17 +281,15 @@ export default function Navbar() {
 								</li>
 							</ul>
 
-							{mounted && ( // HOW: Conditionally render Clerk components only when mounted. WHY: Prevents server-side rendering issues.
-								<SignedOut>
-									<div className="mt-6 pt-6 border-t border-[var(--color-border)]">
-										<Link href="/sign-in" onClick={() => setOpen(false)}>
-											<Button className="w-full h-10 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200">
-												Kirjaudu
-											</Button>
-										</Link>
-									</div>
-								</SignedOut>
-							)}
+							<SignedOut>
+								<div className="mt-6 pt-6 border-t border-[var(--color-border)]">
+									<Link href="/sign-in" onClick={() => setOpen(false)}>
+										<Button className="w-full h-10 text-sm bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white font-medium shadow-sm hover:shadow-md transition-all duration-200">
+											Kirjaudu
+										</Button>
+									</Link>
+								</div>
+							</SignedOut>
 						</nav>
 
 						{/* Footer */}
