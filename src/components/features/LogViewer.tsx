@@ -2,7 +2,6 @@
 
 import { api } from "~/trpc/react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
-import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { fi } from "date-fns/locale";
 import { useState } from "react";
@@ -17,7 +16,7 @@ import {
 } from "~/components/ui/select";
 
 export function LogViewer() {
-  const [limit, setLimit] = useState(100);
+  const [limit] = useState(100);
   const [offset, setOffset] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [logLevel, setLogLevel] = useState<'info' | 'warn' | 'error' | 'all'>('all');

@@ -256,7 +256,7 @@ export const purchasesRouter = createTRPCRouter({
 	// WHY: Enables the client-side success page to retrieve the internal purchaseId after Stripe redirects with a session ID, facilitating subsequent polling for purchase status.
 	getPurchaseIdByCheckoutSession: publicProcedure
 		.input(z.object({ checkoutSessionId: z.string() }))
-		.query(async ({ ctx, input }) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+		.query(async ({ ctx, input }) => {
 			logger.info(`[tRPC] getPurchaseIdByCheckoutSession received checkoutSessionId: ${input.checkoutSessionId}`);
 			const session = await stripe.checkout.sessions.retrieve(
 				input.checkoutSessionId,

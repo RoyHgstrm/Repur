@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 // import Image from 'next/image'; // Removed to avoid conflict
 import { api } from "~/trpc/server";
-import { getImage } from "~/server/utils/image"; // HOW: Import the server-side image utility.
+// import { getImage } from "~/server/utils/image"; // HOW: Remove unused import. WHY: The getImage utility is no longer directly used in this file. The image URL is now expected to be a direct public URL.
 
 // HOW: Define image dimensions for social sharing
 // WHY: Ensure optimal display across platforms
