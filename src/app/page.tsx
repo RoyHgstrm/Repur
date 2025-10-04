@@ -280,10 +280,16 @@ const StatCard = ({
 // HOW: This component renders the main landing page of the application.
 // WHY: It serves as the primary entry point for users, showcasing featured products and company values.
 export default function HomePage() {
+	const [mounted, setMounted] = React.useState(false); // HOW: Add a mounted state to track if the component is mounted on the client. WHY: To prevent tRPC hooks from running server-side during prerendering.
+
+	React.useEffect(() => {
+		setMounted(true); // HOW: Set mounted to true after the initial client-side render. WHY: Ensures tRPC hooks are only executed client-side.
+	}, []);
+
 	// HOW: Get featured listings for hero section and most viewed listings for main section
 	// WHY: Show popular items to increase engagement while keeping hero section for featured promotions
 	const { data: featuredListings } =
-		api.listings.getActiveCompanyListings.useQuery(
+		(mounted ? api.listings.getActiveCompanyListings.useQuery(
 			{ limit: 6, featuredOnly: true },
 			{
 				// HOW: SWR-ish policy for hero listings to avoid stale data while keeping UI snappy.
@@ -296,10 +302,10 @@ export default function HomePage() {
 				refetchIntervalInBackground: true,
 				placeholderData: (prev: ListingWithSeller[] | undefined) => prev,
 			},
-		);
+		) : { data: undefined }); // HOW: Conditionally execute useQuery. WHY: Avoids running client-side tRPC hooks during server-side prerendering.
 	// Get most viewed listings for main section
 	const { data: popularListings, isLoading: isPopularLoading } =
-		api.listings.getActiveCompanyListings.useQuery(
+		(mounted ? api.listings.getActiveCompanyListings.useQuery(
 			{ limit: 6, sortBy: "views", sortOrder: "desc" },
 			{
 				staleTime: 30_000, // treat data as fresh for 30s
@@ -309,16 +315,16 @@ export default function HomePage() {
 				refetchInterval: 60_000, // background revalidate every 60s
 				refetchIntervalInBackground: true,
 			},
-		);
+		) : { data: undefined, isLoading: true }); // HOW: Conditionally execute useQuery. WHY: Avoids running client-side tRPC hooks during server-side prerendering.
 
 	// Cache on client for snappy loads; server caches in Redis.
-	const { data: heroStats } = api.metrics.getHeroStats.useQuery(undefined, {
+	const { data: heroStats } = (mounted ? api.metrics.getHeroStats.useQuery(undefined, {
 		staleTime: 30_000,
 		refetchOnWindowFocus: true,
 		refetchOnReconnect: true,
 		refetchInterval: 120_000,
 		refetchIntervalInBackground: true,
-	});
+	}) : { data: undefined }); // HOW: Conditionally execute useQuery. WHY: Avoids running client-side tRPC hooks during server-side prerendering.
 
 	return (
 		<div className="bg-[var(--color-surface-1)] text-[var(--color-text-primary)] min-h-screen py-6 lg:py-0">
@@ -458,7 +464,7 @@ export default function HomePage() {
 						{/* Right: featured listing / carousel */}
 						<div className="order-last lg:order-last mt-6 lg:mt-0 max-w-[720px] sm:max-w-[600px] w-full mx-auto lg:pl-10">
 							<HeroFeaturedCarousel
-								items={(featuredListings ?? []).slice(0, 5)}
+								items={(mounted && featuredListings) ? featuredListings.slice(0, 5) : []}
 							/>
 						</div>
 					</div>
@@ -517,7 +523,7 @@ export default function HomePage() {
 						<>
 							{/* Mobile list view for featured */}
 							<div className="sm:hidden space-y-3">
-								{popularListings?.map(
+								{mounted && popularListings?.map(
 									(listing: ListingWithSeller, index: number) => (
 										<ListingCard
 											key={listing.id}
@@ -540,7 +546,7 @@ export default function HomePage() {
 								whileInView="visible"
 								viewport={{ once: true, amount: 0.2 }}
 							>
-								{popularListings?.map(
+								{mounted && popularListings?.map(
 									(listing: ListingWithSeller, index: number) => (
 										<motion.div
 											key={listing.id}

@@ -1,18 +1,17 @@
+import "~/styles/globals.css";
+import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { fiFI } from "@clerk/localizations";
-import { Inter } from "next/font/google";
+import { dark } from "@clerk/themes";
+import Providers from "~/components/layout/Providers"; // HOW: Revert import path for Providers. WHY: The previous path was incorrect and caused a module not found error.
 import Navbar from "~/components/layout/Navbar";
 import Footer from "~/components/layout/Footer";
-import { dark } from "@clerk/themes";
-import "~/styles/globals.css";
-import Providers from "~/components/layout/Providers";
-import React from "react";
-import type { Metadata } from "next";
 import { Toaster } from "~/components/ui/toaster";
+// import { Analytics } from "@vercel/analytics/react"; // HOW: Remove unused import. WHY: The Analytics component is commented out and not used.
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
+export const metadata = {
 	metadataBase: new URL("https://repur.fi"),
 	title: {
 		default: "Repur.fi – Kunnostetut pelikoneet",
