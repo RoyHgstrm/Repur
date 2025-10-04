@@ -280,25 +280,32 @@ const StatCard = ({
 // HOW: This component renders the main landing page of the application.
 // WHY: It serves as the primary entry point for users, showcasing featured products and company values.
 export default function HomePage() {
+	const [mounted, setMounted] = React.useState(false); // HOW: Add a mounted state to track if the component is mounted on the client. WHY: To prevent tRPC hooks from running server-side during prerendering.
+
+	React.useEffect(() => {
+		setMounted(true); // HOW: Set mounted to true after the initial client-side render. WHY: Ensures tRPC hooks are only executed client-side.
+	}, []);
+
 	// HOW: Get featured listings for hero section and most viewed listings for main section
 	// WHY: Show popular items to increase engagement while keeping hero section for featured promotions
-	const { data: featuredListings } =
-		api.listings.getActiveCompanyListings.useQuery(
-			{ limit: 6, featuredOnly: true },
-			{
-				// HOW: SWR-ish policy for hero listings to avoid stale data while keeping UI snappy.
-				// WHY: Serve cached data immediately, then revalidate frequently so sold/new items reflect quickly.
-				staleTime: 15_000, // treat data as fresh for 15s
-				gcTime: 5 * 60_000, // keep in cache for 5 min
-				refetchOnWindowFocus: true,
-				refetchOnReconnect: true,
-				refetchInterval: 60_000, // background revalidate every 60s
-				refetchIntervalInBackground: true,
-				placeholderData: (prev: ListingWithSeller[] | undefined) => prev,
-			},
-		);
+	const { data: featuredListings } = api.listings.getActiveCompanyListings.useQuery(
+		{ limit: 6, featuredOnly: true },
+		{
+			// HOW: SWR-ish policy for hero listings to avoid stale data while keeping UI snappy.
+			// WHY: Serve cached data immediately, then revalidate frequently so sold/new items reflect quickly.
+			staleTime: 15_000, // treat data as fresh for 15s
+			gcTime: 5 * 60_000, // keep in cache for 5 min
+			refetchOnWindowFocus: true,
+			refetchOnReconnect: true,
+			refetchInterval: 60_000, // background revalidate every 60s
+			refetchIntervalInBackground: true,
+			placeholderData: (prev: ListingWithSeller[] | undefined) => prev,
+			enabled: mounted, // HOW: Only enable query when mounted. WHY: Prevents server-side query execution
+		}
+	);
+
 	// Get most viewed listings for main section
-	const { data: popularListings, isLoading: isPopularLoading } =
+	const { data: popularListings, isLoading: isPopularLoading } = 
 		api.listings.getActiveCompanyListings.useQuery(
 			{ limit: 6, sortBy: "views", sortOrder: "desc" },
 			{
@@ -308,7 +315,8 @@ export default function HomePage() {
 				refetchOnReconnect: true,
 				refetchInterval: 60_000, // background revalidate every 60s
 				refetchIntervalInBackground: true,
-			},
+				enabled: mounted, // HOW: Only enable query when mounted. WHY: Prevents server-side query execution
+			}
 		);
 
 	// Cache on client for snappy loads; server caches in Redis.
@@ -318,6 +326,7 @@ export default function HomePage() {
 		refetchOnReconnect: true,
 		refetchInterval: 120_000,
 		refetchIntervalInBackground: true,
+		enabled: mounted, // HOW: Only enable query when mounted. WHY: Prevents server-side query execution
 	});
 
 	return (

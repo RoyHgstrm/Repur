@@ -1,3 +1,4 @@
+import { getImage } from "~/server/utils/image";
 import type { Metadata } from "next";
 import type React from "react";
 import { api as createApiCaller } from "~/trpc/server";
@@ -20,10 +21,9 @@ export async function generateMetadata({
 		const description =
 			(listing.description ?? "").slice(0, 160) ||
 			"Kunnostettu pelikone 12 kk takuulla.";
-		const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://repur.fi"; // Fallback
 		const image =
 			Array.isArray(listing.images) && listing.images[0]
-				? `${baseUrl}${listing.images[0]}`
+				? await getImage(listing.images[0])
 				: undefined;
 
 		return {
